@@ -4,6 +4,8 @@ import { useFirestore } from '../../hooks/useFirestore'
 import { useAuth } from '../../contexts/AuthContext'
 import { useSubscription } from '../../hooks/useSubscription'
 import UpgradeModal from '../subscription/UpgradeModal'
+import QuizTip from './QuizTip'
+import { getPakoTip } from '../../config/curriculum'
 
 function fmt(s) { return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}` }
 
@@ -85,6 +87,7 @@ export default function QuizRunner() {
   const [submitting, setSubmitting] = useState(false)
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [feedbackType, setFeedbackType] = useState(null) // 'correct' | 'wrong'
+  const [pakoTip,     setPakoTip]     = useState({ visible: false, text: '', isCorrect: null })
   const timerRef   = useRef(null)
   const autoRef    = useRef(false)
   const submitRef  = useRef(null)   // always points to latest handleSubmit
@@ -120,10 +123,13 @@ export default function QuizRunner() {
     setAnswers(a=>({...a,[qid]:opt}))
     if(mode==='practice'){
       setRevealed(r=>({...r,[qid]:true}))
-      const currentQ = questions.find(qq => qq.id === qid)
+      const currentQ  = questions.find(qq => qq.id === qid)
       const isCorrect = currentQ && opt === currentQ.correctAnswer
       setFeedbackType(isCorrect ? 'correct' : 'wrong')
       setTimeout(() => setFeedbackType(null), 1300)
+      // Professor Pako tip — use question explanation or topic-based tip
+      const tipText = currentQ?.explanation?.trim() || getPakoTip(currentQ?.topic, isCorrect)
+      setPakoTip({ visible: true, text: tipText, isCorrect })
     }
   }
 
@@ -269,6 +275,16 @@ export default function QuizRunner() {
             </button>
           ))}
         </div>
+
+        {/* ── Professor Pako Tip ─────────────────────────────── */}
+        {isRev && (
+          <QuizTip
+            isCorrect={ua === q.correctAnswer ? true : ua === undefined ? null : false}
+            tipText={pakoTip.text}
+            visible={pakoTip.visible}
+            onDismiss={() => setPakoTip(p => ({ ...p, visible: false }))}
+          />
+        )}
 
         {isRev&&(
           <div className={`p-4 rounded-2xl mb-4 animate-slide-up ${ua===q.correctAnswer?'bg-green-100 border-2 border-green-300':ua===undefined?'bg-gray-100 border-2 border-gray-300':'bg-orange-50 border-2 border-orange-200'}`}>

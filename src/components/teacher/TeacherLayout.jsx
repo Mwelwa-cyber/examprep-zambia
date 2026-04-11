@@ -4,16 +4,14 @@ import { useAuth } from '../../contexts/AuthContext'
 import Logo from '../ui/Logo'
 
 const NAV = [
-  { to: '/admin',             icon: '📊', label: 'Dashboard',      end: true },
-  { to: '/admin/lessons/new', icon: '📖', label: 'Create Lesson'             },
-  { to: '/admin/quizzes/new', icon: '✏️', label: 'Create Quiz'               },
-  { to: '/admin/papers/upload', icon: '📤', label: 'Upload Paper'            },
-  { to: '/admin/content',     icon: '📁', label: 'Manage Content'            },
-  { to: '/admin/approvals',   icon: '🔔', label: 'Approvals'                 },
-  { to: '/admin/results',     icon: '📈', label: 'Results'                   },
+  { to: '/teacher',               icon: '📊', label: 'My Dashboard', end: true },
+  { to: '/teacher/content',       icon: '📁', label: 'My Content'              },
+  { to: '/teacher/quizzes/new',   icon: '✏️', label: 'Create Quiz'             },
+  { to: '/teacher/lessons/new',   icon: '📖', label: 'Create Lesson'           },
+  { to: '/teacher/papers/upload', icon: '📤', label: 'Upload Paper'            },
 ]
 
-export default function AdminLayout({ children }) {
+export default function TeacherLayout({ children }) {
   const { logout, userProfile } = useAuth()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -30,7 +28,7 @@ export default function AdminLayout({ children }) {
         {/* Logo */}
         <div className="px-4 py-5 border-b border-gray-100">
           <Logo variant="full" size="md" />
-          <p className="text-xs font-bold text-green-600 mt-1.5 pl-1">Admin Panel</p>
+          <p className="text-xs font-bold text-blue-600 mt-1.5 pl-1">Teacher Panel</p>
         </div>
 
         {/* Nav Links */}
@@ -39,7 +37,7 @@ export default function AdminLayout({ children }) {
             <NavLink key={item.to} to={item.to} end={item.end}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                  isActive ? 'bg-green-50 text-green-700 shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
+                  isActive ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
                 }`
               }>
               <span className="text-base">{item.icon}</span>
@@ -51,11 +49,11 @@ export default function AdminLayout({ children }) {
         {/* User info + Logout */}
         <div className="p-3 border-t border-gray-100">
           <div className="flex items-center gap-2 px-3 py-2 mb-1">
-            <div className="w-7 h-7 bg-green-100 rounded-full flex items-center justify-center text-green-700 font-black text-xs flex-shrink-0">
-              {(userProfile?.displayName || 'A')[0].toUpperCase()}
+            <div className="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-black text-xs flex-shrink-0">
+              {(userProfile?.displayName || 'T')[0].toUpperCase()}
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-black text-gray-800 truncate">{userProfile?.displayName || 'Admin'}</p>
+              <p className="text-xs font-black text-gray-800 truncate">{userProfile?.displayName || 'Teacher'}</p>
               <p className="text-xs text-gray-400 truncate">{userProfile?.email}</p>
             </div>
           </div>
@@ -71,7 +69,7 @@ export default function AdminLayout({ children }) {
         <div className="flex items-center justify-between px-4 h-16">
           <div className="flex items-center gap-2.5">
             <Logo variant="icon" size="md" />
-            <span className="font-black text-gray-800 text-sm">Admin Panel</span>
+            <span className="font-black text-gray-800 text-sm">Teacher Panel</span>
           </div>
           <button onClick={() => setMobileOpen(o => !o)}
             className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 min-h-0">
@@ -91,7 +89,7 @@ export default function AdminLayout({ children }) {
                 onClick={() => setMobileOpen(false)}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${
-                    isActive ? 'bg-green-50 text-green-700' : 'text-gray-600 hover:bg-gray-50'
+                    isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'
                   }`
                 }>
                 <span>{item.icon}</span>{item.label}
@@ -106,7 +104,7 @@ export default function AdminLayout({ children }) {
       )}
 
       {/* ── Main Content ────────────────────────────────── */}
-      <main className="flex-1 min-w-0 md:pt-0 pt-14">
+      <main className="flex-1 min-w-0 md:pt-0 pt-16">
         <div className="max-w-4xl mx-auto px-4 py-6">
           {children}
         </div>

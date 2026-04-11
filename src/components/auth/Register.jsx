@@ -25,7 +25,8 @@ export default function Register() {
     setError(''); setLoading(true)
     try {
       await register(form.email.trim(), form.password, form.displayName.trim(), form.grade, form.school.trim(), form.role)
-      navigate('/dashboard')
+      // RootRedirect will send learners → /dashboard, teachers → /teacher
+      navigate('/')
     } catch (err) {
       setError(FRIENDLY[err.code] ?? 'Registration failed. Please try again.')
     } finally { setLoading(false) }

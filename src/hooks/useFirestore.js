@@ -270,6 +270,80 @@ export function useFirestore() {
     await deleteDoc(doc(db, 'lessons', lessonId))
   }
 
+  // ── Teacher / content-workflow ───────────────────────────────
+  async function getMyQuizzes(uid) {
+    try {
+      const snap = await getDocs(query(collection(db, 'quizzes'), where('createdBy', '==', uid), orderBy('createdAt', 'desc')))
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    } catch (e) { console.error('getMyQuizzes:', e); return [] }
+  }
+
+  async function getMyLessons(uid) {
+    try {
+      const snap = await getDocs(query(collection(db, 'lessons'), where('createdBy', '==', uid), orderBy('createdAt', 'desc')))
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    } catch (e) { console.error('getMyLessons:', e); return [] }
+  }
+
+  async function getMyPapers(uid) {
+    try {
+      const snap = await getDocs(query(collection(db, 'papers'), where('uploadedBy', '==', uid), orderBy('uploadedAt', 'desc')))
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    } catch (e) { console.error('getMyPapers:', e); return [] }
+  }
+
+  async function getPendingApprovals() {
+    try {
+      const [qSnap, lSnap, pSnap] = await Promise.all([
+        getDocs(query(collection(db, 'quizzes'), where('status', '==', 'pending'), orderBy('submittedAt', 'desc'))),
+        getDocs(query(collection(db, 'lessons'), where('status', '==', 'pending'), orderBy('submittedAt', 'desc'))),
+        getDocs(query(collection(db, 'papers'),  where('status', '==', 'pending'), orderBy('submittedAt', 'desc'))),
+      ])
+      return [
+        ...qSnap.docs.map(d => ({ id: d.id, contentType: 'quiz',   ...d.data() })),
+        ...lSnap.docs.map(d => ({ id: d.id, contentType: 'lesson', ...d.data() })),
+        ...pSnap.docs.map(d => ({ id: d.id, contentType: 'paper',  ...d.data() })),
+      ].sort((a, b) => (b.submittedAt?.toMillis?.() ?? 0) - (a.submittedAt?.toMillis?.() ?? 0))
+    } catch (e) { console.error('getPendingApprovals:', e); return [] }
+  }
+
+  async function submitForApproval(contentType, id) {
+    const col = contentType === 'quiz' ? 'quizzes' : contentType === 'lesson' ? 'lessons' : 'papers'
+    await updateDoc(doc(db, col, id), { status: 'pending', submittedAt: serverTimestamp() })
+  }
+
+  async function withdrawFromApproval(contentType, id) {
+    const col = contentType === 'quiz' ? 'quizzes' : contentType === 'lesson' ? 'lessons' : 'papers'
+    await updateDoc(doc(db, col, id), { status: 'draft', submittedAt: null })
+  }
+
+  async function approveContent(contentType, id, adminId) {
+    const col = contentType === 'quiz' ? 'quizzes' : contentType === 'lesson' ? 'lessons' : 'papers'
+    await updateDoc(doc(db, col, id), {
+      status: 'published', isPublished: true,
+      approvedBy: adminId, approvedAt: serverTimestamp(),
+    })
+  }
+
+  async function rejectContent(contentType, id, adminId, reason = '') {
+    const col = contentType === 'quiz' ? 'quizzes' : contentType === 'lesson' ? 'lessons' : 'papers'
+    await updateDoc(doc(db, col, id), {
+      status: 'rejected', isPublished: false,
+      rejectionReason: reason, rejectedBy: adminId, rejectedAt: serverTimestamp(),
+    })
+  }
+
+  async function getAllPapers() {
+    try {
+      const snap = await getDocs(query(collection(db, 'papers'), orderBy('uploadedAt', 'desc')))
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    } catch (e) { console.error('getAllPapers:', e); return [] }
+  }
+
+  async function updatePaper(paperId, data) {
+    await updateDoc(doc(db, 'papers', paperId), data)
+  }
+
   return {
     getQuizzes, getAllQuizzes, getQuizzesByTeacher, getQuizById, createQuiz, updateQuiz, deleteQuiz,
     getQuestions, saveQuestions,
@@ -279,5 +353,8 @@ export function useFirestore() {
     checkAndConsumeAttempt,
     submitPaymentRequest, getPendingPayments, getAllPayments, confirmPayment, rejectPayment, grantPremium, revokePremium,
     getLessons, getAllLessons, getLessonById, createLesson, updateLesson, deleteLesson,
+    getMyQuizzes, getMyLessons, getMyPapers,
+    getPendingApprovals, submitForApproval, withdrawFromApproval, approveContent, rejectContent,
+    getAllPapers, updatePaper,
   }
 }

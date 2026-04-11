@@ -12,7 +12,7 @@ const SELECT = 'border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:bo
 
 export default function CreateLesson() {
   const { createLesson, updateLesson, getLessonById } = useFirestore()
-  const { currentUser } = useAuth()
+  const { currentUser, isAdmin } = useAuth()
   const navigate = useNavigate()
 
   const [form, setForm] = useState({
@@ -32,21 +32,29 @@ export default function CreateLesson() {
   function set(field, val) { setForm(f => ({ ...f, [field]: val })) }
   function show(msg)       { setToast(msg); setTimeout(() => setToast(null), 3500) }
 
-  async function handleSave(publish = false) {
+  // publish=true  → admin publishes directly
+  // submit=true   → teacher submits for approval
+  // neither       → save draft
+  async function handleSave({ publish = false, submit = false } = {}) {
     if (!form.title.trim())   { show('❌ Please enter a lesson title.'); return }
     if (!form.topic.trim())   { show('❌ Please enter a topic.'); return }
     if (!form.content.trim()) { show('❌ Please enter the lesson content.'); return }
     setSaving(true)
     try {
-      const id = await createLesson({
+      const status = publish ? 'published' : submit ? 'pending' : 'draft'
+      await createLesson({
         ...form,
         isPublished: publish,
+        status,
         createdBy:   currentUser.uid,
         objectives:  form.objectives.split('\n').map(s => s.trim()).filter(Boolean),
         keyVocab:    form.keyVocab.split(',').map(s => s.trim()).filter(Boolean),
+        ...(submit && { submittedAt: new Date() }),
       })
-      show(publish ? '✅ Lesson published!' : '✅ Lesson saved as draft!')
-      setTimeout(() => navigate('/admin/content'), 1200)
+      const msg = publish ? '✅ Lesson published!' : submit ? '📤 Submitted for approval!' : '✅ Lesson saved as draft!'
+      show(msg)
+      const returnPath = isAdmin ? '/admin/content' : '/teacher/content'
+      setTimeout(() => navigate(returnPath), 1200)
     } catch (e) {
       console.error(e)
       show('❌ Failed to save: ' + e.message)
@@ -131,14 +139,21 @@ export default function CreateLesson() {
 
       {/* Actions */}
       <div className="flex gap-3 pb-6">
-        <button onClick={() => handleSave(false)} disabled={saving}
+        <button onClick={() => handleSave({})} disabled={saving}
           className="flex-1 border-2 border-green-600 text-green-600 font-black py-3.5 rounded-2xl disabled:opacity-50 min-h-0 hover:bg-green-50 transition-colors">
           {saving ? '⏳ Saving…' : '💾 Save Draft'}
         </button>
-        <button onClick={() => handleSave(true)} disabled={saving}
-          className="flex-1 bg-green-600 hover:bg-green-700 text-white font-black py-3.5 rounded-2xl disabled:opacity-50 min-h-0 transition-colors">
-          {saving ? '⏳ Publishing…' : '🚀 Publish Lesson'}
-        </button>
+        {isAdmin ? (
+          <button onClick={() => handleSave({ publish: true })} disabled={saving}
+            className="flex-1 bg-green-600 hover:bg-green-700 text-white font-black py-3.5 rounded-2xl disabled:opacity-50 min-h-0 transition-colors">
+            {saving ? '⏳ Publishing…' : '🚀 Publish Lesson'}
+          </button>
+        ) : (
+          <button onClick={() => handleSave({ submit: true })} disabled={saving}
+            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black py-3.5 rounded-2xl disabled:opacity-50 min-h-0 transition-colors">
+            {saving ? '⏳ Submitting…' : '📤 Submit for Approval'}
+          </button>
+        )}
       </div>
     </div>
   )

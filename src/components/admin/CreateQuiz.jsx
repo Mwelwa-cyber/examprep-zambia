@@ -283,7 +283,7 @@ function QuestionCard({ q, qi, total, onChange, onRemove, onMove, onImageUpload,
 // ── Main component ─────────────────────────────────────────────────────────
 export default function CreateQuiz() {
   const { createQuiz, saveQuestions } = useFirestore()
-  const { currentUser } = useAuth()
+  const { currentUser, isAdmin } = useAuth()
   const navigate = useNavigate()
 
   const [form, setForm] = useState({
@@ -376,17 +376,23 @@ export default function CreateQuiz() {
   }
 
   // ── Save ──────────────────────────────────────────────────────────────────
-  async function handleSave(publish = false) {
+  // publish=true  → admin publishes directly (isPublished:true, status:'published')
+  // submit=true   → teacher submits for approval (isPublished:false, status:'pending')
+  // neither       → save draft (isPublished:false, status:'draft')
+  async function handleSave({ publish = false, submit = false } = {}) {
     if (!validate()) return
     setSaving(true)
     try {
       const totalMarks = questions.reduce((s, q) => s + (q.marks || 1), 0)
+      const status     = publish ? 'published' : submit ? 'pending' : 'draft'
       const quizId = await createQuiz({
         ...form,
         totalMarks,
         questionCount: questions.length,
         isPublished: publish,
+        status,
         createdBy:   currentUser.uid,
+        ...(submit && { submittedAt: new Date() }),
       })
       await saveQuestions(quizId, questions.map(q => ({
         text:          q.text.trim(),
@@ -398,8 +404,10 @@ export default function CreateQuiz() {
         marks:         q.marks || 1,
         type:          q.type,
       })))
-      show(publish ? '✅ Quiz published!' : '✅ Saved as draft!')
-      setTimeout(() => navigate('/admin/content'), 1200)
+      const msg = publish ? '✅ Quiz published!' : submit ? '📤 Submitted for approval!' : '✅ Saved as draft!'
+      show(msg)
+      const returnPath = isAdmin ? '/admin/content' : '/teacher/content'
+      setTimeout(() => navigate(returnPath), 1200)
     } catch (e) {
       console.error(e)
       show('❌ Failed to save: ' + e.message, true)
@@ -501,19 +509,29 @@ export default function CreateQuiz() {
       {/* Save actions */}
       <div className="flex gap-3 pb-6">
         <button
-          onClick={() => handleSave(false)}
+          onClick={() => handleSave({})}
           disabled={saving || anyUploading}
           className="flex-1 border-2 border-green-600 text-green-600 font-black py-3.5 rounded-2xl disabled:opacity-50 min-h-0 hover:bg-green-50 transition-colors"
         >
           {saving ? '⏳ Saving…' : anyUploading ? '⏳ Uploading…' : '💾 Save Draft'}
         </button>
-        <button
-          onClick={() => handleSave(true)}
-          disabled={saving || anyUploading}
-          className="flex-1 bg-green-600 hover:bg-green-700 text-white font-black py-3.5 rounded-2xl disabled:opacity-50 min-h-0 transition-colors"
-        >
-          {saving ? '⏳ Publishing…' : anyUploading ? '⏳ Uploading…' : '🚀 Publish Quiz'}
-        </button>
+        {isAdmin ? (
+          <button
+            onClick={() => handleSave({ publish: true })}
+            disabled={saving || anyUploading}
+            className="flex-1 bg-green-600 hover:bg-green-700 text-white font-black py-3.5 rounded-2xl disabled:opacity-50 min-h-0 transition-colors"
+          >
+            {saving ? '⏳ Publishing…' : anyUploading ? '⏳ Uploading…' : '🚀 Publish Quiz'}
+          </button>
+        ) : (
+          <button
+            onClick={() => handleSave({ submit: true })}
+            disabled={saving || anyUploading}
+            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black py-3.5 rounded-2xl disabled:opacity-50 min-h-0 transition-colors"
+          >
+            {saving ? '⏳ Submitting…' : anyUploading ? '⏳ Uploading…' : '📤 Submit for Approval'}
+          </button>
+        )}
       </div>
     </div>
   )

@@ -9,6 +9,11 @@ service cloud.firestore {
     function isAdmin() { return isAuthed() && callerRole() == 'admin'; }
     function isTeacherOrAbove() { return isAuthed() && (callerRole() == 'teacher' || callerRole() == 'admin'); }
     function incoming() { return request.resource.data; }
+    // Teachers cannot set isPublished:true or status:'published'
+    function teacherNotPublishing() {
+      return incoming().isPublished == false
+        && incoming().get('status', 'draft') != 'published';
+    }
 
     // ── users ─────────────────────────────────────────────────
     match /users/{userId} {
@@ -33,9 +38,17 @@ service cloud.firestore {
         resource.data.isPublished == true || isTeacherOrAbove()
         || resource.data.createdBy == request.auth.uid
       );
-      allow create: if isTeacherOrAbove() && incoming().createdBy == request.auth.uid;
-      allow update: if isAdmin() || (isTeacherOrAbove() && resource.data.createdBy == request.auth.uid);
-      allow delete: if isAdmin() || (isTeacherOrAbove() && resource.data.createdBy == request.auth.uid);
+      // Admin: create anything. Teacher: only draft/pending (cannot publish directly)
+      allow create: if isAdmin() && incoming().createdBy == request.auth.uid
+        || (isTeacherOrAbove() && incoming().createdBy == request.auth.uid && teacherNotPublishing());
+      // Admin: update anything. Teacher: only own non-published content, cannot publish.
+      allow update: if isAdmin()
+        || (isTeacherOrAbove() && resource.data.createdBy == request.auth.uid
+            && resource.data.isPublished == false && teacherNotPublishing());
+      // Admin can delete anything; teachers can only delete their own unpublished content
+      allow delete: if isAdmin()
+        || (isTeacherOrAbove() && resource.data.createdBy == request.auth.uid
+            && resource.data.isPublished == false);
 
       match /questions/{questionId} {
         allow read: if isAuthed();
@@ -60,18 +73,35 @@ service cloud.firestore {
     // ── papers ────────────────────────────────────────────────
     match /papers/{paperId} {
       allow read: if isAuthed();
-      allow create: if isTeacherOrAbove() && incoming().uploadedBy == request.auth.uid;
-      allow update: if isAdmin() || (isTeacherOrAbove() && resource.data.uploadedBy == request.auth.uid);
-      allow delete: if isAdmin() || (isTeacherOrAbove() && resource.data.uploadedBy == request.auth.uid);
+      // Admin: create anything. Teacher: only draft/pending (cannot publish directly)
+      allow create: if isAdmin() && incoming().uploadedBy == request.auth.uid
+        || (isTeacherOrAbove() && incoming().uploadedBy == request.auth.uid && teacherNotPublishing());
+      // Admin: update anything. Teacher: own non-published content only, cannot publish.
+      allow update: if isAdmin()
+        || (isTeacherOrAbove() && resource.data.uploadedBy == request.auth.uid
+            && resource.data.isPublished == false && teacherNotPublishing());
+      allow delete: if isAdmin()
+        || (isTeacherOrAbove() && resource.data.uploadedBy == request.auth.uid
+            && resource.data.isPublished == false);
     }
 
     // ── lessons ───────────────────────────────────────────────
     match /lessons/{lessonId} {
-      // Learners can only read published lessons; admins can read all
-      allow read: if isAuthed() && (resource.data.isPublished == true || isAdmin());
-      allow create: if isAdmin() && incoming().createdBy == request.auth.uid;
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      // Learners can only read published; teachers can read their own or any (if teacher+); admin reads all
+      allow read: if isAuthed() && (
+        resource.data.isPublished == true || isAdmin()
+        || (isTeacherOrAbove() && resource.data.createdBy == request.auth.uid)
+      );
+      // Admin: create anything. Teacher: only draft/pending.
+      allow create: if isAdmin() && incoming().createdBy == request.auth.uid
+        || (isTeacherOrAbove() && incoming().createdBy == request.auth.uid && teacherNotPublishing());
+      // Admin: update anything. Teacher: own non-published content only, cannot publish.
+      allow update: if isAdmin()
+        || (isTeacherOrAbove() && resource.data.createdBy == request.auth.uid
+            && resource.data.isPublished == false && teacherNotPublishing());
+      allow delete: if isAdmin()
+        || (isTeacherOrAbove() && resource.data.createdBy == request.auth.uid
+            && resource.data.isPublished == false);
     }
 
     // ── payments ──────────────────────────────────────────────

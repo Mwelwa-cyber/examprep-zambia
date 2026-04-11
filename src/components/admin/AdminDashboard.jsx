@@ -5,20 +5,23 @@ import { useAuth } from '../../contexts/AuthContext'
 import { seedFirestore } from '../../utils/seedData'
 import { db } from '../../firebase/config'
 
-function StatCard({ icon, label, value, color, loading }) {
-  const colors = {
-    green:  'bg-green-50  text-green-600  border-green-100',
-    blue:   'bg-blue-50   text-blue-600   border-blue-100',
-    orange: 'bg-orange-50 text-orange-600 border-orange-100',
-    purple: 'bg-purple-50 text-purple-600 border-purple-100',
-  }
-  return (
-    <div className={`rounded-2xl border p-5 ${colors[color]}`}>
+const StatCard_colors = {
+  green:  'bg-green-50  text-green-600  border-green-100',
+  blue:   'bg-blue-50   text-blue-600   border-blue-100',
+  orange: 'bg-orange-50 text-orange-600 border-orange-100',
+  purple: 'bg-purple-50 text-purple-600 border-purple-100',
+  yellow: 'bg-yellow-50 text-yellow-600 border-yellow-100',
+}
+
+function StatCard({ icon, label, value, color, loading, linkTo }) {
+  const inner = (
+    <div className={`rounded-2xl border p-5 ${StatCard_colors[color]} ${linkTo ? 'hover:shadow-md transition-shadow cursor-pointer' : ''}`}>
       <div className="text-3xl mb-2">{icon}</div>
       <div className="text-2xl font-black text-gray-800">{loading ? <span className="animate-pulse">…</span> : value}</div>
       <div className="text-sm font-bold text-gray-500 mt-0.5">{label}</div>
     </div>
   )
+  return linkTo ? <Link to={linkTo}>{inner}</Link> : inner
 }
 
 function QuickAction({ to, icon, label, sub, color }) {
@@ -41,9 +44,9 @@ function QuickAction({ to, icon, label, sub, color }) {
 
 export default function AdminDashboard() {
   const { currentUser } = useAuth()
-  const { getAllLessons, getAllQuizzes, getAllUsers, getAllResults } = useFirestore()
+  const { getAllLessons, getAllQuizzes, getAllUsers, getAllResults, getPendingApprovals } = useFirestore()
 
-  const [stats, setStats]     = useState({ lessons: 0, quizzes: 0, learners: 0, results: 0 })
+  const [stats, setStats]     = useState({ lessons: 0, quizzes: 0, learners: 0, results: 0, pending: 0 })
   const [recent, setRecent]   = useState([])
   const [loading, setLoading] = useState(true)
   const [seeding, setSeeding] = useState(false)
@@ -62,14 +65,15 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     async function load() {
-      const [lessons, quizzes, users, results] = await Promise.all([
-        getAllLessons(), getAllQuizzes(), getAllUsers(), getAllResults(),
+      const [lessons, quizzes, users, results, pending] = await Promise.all([
+        getAllLessons(), getAllQuizzes(), getAllUsers(), getAllResults(), getPendingApprovals(),
       ])
       setStats({
         lessons:  lessons.length,
         quizzes:  quizzes.length,
         learners: users.filter(u => u.role === 'learner' || u.role === 'student').length,
         results:  results.length,
+        pending:  pending.length,
       })
       setRecent(results.slice(0, 8))
       setLoading(false)
@@ -97,11 +101,12 @@ export default function AdminDashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <StatCard icon="📖" label="Lessons"  value={stats.lessons}  color="green"  loading={loading} />
         <StatCard icon="📝" label="Quizzes"  value={stats.quizzes}  color="blue"   loading={loading} />
         <StatCard icon="👥" label="Learners" value={stats.learners} color="orange" loading={loading} />
         <StatCard icon="📊" label="Results"  value={stats.results}  color="purple" loading={loading} />
+        <StatCard icon="🔔" label="Pending"  value={stats.pending}  color="yellow" loading={loading} linkTo="/admin/approvals" />
       </div>
 
       {/* Quick Actions */}
