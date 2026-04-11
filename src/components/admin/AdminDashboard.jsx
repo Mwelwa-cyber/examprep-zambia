@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useFirestore } from '../../hooks/useFirestore'
+import { useAuth } from '../../contexts/AuthContext'
 import { seedFirestore } from '../../utils/seedData'
 import { db } from '../../firebase/config'
 
@@ -39,6 +40,7 @@ function QuickAction({ to, icon, label, sub, color }) {
 }
 
 export default function AdminDashboard() {
+  const { currentUser } = useAuth()
   const { getAllLessons, getAllQuizzes, getAllUsers, getAllResults } = useFirestore()
 
   const [stats, setStats]     = useState({ lessons: 0, quizzes: 0, learners: 0, results: 0 })
@@ -51,7 +53,7 @@ export default function AdminDashboard() {
     if (!window.confirm('This will add sample quizzes to Firestore. Continue?')) return
     setSeeding(true); setSeedMsg('')
     try {
-      await seedFirestore(db)
+      await seedFirestore(db, currentUser.uid)
       setSeedMsg('✅ Sample data seeded successfully!')
     } catch (e) {
       setSeedMsg('❌ ' + e.message)

@@ -150,11 +150,11 @@ const grade7English2023Qs = [
   { text: 'Which members play volleyball as well as netball for extra-curricular activities?', options: ['Chola, Elizabeth, Linda, Lengwe, Natasha and Kelly.','Esther, Busisiwe, Sarah, Natasha, Kelly, Linda and Lengwe.','Linda, Lengwe, Natasha and Kelly.','Natasha, Kelly, Lisa, Mapenzi, Chanda and Kapiji.'], correctAnswer: 0, topic: 'Reading Comprehension', marks: 1 },
 ]
 
-export async function seedFirestore(db) {
+export async function seedFirestore(db, uid) {
   // Quiz 1
   const q1Ref = doc(collection(db, 'quizzes'))
   const batch1 = writeBatch(db)
-  batch1.set(q1Ref, { ...grade5Math, createdBy: 'seed', createdAt: serverTimestamp() })
+  batch1.set(q1Ref, { ...grade5Math, createdBy: uid, createdAt: serverTimestamp() })
   grade5MathQs.forEach((q, i) => {
     const qRef = doc(collection(db, 'quizzes', q1Ref.id, 'questions'))
     batch1.set(qRef, { ...q, order: i + 1 })
@@ -164,7 +164,7 @@ export async function seedFirestore(db) {
   // Quiz 2
   const q2Ref = doc(collection(db, 'quizzes'))
   const batch2 = writeBatch(db)
-  batch2.set(q2Ref, { ...grade6English, createdBy: 'seed', createdAt: serverTimestamp() })
+  batch2.set(q2Ref, { ...grade6English, createdBy: uid, createdAt: serverTimestamp() })
   grade6EnglishQs.forEach((q, i) => {
     const qRef = doc(collection(db, 'quizzes', q2Ref.id, 'questions'))
     batch2.set(qRef, { ...q, order: i + 1 })
@@ -174,7 +174,7 @@ export async function seedFirestore(db) {
   // Quiz 3 — Grade 6 English Grammar
   const q3Ref = doc(collection(db, 'quizzes'))
   const batch3 = writeBatch(db)
-  batch3.set(q3Ref, { ...grade6EnglishGrammar, createdBy: 'seed', createdAt: serverTimestamp() })
+  batch3.set(q3Ref, { ...grade6EnglishGrammar, createdBy: uid, createdAt: serverTimestamp() })
   grade6EnglishGrammarQs.forEach((q, i) => {
     const qRef = doc(collection(db, 'quizzes', q3Ref.id, 'questions'))
     batch3.set(qRef, { ...q, order: i + 1 })
@@ -184,7 +184,7 @@ export async function seedFirestore(db) {
   // Quiz 4 — Grade 7 English 2023 Paper 1 (60 questions, split across 2 batches)
   const q4Ref = doc(collection(db, 'quizzes'))
   const batch4a = writeBatch(db)
-  batch4a.set(q4Ref, { ...grade7English2023, createdBy: 'seed', createdAt: serverTimestamp() })
+  batch4a.set(q4Ref, { ...grade7English2023, createdBy: uid, createdAt: serverTimestamp() })
   grade7English2023Qs.slice(0, 40).forEach((q, i) => {
     const qRef = doc(collection(db, 'quizzes', q4Ref.id, 'questions'))
     batch4a.set(qRef, { ...q, order: i + 1 })
