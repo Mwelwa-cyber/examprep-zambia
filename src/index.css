@@ -39,10 +39,30 @@ body {
 }
 
 /* ── Animations ────────────────────────────────────────────── */
-@keyframes scale-in  { 0% { opacity:0; transform:scale(0.92) } 100% { opacity:1; transform:scale(1) } }
-@keyframes slide-up  { 0% { opacity:0; transform:translateY(16px) } 100% { opacity:1; transform:translateY(0) } }
-@keyframes fade-in   { 0% { opacity:0 } 100% { opacity:1 } }
+@keyframes scale-in     { 0% { opacity:0; transform:scale(0.92) } 100% { opacity:1; transform:scale(1) } }
+@keyframes slide-up     { 0% { opacity:0; transform:translateY(16px) } 100% { opacity:1; transform:translateY(0) } }
+@keyframes fade-in      { 0% { opacity:0 } 100% { opacity:1 } }
 
-.animate-scale-in { animation: scale-in 0.22s ease-out both; }
-.animate-slide-up { animation: slide-up 0.25s ease-out both; }
-.animate-fade-in  { animation: fade-in  0.3s  ease-out both; }
+/* ── Child-friendly / fun animations ───────────────────────── */
+@keyframes float        { 0%,100% { transform:translateY(0px) } 50% { transform:translateY(-12px) } }
+@keyframes wiggle       { 0%,100% { transform:rotate(-8deg) } 50% { transform:rotate(8deg) } }
+@keyframes pop          { 0% { transform:scale(0);opacity:0 } 65% { transform:scale(1.18) } 100% { transform:scale(1);opacity:1 } }
+@keyframes twinkle      { 0%,100% { opacity:1;transform:scale(1) } 50% { opacity:0.35;transform:scale(0.75) } }
+@keyframes star-spin    { 0% { transform:rotate(0deg) scale(1) } 50% { transform:rotate(180deg) scale(1.2) } 100% { transform:rotate(360deg) scale(1) } }
+@keyframes bounce-slow  { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-8px) } }
+@keyframes shake        { 0%,100% { transform:translateX(0) } 20% { transform:translateX(-6px) } 40% { transform:translateX(6px) } 60% { transform:translateX(-4px) } 80% { transform:translateX(4px) } }
+@keyframes pulse-green  { 0%,100% { box-shadow:0 0 0 0 rgba(22,163,74,0.4) } 50% { box-shadow:0 0 0 10px rgba(22,163,74,0) } }
+@keyframes star-burst   { 0% { transform:scale(0) rotate(-30deg);opacity:0 } 60% { transform:scale(1.3) rotate(10deg);opacity:1 } 100% { transform:scale(1) rotate(0deg);opacity:1 } }
+
+.animate-scale-in   { animation: scale-in  0.22s ease-out both; }
+.animate-slide-up   { animation: slide-up  0.25s ease-out both; }
+.animate-fade-in    { animation: fade-in   0.3s  ease-out both; }
+.animate-float      { animation: float     3.2s  ease-in-out infinite; }
+.animate-wiggle     { animation: wiggle    1.1s  ease-in-out infinite; }
+.animate-pop        { animation: pop       0.42s cubic-bezier(0.175,0.885,0.32,1.275) both; }
+.animate-twinkle    { animation: twinkle   1.6s  ease-in-out infinite; }
+.animate-star-spin  { animation: star-spin 4s    linear infinite; }
+.animate-bounce-slow{ animation: bounce-slow 2.4s ease-in-out infinite; }
+.animate-shake      { animation: shake     0.45s ease-in-out both; }
+.animate-pulse-green{ animation: pulse-green 1.5s ease-out; }
+.animate-star-burst { animation: star-burst 0.5s cubic-bezier(0.175,0.885,0.32,1.275) both; }

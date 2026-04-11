@@ -69,16 +69,16 @@ export const PLANS = {
 export const PAYMENT_DETAILS = {
   MTN: {
     name: 'MTN Mobile Money',
-    number: '096 XXX XXXX',
+    number: '0968 310 746',
     instructions: 'Dial *303# → Send Money → Enter number → Enter amount → Confirm',
   },
   Airtel: {
     name: 'Airtel Money',
-    number: '097 XXX XXXX',
+    number: '0977 740 465',
     instructions: 'Dial *778# → Send Money → Enter number → Enter amount → Confirm',
   },
   contact: {
-    whatsapp: '+260 97 XXX XXXX',
+    whatsapp: '+260968310746',
     email: 'admin@examprep.zm',
   },
 }

@@ -6,6 +6,29 @@ import { useSubscription } from '../../hooks/useSubscription'
 import UpgradeModal from '../subscription/UpgradeModal'
 import { UpgradeBanner, AttemptCounter } from '../subscription/PremiumGate'
 import PremiumGate from '../subscription/PremiumGate'
+import Mascot from '../ui/Mascot'
+
+const STARS = [
+  { top: '10%', left:  '7%',  delay: '0s',    dur: '3.2s', emoji: '⭐', cls: 'text-xl opacity-70' },
+  { top: '68%', left: '88%',  delay: '0.6s',  dur: '2.8s', emoji: '✨', cls: 'text-sm opacity-50' },
+  { top: '22%', left: '80%',  delay: '1.1s',  dur: '3.7s', emoji: '🌟', cls: 'text-base opacity-55' },
+  { top: '78%', left: '11%',  delay: '0.3s',  dur: '3.0s', emoji: '⭐', cls: 'text-xs opacity-45' },
+  { top: '42%', left: '93%',  delay: '1.7s',  dur: '2.6s', emoji: '✨', cls: 'text-sm opacity-40' },
+  { top: '55%', left:  '3%',  delay: '0.9s',  dur: '3.4s', emoji: '🌟', cls: 'text-base opacity-50' },
+]
+
+function FloatingStars() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+      {STARS.map((s, i) => (
+        <span key={i} className={`absolute ${s.cls}`}
+          style={{ top: s.top, left: s.left, animation: `float ${s.dur} ease-in-out infinite`, animationDelay: s.delay }}>
+          {s.emoji}
+        </span>
+      ))}
+    </div>
+  )
+}
 
 const subjectBadge = {
   Mathematics:      'bg-blue-100 text-blue-700',
@@ -74,14 +97,20 @@ export default function StudentDashboard() {
       {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
 
       {/* Welcome hero */}
-      <div className="bg-gradient-to-br from-green-600 via-green-700 to-green-900 rounded-3xl p-5 text-white relative overflow-hidden">
+      <div className="bg-gradient-to-br from-green-600 via-green-700 to-green-900 rounded-3xl p-5 text-white relative overflow-hidden min-h-[130px]">
+        <FloatingStars />
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
         <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
-        <div className="relative">
+        {/* Owl mascot peeking from the right */}
+        <div className="absolute bottom-0 right-4 pointer-events-none">
+          <Mascot size={100} mood={avgScore >= 70 ? 'star' : 'happy'} />
+        </div>
+        <div className="relative pr-28">
           <p className="text-green-200 text-sm font-bold">{greeting} 👋</p>
           <h1 className="text-2xl font-black mt-0.5 leading-tight">
-            {userProfile?.displayName ?? 'Learner'}
+            {userProfile?.displayName ?? 'Learner'}!
           </h1>
+          <p className="text-green-200 text-xs mt-1 font-medium">Ready to ace your exams today?</p>
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             {userProfile?.grade && (
               <span className="bg-white/20 text-white/90 text-xs font-bold px-2.5 py-1 rounded-full">
@@ -89,12 +118,12 @@ export default function StudentDashboard() {
               </span>
             )}
             {userProfile?.school && (
-              <span className="bg-white/20 text-white/90 text-xs px-2.5 py-1 rounded-full truncate max-w-[180px]">
+              <span className="bg-white/20 text-white/90 text-xs px-2.5 py-1 rounded-full truncate max-w-[150px]">
                 {userProfile.school}
               </span>
             )}
             {isPremium && (
-              <span className="bg-yellow-400 text-yellow-900 text-xs font-black px-2.5 py-1 rounded-full">
+              <span className="bg-yellow-400 text-yellow-900 text-xs font-black px-2.5 py-1 rounded-full animate-bounce-slow">
                 ⭐ Premium
               </span>
             )}
@@ -111,12 +140,13 @@ export default function StudentDashboard() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { icon: '📝', label: 'Quizzes Done',  val: loading ? '…' : totalQuizzes },
-          { icon: '🎯', label: 'Avg Score',     val: loading ? '…' : totalQuizzes > 0 ? `${avgScore}%` : '—' },
-          { icon: '✅', label: 'Passed',        val: loading ? '…' : passed },
+          { icon: '📝', label: 'Quizzes Done', val: loading ? '…' : totalQuizzes,                         delay: '0ms'   },
+          { icon: '🎯', label: 'Avg Score',    val: loading ? '…' : totalQuizzes > 0 ? `${avgScore}%` : '—', delay: '80ms'  },
+          { icon: '🏆', label: 'Passed',       val: loading ? '…' : passed,                               delay: '160ms' },
         ].map(s => (
-          <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-3.5 text-center">
-            <div className="text-xl mb-1">{s.icon}</div>
+          <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-3.5 text-center animate-pop"
+            style={{ animationDelay: s.delay }}>
+            <div className="text-2xl mb-1 animate-bounce-slow" style={{ animationDelay: s.delay }}>{s.icon}</div>
             <div className="font-black text-xl text-gray-800">{s.val}</div>
             <div className="text-xs text-gray-500 font-bold mt-0.5">{s.label}</div>
           </div>
@@ -125,12 +155,13 @@ export default function StudentDashboard() {
 
       {/* Quick actions */}
       <div>
-        <h2 className="font-black text-gray-700 text-sm mb-3">Quick Actions</h2>
+        <h2 className="font-black text-gray-700 text-sm mb-3">⚡ Quick Actions</h2>
         <div className="grid grid-cols-2 gap-3">
-          {QUICK_ACTIONS.map(a => (
+          {QUICK_ACTIONS.map((a, i) => (
             <Link key={a.to} to={a.to}
-              className={`bg-gradient-to-br ${a.color} text-white rounded-2xl p-4 hover:opacity-90 transition-opacity block`}>
-              <div className="text-2xl mb-2">{a.icon}</div>
+              className={`bg-gradient-to-br ${a.color} text-white rounded-2xl p-4 hover:scale-105 active:scale-95 transition-transform block animate-pop`}
+              style={{ animationDelay: `${i * 60}ms` }}>
+              <div className="text-3xl mb-2 animate-float" style={{ animationDelay: `${i * 0.4}s` }}>{a.icon}</div>
               <div className="font-black text-sm leading-tight">{a.label}</div>
               <div className="text-white/70 text-xs mt-0.5">{a.sub}</div>
             </Link>

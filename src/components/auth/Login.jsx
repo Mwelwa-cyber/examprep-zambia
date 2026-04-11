@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import Logo from '../ui/Logo'
+import Mascot from '../ui/Mascot'
 
 const FRIENDLY = {
   'auth/invalid-credential':       'Wrong email or password. Please try again.',
@@ -35,11 +36,20 @@ export default function Login() {
   function fillDemo() { setEmail('demo@examprep.zm'); setPassword('demo1234') }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-600 via-green-700 to-green-900 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 animate-scale-in">
-        <div className="flex flex-col items-center mb-6">
+    <div className="min-h-screen bg-gradient-to-br from-green-600 via-green-700 to-green-900 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background floating stars */}
+      {['10%','30%','55%','75%','90%'].map((left, i) => (
+        <span key={i} className="absolute text-white/20 text-3xl pointer-events-none"
+          style={{ left, top: `${[15,60,25,70,40][i]}%`, animation: `float ${[3.2,2.8,3.6,3.0,2.6][i]}s ease-in-out infinite`, animationDelay: `${i*0.5}s` }}>
+          {['⭐','✨','🌟','⭐','✨'][i]}
+        </span>
+      ))}
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 animate-scale-in relative">
+        <div className="flex flex-col items-center mb-5">
           <Logo variant="full" size="lg" />
           <p className="text-gray-400 text-sm mt-2 font-bold tracking-wide">Grade 5 · 6 · 7 Exam Preparation</p>
+          <Mascot size={72} mood="happy" className="mt-2" />
+          <p className="text-green-600 font-black text-sm mt-1">Let's ace those exams! 🎓</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

@@ -84,6 +84,7 @@ export default function QuizRunner() {
   const [showSubmit, setShowSubmit] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [showUpgrade, setShowUpgrade] = useState(false)
+  const [feedbackType, setFeedbackType] = useState(null) // 'correct' | 'wrong'
   const timerRef   = useRef(null)
   const autoRef    = useRef(false)
   const submitRef  = useRef(null)   // always points to latest handleSubmit
@@ -117,7 +118,13 @@ export default function QuizRunner() {
 
   function pick(qid, opt){
     setAnswers(a=>({...a,[qid]:opt}))
-    if(mode==='practice') setRevealed(r=>({...r,[qid]:true}))
+    if(mode==='practice'){
+      setRevealed(r=>({...r,[qid]:true}))
+      const currentQ = questions.find(qq => qq.id === qid)
+      const isCorrect = currentQ && opt === currentQ.correctAnswer
+      setFeedbackType(isCorrect ? 'correct' : 'wrong')
+      setTimeout(() => setFeedbackType(null), 1300)
+    }
   }
 
   // Keep submitRef in sync so the timer always calls the latest closure
@@ -160,13 +167,34 @@ export default function QuizRunner() {
   function optStyle(i){
     const base='w-full text-left p-4 rounded-2xl border-2 font-semibold text-base transition-all flex items-start gap-3 min-h-0'
     if(!isRev){ return ua===i?`${base} border-green-500 bg-green-50 text-green-800 shadow-md`:`${base} border-gray-200 bg-white hover:border-green-400 hover:bg-green-50` }
-    if(i===q.correctAnswer) return `${base} border-green-500 bg-green-50 text-green-800`
-    if(ua===i&&ua!==q.correctAnswer) return `${base} border-red-400 bg-red-50 text-red-700`
+    if(i===q.correctAnswer) return `${base} border-green-500 bg-green-50 text-green-800 animate-pulse-green`
+    if(ua===i&&ua!==q.correctAnswer) return `${base} border-red-400 bg-red-50 text-red-700 animate-shake`
     return `${base} border-gray-200 bg-gray-50 text-gray-400`
   }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Answer feedback overlay */}
+      {feedbackType && (
+        <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-50">
+          {feedbackType === 'correct' ? (
+            <div className="flex flex-col items-center animate-pop">
+              <div className="text-8xl animate-star-burst filter drop-shadow-lg">⭐</div>
+              <div className="mt-2 bg-green-500 text-white font-black text-xl px-7 py-2.5 rounded-2xl shadow-xl">
+                Correct! 🎉
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center animate-pop">
+              <div className="text-7xl">💪</div>
+              <div className="mt-2 bg-orange-400 text-white font-black text-lg px-6 py-2.5 rounded-2xl shadow-xl">
+                Keep going!
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {showSubmit&&(
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl p-6 w-full max-w-sm animate-scale-in text-center">
@@ -230,10 +258,13 @@ export default function QuizRunner() {
         </div>
 
         {isRev&&(
-          <div className={`p-4 rounded-2xl mb-4 animate-slide-up ${ua===q.correctAnswer?'bg-green-100 border-2 border-green-300':ua===undefined?'bg-gray-100 border-2 border-gray-300':'bg-red-100 border-2 border-red-300'}`}>
-            {ua===q.correctAnswer?<><p className="font-black text-green-700 text-lg">🎉 Correct!</p><p className="text-green-600 text-sm mt-1">Well done! The answer is <strong>{q.options[q.correctAnswer]}</strong></p></>
-            :ua===undefined?<><p className="font-black text-gray-700">⏭️ Skipped</p><p className="text-gray-600 text-sm mt-1">Correct: <strong>{q.options[q.correctAnswer]}</strong></p></>
-            :<><p className="font-black text-red-700 text-lg">Not quite!</p><p className="text-red-600 text-sm mt-1">Correct answer: <strong>{q.options[q.correctAnswer]}</strong></p></>}
+          <div className={`p-4 rounded-2xl mb-4 animate-slide-up ${ua===q.correctAnswer?'bg-green-100 border-2 border-green-300':ua===undefined?'bg-gray-100 border-2 border-gray-300':'bg-orange-50 border-2 border-orange-200'}`}>
+            {ua===q.correctAnswer
+              ? <><p className="font-black text-green-700 text-lg flex items-center gap-2">🌟 Excellent! Well done!</p><p className="text-green-600 text-sm mt-1">The answer is <strong>{q.options[q.correctAnswer]}</strong></p></>
+              : ua===undefined
+                ? <><p className="font-black text-gray-700 flex items-center gap-2">⏭️ Skipped</p><p className="text-gray-600 text-sm mt-1">Correct: <strong>{q.options[q.correctAnswer]}</strong></p></>
+                : <><p className="font-black text-orange-700 text-lg flex items-center gap-2">💡 Not quite — you can do it!</p><p className="text-orange-600 text-sm mt-1">Correct answer: <strong>{q.options[q.correctAnswer]}</strong></p>{q.explanation&&<p className="text-gray-500 text-xs mt-1 italic">{q.explanation}</p>}</>
+            }
           </div>
         )}
       </div>
