@@ -32,7 +32,7 @@ export default function Navbar() {
     <nav className="bg-gradient-to-r from-green-700 to-green-900 shadow-lg sticky top-0 z-40">
       <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
         <Link to="/dashboard" className="flex items-center min-h-0">
-          <Logo size="sm" variant="full" dark={false} />
+          <Logo variant="full" size="sm" />
         </Link>
 
         {/* Desktop links */}

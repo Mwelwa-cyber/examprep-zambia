@@ -38,8 +38,7 @@ export default function Login() {
     <div className="min-h-screen bg-gradient-to-br from-green-600 via-green-700 to-green-900 flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 animate-scale-in">
         <div className="flex flex-col items-center mb-6">
-          <Logo size="lg" variant="full" dark={true} />
-          <p className="text-gray-400 text-sm mt-3">Grade 5 – 7 Learning Platform</p>
+          <Logo variant="full" size="lg" />
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

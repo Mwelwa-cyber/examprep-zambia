@@ -35,7 +35,7 @@ export default function Register() {
     <div className="min-h-screen bg-gradient-to-br from-green-600 to-green-900 flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 animate-scale-in">
         <div className="flex flex-col items-center mb-6">
-          <Logo size="md" variant="full" dark={true} />
+          <Logo variant="full" size="md" />
           <h1 className="text-lg font-black text-gray-700 mt-3">Create Account</h1>
           <p className="text-gray-400 text-sm mt-0.5">Join ExamPrep Zambia for free</p>
         </div>
