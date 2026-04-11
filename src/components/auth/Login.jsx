@@ -39,6 +39,7 @@ export default function Login() {
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 animate-scale-in">
         <div className="flex flex-col items-center mb-6">
           <Logo variant="full" size="lg" />
+          <p className="text-gray-400 text-sm mt-2 font-bold tracking-wide">Grade 5 · 6 · 7 Exam Preparation</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

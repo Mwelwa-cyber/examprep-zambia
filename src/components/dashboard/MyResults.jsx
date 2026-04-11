@@ -1,0 +1,198 @@
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../contexts/AuthContext'
+import { useFirestore } from '../../hooks/useFirestore'
+
+const SUBJECTS = ['Mathematics', 'English', 'Science', 'Social Studies']
+
+const subjectBadge = {
+  Mathematics:      'bg-blue-100 text-blue-700',
+  English:          'bg-purple-100 text-purple-700',
+  Science:          'bg-orange-100 text-orange-700',
+  'Social Studies': 'bg-teal-100 text-teal-700',
+}
+
+function pctColor(p) {
+  if (p >= 70) return 'text-green-600'
+  if (p >= 50) return 'text-yellow-600'
+  return 'text-red-500'
+}
+function pctBg(p) {
+  if (p >= 70) return 'bg-green-500'
+  if (p >= 50) return 'bg-yellow-400'
+  return 'bg-red-400'
+}
+
+function ResultSkeleton() {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-4 animate-pulse">
+      <div className="flex items-center gap-3">
+        <div className="w-12 h-12 bg-gray-200 rounded-full flex-shrink-0" />
+        <div className="flex-1 space-y-2">
+          <div className="h-4 bg-gray-200 rounded w-3/4" />
+          <div className="h-3 bg-gray-200 rounded w-1/2" />
+        </div>
+        <div className="w-8 h-8 bg-gray-200 rounded-lg" />
+      </div>
+    </div>
+  )
+}
+
+export default function MyResults() {
+  const { userProfile } = useAuth()
+  const { getUserResults } = useFirestore()
+  const navigate = useNavigate()
+
+  const [results, setResults]   = useState([])
+  const [loading, setLoading]   = useState(true)
+  const [subjectF, setSubjectF] = useState('')
+  const [modeF, setModeF]       = useState('')
+
+  useEffect(() => {
+    async function load() {
+      if (!userProfile?.id) return
+      const data = await getUserResults(userProfile.id, 50)
+      setResults(data)
+      setLoading(false)
+    }
+    load()
+  }, [userProfile?.id])
+
+  function fmt(ts) {
+    if (!ts) return ''
+    const d = ts.toDate ? ts.toDate() : new Date(ts)
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+  }
+
+  const filtered = results.filter(r =>
+    (!subjectF || r.subject === subjectF) &&
+    (!modeF    || r.mode === modeF)
+  )
+
+  const totalQuizzes = filtered.length
+  const avgScore = totalQuizzes > 0
+    ? Math.round(filtered.reduce((s, r) => s + (r.percentage ?? 0), 0) / totalQuizzes) : 0
+  const passed = filtered.filter(r => (r.percentage ?? 0) >= 50).length
+
+  return (
+    <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="mb-5">
+        <h1 className="text-2xl font-black text-gray-800">📊 My Results</h1>
+        <p className="text-gray-500 text-sm mt-0.5">Your complete quiz history</p>
+      </div>
+
+      {/* Summary */}
+      {!loading && results.length > 0 && (
+        <div className="grid grid-cols-3 gap-3 mb-5">
+          {[
+            { icon: '📝', label: 'Total',   val: totalQuizzes },
+            { icon: '🎯', label: 'Average', val: `${avgScore}%` },
+            { icon: '✅', label: 'Passed',  val: passed },
+          ].map(s => (
+            <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
+              <div className="text-xl mb-1">{s.icon}</div>
+              <div className="font-black text-lg text-gray-800">{s.val}</div>
+              <div className="text-xs text-gray-500">{s.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Filters */}
+      <div className="flex gap-2 flex-wrap mb-5">
+        <select value={subjectF} onChange={e => setSubjectF(e.target.value)}
+          className="border-2 border-gray-200 rounded-xl px-3 py-2 text-sm focus:border-green-500 focus:outline-none">
+          <option value="">All Subjects</option>
+          {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <select value={modeF} onChange={e => setModeF(e.target.value)}
+          className="border-2 border-gray-200 rounded-xl px-3 py-2 text-sm focus:border-green-500 focus:outline-none">
+          <option value="">All Modes</option>
+          <option value="practice">🌱 Practice</option>
+          <option value="exam">🏆 Exam</option>
+        </select>
+        {(subjectF || modeF) && (
+          <button onClick={() => { setSubjectF(''); setModeF('') }}
+            className="text-sm font-bold text-gray-500 border border-gray-200 px-3 py-2 rounded-xl hover:border-red-300 hover:text-red-500 transition-colors min-h-0">
+            ✕ Clear
+          </button>
+        )}
+      </div>
+
+      {/* List */}
+      {loading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => <ResultSkeleton key={i} />)}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-gray-100 py-16 text-center">
+          <div className="text-5xl mb-3">{results.length === 0 ? '🎯' : '🔍'}</div>
+          <p className="font-black text-gray-700">
+            {results.length === 0 ? 'No results yet' : 'No results match your filters'}
+          </p>
+          <p className="text-gray-400 text-sm mt-1">
+            {results.length === 0 ? 'Complete a quiz to see your results here' : 'Try clearing your filters'}
+          </p>
+          {results.length === 0 && (
+            <button onClick={() => navigate('/quizzes')}
+              className="mt-4 bg-green-600 text-white font-bold text-sm px-5 py-2.5 rounded-full hover:bg-green-700 transition-colors min-h-0">
+              Start a Quiz →
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map(r => (
+            <button key={r.id} onClick={() => navigate(`/results/${r.id}`)}
+              className="w-full bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-md hover:border-green-200 transition-all text-left group min-h-0">
+              <div className="flex items-center gap-3">
+                {/* Score circle */}
+                <div className="relative w-12 h-12 flex-shrink-0">
+                  <svg className="w-full h-full -rotate-90" viewBox="0 0 44 44">
+                    <circle cx="22" cy="22" r="18" fill="none" stroke="#e5e7eb" strokeWidth="4" />
+                    <circle cx="22" cy="22" r="18" fill="none"
+                      stroke={r.percentage >= 70 ? '#16a34a' : r.percentage >= 50 ? '#eab308' : '#dc2626'}
+                      strokeWidth="4"
+                      strokeDasharray={`${2 * Math.PI * 18}`}
+                      strokeDashoffset={`${2 * Math.PI * 18 * (1 - (r.percentage ?? 0) / 100)}`}
+                      strokeLinecap="round" />
+                  </svg>
+                  <span className={`absolute inset-0 flex items-center justify-center font-black text-xs ${pctColor(r.percentage ?? 0)}`}>
+                    {r.percentage ?? 0}%
+                  </span>
+                </div>
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <p className="font-black text-gray-800 text-sm leading-snug truncate group-hover:text-green-700 transition-colors">
+                    {r.quizTitle ?? 'Quiz'}
+                  </p>
+                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${subjectBadge[r.subject] ?? 'bg-gray-100 text-gray-600'}`}>
+                      {r.subject}
+                    </span>
+                    <span className="text-gray-400 text-xs">G{r.grade}</span>
+                    <span className="text-gray-400 text-xs">{r.mode === 'exam' ? '🏆' : '🌱'} {r.mode}</span>
+                    <span className="text-gray-400 text-xs">{fmt(r.completedAt)}</span>
+                  </div>
+                </div>
+
+                {/* Score text + arrow */}
+                <div className="flex-shrink-0 text-right">
+                  <p className={`font-black text-sm ${pctColor(r.percentage ?? 0)}`}>{r.score}/{r.totalMarks}</p>
+                  <p className="text-gray-300 text-xs group-hover:text-green-400 transition-colors">→</p>
+                </div>
+              </div>
+
+              {/* Progress bar */}
+              <div className="mt-2.5 w-full bg-gray-100 rounded-full h-1.5">
+                <div className={`h-1.5 rounded-full transition-all ${pctBg(r.percentage ?? 0)}`}
+                  style={{ width: `${r.percentage ?? 0}%` }} />
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}

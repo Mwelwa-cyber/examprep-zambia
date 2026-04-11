@@ -10,6 +10,9 @@ import QuizList from './components/quiz/QuizList'
 import QuizRunner from './components/quiz/QuizRunner'
 import QuizResults from './components/quiz/QuizResults'
 import PapersLibrary from './components/papers/PapersLibrary'
+import LessonsList from './components/lessons/LessonsList'
+import LessonView from './components/lessons/LessonView'
+import MyResults from './components/dashboard/MyResults'
 
 // Admin section
 import AdminLayout from './components/admin/AdminLayout'
@@ -48,6 +51,9 @@ export default function App() {
         <Route path="/quiz/:quizId"      element={<ProtectedRoute><QuizRunner /></ProtectedRoute>} />
         <Route path="/results/:resultId" element={<ProtectedRoute><Navbar /><QuizResults /></ProtectedRoute>} />
         <Route path="/papers"            element={<ProtectedRoute><Navbar /><PapersLibrary /></ProtectedRoute>} />
+        <Route path="/lessons"           element={<ProtectedRoute><Navbar /><LessonsList /></ProtectedRoute>} />
+        <Route path="/lessons/:lessonId" element={<ProtectedRoute><Navbar /><LessonView /></ProtectedRoute>} />
+        <Route path="/my-results"        element={<ProtectedRoute><Navbar /><MyResults /></ProtectedRoute>} />
         <Route path="/teacher"           element={<ProtectedRoute requiredRole="teacher"><Navbar /><TeacherPanel /></ProtectedRoute>} />
 
         {/* ── Admin routes (all wrapped in AdminLayout) ──────── */}
