@@ -231,6 +231,45 @@ export function useFirestore() {
     })
   }
 
+  // ── Lessons ──────────────────────────────────────────────────
+  async function getLessons(filters = {}) {
+    try {
+      let c = [where('isPublished', '==', true)]
+      if (filters.grade)   c.push(where('grade',   '==', filters.grade))
+      if (filters.subject) c.push(where('subject', '==', filters.subject))
+      c.push(orderBy('createdAt', 'desc'))
+      const snap = await getDocs(query(collection(db, 'lessons'), ...c))
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    } catch (e) { console.error('getLessons:', e); return [] }
+  }
+
+  async function getAllLessons() {
+    try {
+      const snap = await getDocs(query(collection(db, 'lessons'), orderBy('createdAt', 'desc')))
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    } catch (e) { console.error('getAllLessons:', e); return [] }
+  }
+
+  async function getLessonById(lessonId) {
+    try {
+      const snap = await getDoc(doc(db, 'lessons', lessonId))
+      return snap.exists() ? { id: snap.id, ...snap.data() } : null
+    } catch (e) { console.error('getLessonById:', e); return null }
+  }
+
+  async function createLesson(data) {
+    const ref = await addDoc(collection(db, 'lessons'), { ...data, createdAt: serverTimestamp(), updatedAt: serverTimestamp() })
+    return ref.id
+  }
+
+  async function updateLesson(lessonId, data) {
+    await updateDoc(doc(db, 'lessons', lessonId), { ...data, updatedAt: serverTimestamp() })
+  }
+
+  async function deleteLesson(lessonId) {
+    await deleteDoc(doc(db, 'lessons', lessonId))
+  }
+
   return {
     getQuizzes, getAllQuizzes, getQuizzesByTeacher, getQuizById, createQuiz, updateQuiz, deleteQuiz,
     getQuestions, saveQuestions,
@@ -239,5 +278,6 @@ export function useFirestore() {
     getAllUsers, updateUserRole,
     checkAndConsumeAttempt,
     submitPaymentRequest, getPendingPayments, getAllPayments, confirmPayment, rejectPayment, grantPremium, revokePremium,
+    getLessons, getAllLessons, getLessonById, createLesson, updateLesson, deleteLesson,
   }
 }

@@ -1,0 +1,164 @@
+import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
+import { useFirestore } from '../../hooks/useFirestore'
+
+function StatCard({ icon, label, value, color, loading }) {
+  const colors = {
+    green:  'bg-green-50  text-green-600  border-green-100',
+    blue:   'bg-blue-50   text-blue-600   border-blue-100',
+    orange: 'bg-orange-50 text-orange-600 border-orange-100',
+    purple: 'bg-purple-50 text-purple-600 border-purple-100',
+  }
+  return (
+    <div className={`rounded-2xl border p-5 ${colors[color]}`}>
+      <div className="text-3xl mb-2">{icon}</div>
+      <div className="text-2xl font-black text-gray-800">{loading ? <span className="animate-pulse">…</span> : value}</div>
+      <div className="text-sm font-bold text-gray-500 mt-0.5">{label}</div>
+    </div>
+  )
+}
+
+function QuickAction({ to, icon, label, sub, color }) {
+  const colors = {
+    green:  'border-green-200  hover:border-green-400  hover:bg-green-50',
+    blue:   'border-blue-200   hover:border-blue-400   hover:bg-blue-50',
+    orange: 'border-orange-200 hover:border-orange-400 hover:bg-orange-50',
+  }
+  return (
+    <Link to={to}
+      className={`flex items-start gap-3 p-4 rounded-2xl border-2 transition-all ${colors[color]}`}>
+      <span className="text-2xl">{icon}</span>
+      <div>
+        <p className="font-black text-gray-800 text-sm">{label}</p>
+        <p className="text-xs text-gray-500 mt-0.5">{sub}</p>
+      </div>
+    </Link>
+  )
+}
+
+export default function AdminDashboard() {
+  const { getAllLessons, getAllQuizzes, getAllUsers, getAllResults } = useFirestore()
+
+  const [stats, setStats]     = useState({ lessons: 0, quizzes: 0, learners: 0, results: 0 })
+  const [recent, setRecent]   = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      const [lessons, quizzes, users, results] = await Promise.all([
+        getAllLessons(), getAllQuizzes(), getAllUsers(), getAllResults(),
+      ])
+      setStats({
+        lessons:  lessons.length,
+        quizzes:  quizzes.length,
+        learners: users.filter(u => u.role === 'learner' || u.role === 'student').length,
+        results:  results.length,
+      })
+      setRecent(results.slice(0, 8))
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  function fmt(ts) {
+    if (!ts) return '—'
+    const d = ts.toDate ? ts.toDate() : new Date(ts)
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+  }
+
+  function pctColor(p) {
+    if (p >= 70) return 'text-green-600'
+    if (p >= 50) return 'text-yellow-600'
+    return 'text-red-500'
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-black text-gray-800">📊 Dashboard</h1>
+        <p className="text-gray-500 text-sm mt-0.5">Overview of your ExamPrep Zambia platform</p>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <StatCard icon="📖" label="Lessons"  value={stats.lessons}  color="green"  loading={loading} />
+        <StatCard icon="📝" label="Quizzes"  value={stats.quizzes}  color="blue"   loading={loading} />
+        <StatCard icon="👥" label="Learners" value={stats.learners} color="orange" loading={loading} />
+        <StatCard icon="📊" label="Results"  value={stats.results}  color="purple" loading={loading} />
+      </div>
+
+      {/* Quick Actions */}
+      <div>
+        <h2 className="font-black text-gray-700 text-sm mb-3">Quick Actions</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <QuickAction to="/admin/lessons/new" icon="📖" label="Create Lesson" sub="Add a new lesson for learners" color="green" />
+          <QuickAction to="/admin/quizzes/new" icon="✏️" label="Create Quiz"   sub="Build a new quiz or test"    color="blue"  />
+          <QuickAction to="/admin/content"     icon="📁" label="Manage Content" sub="Edit or delete existing content" color="orange" />
+        </div>
+      </div>
+
+      {/* Recent Results */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-black text-gray-700 text-sm">Recent Activity</h2>
+          <Link to="/admin/results" className="text-green-600 text-xs font-bold hover:underline">View all →</Link>
+        </div>
+        {loading ? (
+          <div className="space-y-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 animate-pulse">
+                <div className="flex gap-3">
+                  <div className="w-8 h-8 bg-gray-200 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 bg-gray-200 rounded w-2/3" />
+                    <div className="h-3 bg-gray-200 rounded w-1/3" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : recent.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
+            <div className="text-4xl mb-2">📭</div>
+            <p className="text-gray-500 font-bold text-sm">No results yet</p>
+            <p className="text-gray-400 text-xs mt-1">Results will appear here once learners take quizzes</p>
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100">
+                    <th className="text-left px-4 py-3 font-black text-gray-600 text-xs">Learner</th>
+                    <th className="text-left px-4 py-3 font-black text-gray-600 text-xs">Quiz</th>
+                    <th className="text-left px-4 py-3 font-black text-gray-600 text-xs">Score</th>
+                    <th className="text-left px-4 py-3 font-black text-gray-600 text-xs">Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {recent.map(r => (
+                    <tr key={r.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3">
+                        <p className="font-bold text-gray-800 text-xs">{r.userName || 'Learner'}</p>
+                        <p className="text-gray-400 text-xs">Grade {r.grade}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="font-bold text-gray-700 text-xs truncate max-w-[140px]">{r.quizTitle}</p>
+                        <p className="text-gray-400 text-xs">{r.subject}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`font-black text-sm ${pctColor(r.percentage)}`}>{r.percentage}%</span>
+                        <p className="text-gray-400 text-xs">{r.score}/{r.totalMarks}</p>
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 text-xs">{fmt(r.completedAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

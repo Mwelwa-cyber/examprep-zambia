@@ -65,6 +65,15 @@ service cloud.firestore {
       allow delete: if isAdmin() || (isTeacherOrAbove() && resource.data.uploadedBy == request.auth.uid);
     }
 
+    // ── lessons ───────────────────────────────────────────────
+    match /lessons/{lessonId} {
+      // Learners can only read published lessons; admins can read all
+      allow read: if isAuthed() && (resource.data.isPublished == true || isAdmin());
+      allow create: if isAdmin() && incoming().createdBy == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
     // ── payments ──────────────────────────────────────────────
     match /payments/{paymentId} {
       allow read: if isAuthed() && (resource.data.userId == request.auth.uid || isAdmin());
