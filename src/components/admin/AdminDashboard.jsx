@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useFirestore } from '../../hooks/useFirestore'
+import { seedFirestore } from '../../utils/seedData'
+import { db } from '../../firebase/config'
 
 function StatCard({ icon, label, value, color, loading }) {
   const colors = {
@@ -42,6 +44,19 @@ export default function AdminDashboard() {
   const [stats, setStats]     = useState({ lessons: 0, quizzes: 0, learners: 0, results: 0 })
   const [recent, setRecent]   = useState([])
   const [loading, setLoading] = useState(true)
+  const [seeding, setSeeding] = useState(false)
+  const [seedMsg, setSeedMsg] = useState('')
+
+  async function handleSeed() {
+    if (!window.confirm('This will add sample quizzes to Firestore. Continue?')) return
+    setSeeding(true); setSeedMsg('')
+    try {
+      await seedFirestore(db)
+      setSeedMsg('✅ Sample data seeded successfully!')
+    } catch (e) {
+      setSeedMsg('❌ ' + e.message)
+    } finally { setSeeding(false) }
+  }
 
   useEffect(() => {
     async function load() {
@@ -95,6 +110,24 @@ export default function AdminDashboard() {
           <QuickAction to="/admin/quizzes/new" icon="✏️" label="Create Quiz"   sub="Build a new quiz or test"    color="blue"  />
           <QuickAction to="/admin/content"     icon="📁" label="Manage Content" sub="Edit or delete existing content" color="orange" />
         </div>
+      </div>
+
+      {/* Seed Data */}
+      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex-1">
+            <h2 className="font-black text-amber-800 text-sm">🌱 Seed Sample Data</h2>
+            <p className="text-amber-700 text-xs mt-0.5">
+              Load Grade 5 Maths, Grade 6 English, and Grade 7 English 2023 quizzes into Firestore.
+              Only run this once — it will create duplicate quizzes if run again.
+            </p>
+          </div>
+          <button onClick={handleSeed} disabled={seeding}
+            className="shrink-0 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-black text-sm px-5 py-2.5 rounded-xl transition-colors">
+            {seeding ? '⏳ Seeding…' : '🌱 Run Seed'}
+          </button>
+        </div>
+        {seedMsg && <p className="mt-3 text-sm font-bold text-amber-900 bg-amber-100 rounded-xl px-4 py-2">{seedMsg}</p>}
       </div>
 
       {/* Recent Results */}
