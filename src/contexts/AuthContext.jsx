@@ -85,7 +85,7 @@ export function AuthProvider({ children }) {
   })()
 
   useEffect(() => {
-    const timeout = setTimeout(() => setLoading(false), 6000)
+    const timeout = setTimeout(() => setLoading(false), 2500)
     const unsub = onAuthStateChanged(auth, async (user) => {
       clearTimeout(timeout)
       setCurrentUser(user)

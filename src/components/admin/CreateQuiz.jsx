@@ -14,6 +14,42 @@ const SELECT = 'border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:bo
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
+/**
+ * Compress + resize an image client-side using Canvas before uploading.
+ * A 4 MB phone photo → ~150–250 KB JPEG. Makes uploads 10–20× faster.
+ *
+ * @param {File}   file      - Original image file
+ * @param {number} maxWidth  - Max output width in px  (default 1200)
+ * @param {number} quality   - JPEG quality 0–1        (default 0.85)
+ * @returns {Promise<Blob>}
+ */
+function compressImage(file, maxWidth = 1200, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const objectUrl = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl)
+      let { width, height } = img
+      if (width > maxWidth) {
+        height = Math.round((height * maxWidth) / width)
+        width  = maxWidth
+      }
+      const canvas = document.createElement('canvas')
+      canvas.width  = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0, width, height)
+      canvas.toBlob(
+        blob => blob ? resolve(blob) : reject(new Error('Canvas compression failed')),
+        'image/jpeg',
+        quality,
+      )
+    }
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Could not load image')) }
+    img.src = objectUrl
+  })
+}
+
 function emptyQuestion() {
   return {
     text: '', options: ['', '', '', ''], correctAnswer: 0,
@@ -23,21 +59,35 @@ function emptyQuestion() {
 }
 
 // ── Image upload widget ────────────────────────────────────────────────────
-function QuestionImageUpload({ imageUrl, uploading, onFileSelect, onRemove }) {
+function QuestionImageUpload({ imageUrl, uploading, uploadStep, onFileSelect, onRemove }) {
   const inputRef = useRef(null)
 
   function handleChange(e) {
     const file = e.target.files[0]
     if (file) onFileSelect(file)
-    // reset so the same file can be re-selected after removal
     e.target.value = ''
   }
 
   if (uploading) {
+    const isCompressing = uploadStep === 'compressing'
     return (
-      <div className="border-2 border-blue-200 bg-blue-50 rounded-xl p-4 text-center">
-        <div className="text-2xl mb-1 animate-spin inline-block">⏳</div>
-        <p className="text-blue-600 text-sm font-bold mt-1">Uploading image…</p>
+      <div className="border-2 border-blue-200 bg-blue-50 rounded-xl p-4 text-center space-y-2">
+        <div className="flex items-center justify-center gap-2">
+          <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+          <p className="text-blue-700 text-sm font-bold">
+            {isCompressing ? 'Compressing image…' : 'Uploading…'}
+          </p>
+        </div>
+        {/* Step indicator */}
+        <div className="flex items-center justify-center gap-2 text-xs text-blue-500">
+          <span className={`flex items-center gap-1 ${!isCompressing ? 'text-green-500 font-bold' : 'font-bold'}`}>
+            {!isCompressing ? '✓' : '●'} Compress
+          </span>
+          <span className="text-blue-300">→</span>
+          <span className={`flex items-center gap-1 ${!isCompressing ? 'font-bold' : 'text-blue-300'}`}>
+            {!isCompressing ? '●' : '○'} Upload
+          </span>
+        </div>
       </div>
     )
   }
@@ -151,6 +201,7 @@ function QuestionCard({ q, qi, total, onChange, onRemove, onMove, onImageUpload,
       <QuestionImageUpload
         imageUrl={q.imageUrl}
         uploading={q.imageUploading}
+        uploadStep={q.imageUploadStep}
         onFileSelect={file => onImageUpload(qi, file)}
         onRemove={() => onImageRemove(qi)}
       />
@@ -252,24 +303,36 @@ export default function CreateQuiz() {
     setQuestions(qs => qs.map((q, i) => i === qi ? { ...q, [field]: val } : q))
   }
 
-  // ── Image upload ──────────────────────────────────────────────────────────
+  // ── Image upload (with client-side compression) ───────────────────────────
   async function uploadQuestionImage(qi, file) {
     if (!ALLOWED_TYPES.includes(file.type)) {
       show('❌ Only JPG, PNG, and WEBP images are allowed.', true); return
     }
-    if (file.size > 5 * 1024 * 1024) {
-      show('❌ Image must be under 5 MB.', true); return
+    if (file.size > 15 * 1024 * 1024) {
+      show('❌ Image must be under 15 MB.', true); return
     }
-    setQuestions(qs => qs.map((q, i) => i === qi ? { ...q, imageUploading: true, imageUrl: '' } : q))
+    setQuestions(qs => qs.map((q, i) => i === qi
+      ? { ...q, imageUploading: true, imageUploadStep: 'compressing', imageUrl: '' } : q))
     try {
-      const ext  = file.name.split('.').pop().toLowerCase() || 'jpg'
-      const path = `quiz-images/${currentUser.uid}/${Date.now()}-q${qi}.${ext}`
-      const snap = await uploadBytes(storageRef(storage, path), file)
+      // 1. Compress client-side → much smaller payload to upload
+      const compressed = await compressImage(file)
+
+      setQuestions(qs => qs.map((q, i) => i === qi
+        ? { ...q, imageUploadStep: 'uploading' } : q))
+
+      // 2. Upload the tiny JPEG blob
+      const path = `quiz-images/${currentUser.uid}/${Date.now()}-q${qi}.jpg`
+      const snap = await uploadBytes(storageRef(storage, path), compressed, { contentType: 'image/jpeg' })
       const url  = await getDownloadURL(snap.ref)
-      setQuestions(qs => qs.map((q, i) => i === qi ? { ...q, imageUrl: url, imageUploading: false } : q))
-      show('✅ Image uploaded!')
+
+      setQuestions(qs => qs.map((q, i) => i === qi
+        ? { ...q, imageUrl: url, imageUploading: false, imageUploadStep: '' } : q))
+
+      const kb = Math.round(compressed.size / 1024)
+      show(`✅ Image ready (${kb} KB)`)
     } catch (e) {
-      setQuestions(qs => qs.map((q, i) => i === qi ? { ...q, imageUploading: false } : q))
+      setQuestions(qs => qs.map((q, i) => i === qi
+        ? { ...q, imageUploading: false, imageUploadStep: '' } : q))
       show('❌ Upload failed: ' + e.message, true)
     }
   }
