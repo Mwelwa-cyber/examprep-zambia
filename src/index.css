@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Base ──────────────────────────────────────────────────── */
+html {
+  font-family: 'Nunito', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  @apply bg-gray-50 text-gray-800 antialiased;
+  min-height: 100dvh;
+}
+
+* { box-sizing: border-box; }
+
+/* ── Custom scrollbar ─────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 100px; }
+
+/* ── Reusable component classes ────────────────────────────── */
+@layer components {
+  .btn-primary {
+    @apply bg-green-600 hover:bg-green-700 text-white font-black rounded-full
+           px-5 py-2.5 shadow-md transition-colors min-h-0;
+  }
+  .btn-outline {
+    @apply border-2 border-green-600 text-green-600 font-black rounded-full
+           px-5 py-2.5 hover:bg-green-50 transition-colors min-h-0;
+  }
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-gray-100 p-4;
+  }
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold;
+  }
+}
+
+/* ── Animations ────────────────────────────────────────────── */
+@keyframes scale-in  { 0% { opacity:0; transform:scale(0.92) } 100% { opacity:1; transform:scale(1) } }
+@keyframes slide-up  { 0% { opacity:0; transform:translateY(16px) } 100% { opacity:1; transform:translateY(0) } }
+@keyframes fade-in   { 0% { opacity:0 } 100% { opacity:1 } }
+
+.animate-scale-in { animation: scale-in 0.22s ease-out both; }
+.animate-slide-up { animation: slide-up 0.25s ease-out both; }
+.animate-fade-in  { animation: fade-in  0.3s  ease-out both; }
