@@ -38,6 +38,40 @@ const grade6EnglishQs = [
   { text: 'Fill in: "I have ___ seen that movie."', options: ['ever','never','all','good'], correctAnswer: 1, topic: 'Grammar', marks: 1 },
 ]
 
+const grade6EnglishGrammar = {
+  title: 'Grade 6 English — Grammar Practice',
+  subject: 'English', grade: '6', term: '1', year: '2024',
+  type: 'quiz', duration: 15, totalMarks: 5, isPublished: true, questionCount: 5,
+}
+
+const grade6EnglishGrammarQs = [
+  {
+    text: 'Zacchaeus climbed a tree to see Jesus ___ he was short.',
+    options: ['and', 'because', 'but', 'yet'],
+    correctAnswer: 1, topic: 'Grammar', marks: 1,
+  },
+  {
+    text: 'The children are now old enough to look after ___.',
+    options: ['himself', 'itself', 'ourselves', 'themselves'],
+    correctAnswer: 3, topic: 'Grammar', marks: 1,
+  },
+  {
+    text: 'The new learner ___ came yesterday is in Grade 6.',
+    options: ['which', 'who', 'whom', 'whose'],
+    correctAnswer: 1, topic: 'Grammar', marks: 1,
+  },
+  {
+    text: 'Sibeso is not only pretty ___ kind and friendly too.',
+    options: ['yet', 'so', 'but', 'and'],
+    correctAnswer: 2, topic: 'Grammar', marks: 1,
+  },
+  {
+    text: 'I will be helping my parents ___ household chores during the holiday.',
+    options: ['at', 'of', 'in', 'with'],
+    correctAnswer: 3, topic: 'Grammar', marks: 1,
+  },
+]
+
 export async function seedFirestore(db) {
   // Quiz 1
   const q1Ref = doc(collection(db, 'quizzes'))
@@ -58,4 +92,14 @@ export async function seedFirestore(db) {
     batch2.set(qRef, { ...q, order: i + 1 })
   })
   await batch2.commit()
+
+  // Quiz 3 — Grade 6 English Grammar
+  const q3Ref = doc(collection(db, 'quizzes'))
+  const batch3 = writeBatch(db)
+  batch3.set(q3Ref, { ...grade6EnglishGrammar, createdBy: 'seed', createdAt: serverTimestamp() })
+  grade6EnglishGrammarQs.forEach((q, i) => {
+    const qRef = doc(collection(db, 'quizzes', q3Ref.id, 'questions'))
+    batch3.set(qRef, { ...q, order: i + 1 })
+  })
+  await batch3.commit()
 }
