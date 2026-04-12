@@ -47,7 +47,7 @@ export default function Login() {
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 animate-scale-in relative">
         <div className="flex flex-col items-center mb-5">
           <Logo variant="full" size="lg" />
-          <p className="text-gray-400 text-sm mt-2 font-bold tracking-wide">Grade 5 · 6 · 7 Exam Preparation</p>
+          <p className="text-gray-400 text-sm mt-2 font-bold tracking-wide">Grade 4 · 5 · 6 Exam Preparation</p>
           <Mascot size={72} mood="happy" className="mt-2" />
           <p className="text-green-600 font-black text-sm mt-1">Let's ace those exams! 🎓</p>
         </div>

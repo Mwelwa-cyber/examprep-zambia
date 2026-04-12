@@ -608,7 +608,7 @@ export default function QuizRunner() {
         className="text-white sticky top-0 z-30"
         style={{ background: mode === 'exam' ? theme.examGrad : theme.headerGrad }}
       >
-        <div className="max-w-2xl mx-auto px-4 py-3">
+        <div className="max-w-2xl md:max-w-3xl mx-auto px-4 py-3">
           {/* Title row */}
           <div className="flex items-center justify-between mb-3">
             <div className="min-w-0 flex-1 mr-3">
@@ -646,7 +646,7 @@ export default function QuizRunner() {
       </div>
 
       {/* ── Scrollable question area ──────────────────────────────────────── */}
-      <div className="flex-1 max-w-2xl mx-auto w-full px-4 py-4 pb-40">
+      <div className="flex-1 max-w-2xl md:max-w-3xl mx-auto w-full px-4 py-4 pb-44">
 
         {/* Q number + topic + flag */}
         <div className="flex items-center justify-between mb-3">
@@ -706,8 +706,8 @@ export default function QuizRunner() {
           </div>
         </div>
 
-        {/* Answer options */}
-        <div className="space-y-3 mb-4">
+        {/* Answer options — 1-col mobile, 2-col on tablet+ */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
           {q.options.map((opt, i) => (
             <OptionCard
               key={i}
@@ -783,7 +783,7 @@ export default function QuizRunner() {
           boxShadow: '0 -4px 20px rgba(0,0,0,0.07)',
         }}
       >
-        <div className="max-w-2xl mx-auto px-4 py-3">
+        <div className="max-w-2xl md:max-w-3xl mx-auto px-4 py-3">
           {/* Question dot grid */}
           <div className="flex gap-1.5 justify-center mb-3 overflow-x-auto pb-1 no-scrollbar">
             {questions.map((q2, i) => {

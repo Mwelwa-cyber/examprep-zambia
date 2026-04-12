@@ -192,7 +192,7 @@ export default function QuizList() {
 
       {/* ── Hero banner ────────────────────────────────────────────────────── */}
       <div className="bg-gradient-to-br from-indigo-700 via-indigo-600 to-violet-600 px-4 pt-6 pb-8">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-2xl md:max-w-3xl mx-auto">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -227,7 +227,7 @@ export default function QuizList() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 -mt-3">
+      <div className="max-w-2xl md:max-w-3xl mx-auto px-4 -mt-3">
         {/* Attempt counter (premium gate) */}
         <div className="mb-4">
           <AttemptCounter onUpgradeClick={() => setShowUpgrade(true)} />

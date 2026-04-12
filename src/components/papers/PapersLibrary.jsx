@@ -211,7 +211,7 @@ export default function PapersLibrary() {
 
       {/* ── Hero banner ────────────────────────────────────────────────────── */}
       <div className="bg-gradient-to-br from-amber-600 via-orange-600 to-rose-600 px-4 pt-6 pb-8">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-2xl md:max-w-3xl mx-auto">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -246,7 +246,7 @@ export default function PapersLibrary() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 -mt-3">
+      <div className="max-w-2xl md:max-w-3xl mx-auto px-4 -mt-3">
         {/* Premium banner */}
         {!isPremium && (
           <div className="bg-gradient-to-r from-amber-600 to-orange-600 rounded-2xl p-4 mb-4 flex items-center justify-between gap-3 shadow-md shadow-amber-200">

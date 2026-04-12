@@ -3,10 +3,15 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useFirestore } from '../../hooks/useFirestore'
 
 const subjectStyle = {
-  Mathematics:      { bg: 'bg-blue-600',   light: 'bg-blue-50',   badge: 'bg-blue-100 text-blue-700'   },
-  English:          { bg: 'bg-purple-600', light: 'bg-purple-50', badge: 'bg-purple-100 text-purple-700' },
-  Science:          { bg: 'bg-orange-600', light: 'bg-orange-50', badge: 'bg-orange-100 text-orange-700' },
-  'Social Studies': { bg: 'bg-teal-600',   light: 'bg-teal-50',   badge: 'bg-teal-100 text-teal-700'   },
+  Mathematics:           { bg: 'bg-blue-600',   light: 'bg-blue-50',   badge: 'bg-blue-100 text-blue-700'    },
+  English:               { bg: 'bg-violet-600', light: 'bg-violet-50', badge: 'bg-violet-100 text-violet-700' },
+  'Integrated Science':  { bg: 'bg-orange-600', light: 'bg-orange-50', badge: 'bg-orange-100 text-orange-700' },
+  'Social Studies':      { bg: 'bg-teal-600',   light: 'bg-teal-50',   badge: 'bg-teal-100 text-teal-700'    },
+  'Technology Studies':  { bg: 'bg-cyan-600',   light: 'bg-cyan-50',   badge: 'bg-cyan-100 text-cyan-700'    },
+  'Home Economics':      { bg: 'bg-pink-600',   light: 'bg-pink-50',   badge: 'bg-pink-100 text-pink-700'    },
+  'Expressive Arts':     { bg: 'bg-rose-600',   light: 'bg-rose-50',   badge: 'bg-rose-100 text-rose-700'    },
+  // legacy alias
+  Science:               { bg: 'bg-orange-600', light: 'bg-orange-50', badge: 'bg-orange-100 text-orange-700' },
 }
 
 export default function LessonView() {
@@ -27,7 +32,7 @@ export default function LessonView() {
   }, [lessonId])
 
   if (loading) return (
-    <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+    <div className="max-w-2xl md:max-w-3xl mx-auto px-4 py-6 space-y-4">
       <div className="h-8 bg-gray-200 rounded-lg w-2/3 animate-pulse" />
       <div className="h-48 bg-gray-200 rounded-2xl animate-pulse" />
       <div className="space-y-2">
@@ -56,7 +61,7 @@ export default function LessonView() {
   const paragraphs = (lesson.content || '').split(/\n{2,}/).filter(Boolean)
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6">
+    <div className="max-w-2xl md:max-w-3xl mx-auto px-4 py-6">
       {/* Breadcrumb */}
       <div className="flex items-center gap-1.5 text-xs text-gray-400 font-bold mb-4">
         <Link to="/lessons" className="hover:text-green-600 transition-colors">Lessons</Link>

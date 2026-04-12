@@ -12,7 +12,7 @@
  *   Mobile Bottom Navigation
  */
 import { useState, useEffect }  from 'react'
-import { Link, useNavigate }    from 'react-router-dom'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth }              from '../../contexts/AuthContext'
 import { useFirestore }         from '../../hooks/useFirestore'
 import { useBadges }            from '../../hooks/useBadges'
@@ -158,24 +158,33 @@ function StreakBadge({ streak }) {
 
 function MobileNav() {
   const items = [
-    { to: '/dashboard', icon: '🏠', label: 'Home'    },
-    { to: '/quizzes',   icon: '✏️', label: 'Quizzes' },
-    { to: '/lessons',   icon: '📖', label: 'Lessons' },
-    { to: '/papers',    icon: '📄', label: 'Papers'  },
-    { to: '/my-results',icon: '📊', label: 'Results' },
+    { to: '/dashboard', icon: '🏠', label: 'Home',    end: true },
+    { to: '/quizzes',   icon: '✏️', label: 'Quizzes', end: false },
+    { to: '/lessons',   icon: '📖', label: 'Lessons', end: false },
+    { to: '/papers',    icon: '📄', label: 'Papers',  end: false },
+    { to: '/my-results',icon: '📊', label: 'Results', end: false },
   ]
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-100 shadow-lg safe-area-bottom">
       <div className="flex">
         {items.map(item => (
-          <Link
+          <NavLink
             key={item.to}
             to={item.to}
-            className="flex-1 flex flex-col items-center gap-0.5 py-2.5 text-gray-500 hover:text-blue-600 transition-colors"
+            end={item.end}
+            className={({ isActive }) =>
+              `flex-1 flex flex-col items-center gap-0.5 py-2.5 transition-colors ${
+                isActive ? 'text-blue-600' : 'text-gray-400 hover:text-blue-500'
+              }`
+            }
           >
-            <span className="text-xl leading-none">{item.icon}</span>
-            <span className="text-xs font-bold">{item.label}</span>
-          </Link>
+            {({ isActive }) => (
+              <>
+                <span className={`text-xl leading-none transition-transform ${isActive ? 'scale-110' : ''}`}>{item.icon}</span>
+                <span className={`text-xs font-bold ${isActive ? 'font-black' : ''}`}>{item.label}</span>
+              </>
+            )}
+          </NavLink>
         ))}
       </div>
     </nav>
@@ -271,7 +280,7 @@ export default function GradeHub() {
       </header>
 
       {/* ──────────── MAIN CONTENT ───────────────────────────── */}
-      <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-5 pb-24 space-y-6">
+      <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-5 pb-28 space-y-6">
 
         {/* ── HERO / WELCOME BANNER ───────────────────────────── */}
         <section

@@ -3,13 +3,21 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useFirestore } from '../../hooks/useFirestore'
 
-const SUBJECTS = ['Mathematics', 'English', 'Science', 'Social Studies']
+const SUBJECTS = [
+  'Mathematics', 'English', 'Integrated Science', 'Social Studies',
+  'Technology Studies', 'Home Economics', 'Expressive Arts',
+]
 
 const subjectBadge = {
-  Mathematics:      'bg-blue-100 text-blue-700',
-  English:          'bg-purple-100 text-purple-700',
-  Science:          'bg-orange-100 text-orange-700',
-  'Social Studies': 'bg-teal-100 text-teal-700',
+  Mathematics:           'bg-blue-100 text-blue-700',
+  English:               'bg-violet-100 text-violet-700',
+  'Integrated Science':  'bg-orange-100 text-orange-700',
+  'Social Studies':      'bg-teal-100 text-teal-700',
+  'Technology Studies':  'bg-cyan-100 text-cyan-700',
+  'Home Economics':      'bg-pink-100 text-pink-700',
+  'Expressive Arts':     'bg-rose-100 text-rose-700',
+  // legacy
+  Science:               'bg-orange-100 text-orange-700',
 }
 
 function pctColor(p) {
@@ -75,7 +83,7 @@ export default function MyResults() {
   const passed = filtered.filter(r => (r.percentage ?? 0) >= 50).length
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6">
+    <div className="max-w-2xl md:max-w-3xl mx-auto px-4 py-6">
       <div className="mb-5">
         <h1 className="text-2xl font-black text-gray-800">📊 My Results</h1>
         <p className="text-gray-500 text-sm mt-0.5">Your complete quiz history</p>

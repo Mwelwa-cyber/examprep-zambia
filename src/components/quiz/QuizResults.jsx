@@ -72,7 +72,7 @@ export default function QuizResults() {
   const secs = result.timeSpent ? result.timeSpent % 60 : 0
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-6">
+    <div className="max-w-xl md:max-w-2xl mx-auto px-4 py-6">
       {/* Score */}
       <div className="bg-white rounded-3xl shadow-md p-6 text-center mb-4 animate-scale-in">
         <ScoreCircle percentage={pct} />
@@ -82,16 +82,16 @@ export default function QuizResults() {
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-4 gap-2 mb-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
         {[
           { label: 'Score', value: `${result.score}/${result.totalMarks}` },
-          { label: 'Mode', value: result.mode === 'exam' ? '🏆 Exam' : '🌱 Practice' },
-          { label: 'Time', value: `${mins}m ${secs}s` },
-          { label: 'Grade', value: `G${result.grade}` },
+          { label: 'Mode',  value: result.mode === 'exam' ? '🏆 Exam' : '🌱 Practice' },
+          { label: 'Time',  value: `${mins}m ${secs}s` },
+          { label: 'Grade', value: `Grade ${result.grade}` },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 text-center">
-            <div className="font-black text-gray-800 text-sm">{s.value}</div>
-            <div className="text-xs text-gray-400">{s.label}</div>
+            <div className="font-black text-gray-800 text-sm leading-tight">{s.value}</div>
+            <div className="text-xs text-gray-400 mt-0.5">{s.label}</div>
           </div>
         ))}
       </div>

@@ -31,12 +31,21 @@ function FloatingStars() {
 }
 
 const subjectBadge = {
-  Mathematics:      'bg-blue-100 text-blue-700',
-  English:          'bg-purple-100 text-purple-700',
-  Science:          'bg-orange-100 text-orange-700',
-  'Social Studies': 'bg-teal-100 text-teal-700',
+  Mathematics:           'bg-blue-100 text-blue-700',
+  English:               'bg-violet-100 text-violet-700',
+  'Integrated Science':  'bg-orange-100 text-orange-700',
+  'Social Studies':      'bg-teal-100 text-teal-700',
+  'Technology Studies':  'bg-cyan-100 text-cyan-700',
+  'Home Economics':      'bg-pink-100 text-pink-700',
+  'Expressive Arts':     'bg-rose-100 text-rose-700',
+  Science:               'bg-orange-100 text-orange-700',
 }
-const subjectShort = { Mathematics: 'Maths', English: 'English', Science: 'Science', 'Social Studies': 'Soc. St.' }
+const subjectShort = {
+  Mathematics: 'Maths', English: 'English',
+  'Integrated Science': 'Science', 'Social Studies': 'Soc. St.',
+  'Technology Studies': 'Tech', 'Home Economics': 'Home Ec.', 'Expressive Arts': 'Exp. Arts',
+  Science: 'Science',
+}
 
 function pctColor(p) {
   if (p >= 70) return 'text-green-600'
@@ -93,7 +102,7 @@ export default function StudentDashboard() {
   })()
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-5 space-y-5">
+    <div className="max-w-2xl md:max-w-3xl mx-auto px-4 py-5 space-y-5">
       {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
 
       {/* Welcome hero */}
@@ -105,7 +114,7 @@ export default function StudentDashboard() {
         <div className="absolute bottom-0 right-4 pointer-events-none">
           <Mascot size={100} mood={avgScore >= 70 ? 'star' : 'happy'} />
         </div>
-        <div className="relative pr-28">
+        <div className="relative pr-24 sm:pr-28">
           <p className="text-green-200 text-sm font-bold">{greeting} 👋</p>
           <h1 className="text-2xl font-black mt-0.5 leading-tight">
             {userProfile?.displayName ?? 'Learner'}!

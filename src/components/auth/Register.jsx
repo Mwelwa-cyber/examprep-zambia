@@ -12,7 +12,7 @@ const FRIENDLY = {
 export default function Register() {
   const { register } = useAuth()
   const navigate     = useNavigate()
-  const [form, setForm] = useState({ displayName: '', email: '', password: '', confirm: '', grade: '5', school: '', role: 'learner' })
+  const [form, setForm] = useState({ displayName: '', email: '', password: '', confirm: '', grade: '4', school: '', role: 'learner' })
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState('')
 
@@ -70,9 +70,9 @@ export default function Register() {
                 <label className="block text-xs font-bold text-gray-700 mb-1">Grade</label>
                 <select value={form.grade} onChange={set('grade')}
                   className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-green-500 focus:outline-none">
+                  <option value="4">Grade 4</option>
                   <option value="5">Grade 5</option>
                   <option value="6">Grade 6</option>
-                  <option value="7">Grade 7</option>
                 </select>
               </div>
             )}
