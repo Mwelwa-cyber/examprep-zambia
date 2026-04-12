@@ -1,26 +1,26 @@
 /**
- * ExamPrep Zambia Logo component — uses actual PNG assets
+ * ZedExams Logo component
  *
- * Place your files in /public:
- *   /public/logo.png       — full logo (icon + EXAMS PREP ZAMBIA + tagline)
- *   /public/logo-icon.png  — square app icon (green rounded background)
+ * Assets in /public:
+ *   /public/logo.svg       — full stacked logo (book + ZedExams + Practise smart.)
+ *   /public/logo-icon.svg  — square app icon (blue rounded bg + book/leaf)
  *
  * Props:
- *   variant: 'full' | 'icon'
- *   size:    'sm' | 'md' | 'lg' | 'xl'
+ *   variant:   'full' | 'icon'
+ *   size:      'sm' | 'md' | 'lg' | 'xl'
  *   className: extra tailwind classes
  */
 export default function Logo({ variant = 'full', size = 'md', className = '' }) {
-  // Heights for the full logo (wide image)
-  const fullH = { sm: 'h-10', md: 'h-16', lg: 'h-24', xl: 'h-36' }
-  // Heights for the icon (square image)
-  const iconH = { sm: 'h-9 w-9', md: 'h-12 w-12', lg: 'h-16 w-16', xl: 'h-24 w-24' }
+  // Heights for the full logo (wider landscape image)
+  const fullH = { sm: 'h-9', md: 'h-12', lg: 'h-20', xl: 'h-28' }
+  // Sizes for the square icon
+  const iconH = { sm: 'h-8 w-8', md: 'h-10 w-10', lg: 'h-14 w-14', xl: 'h-20 w-20' }
 
   if (variant === 'icon') {
     return (
       <img
-        src="/logo-icon.png"
-        alt="ExamPrep Zambia"
+        src="/logo-icon.svg"
+        alt="ZedExams"
         className={`${iconH[size] ?? iconH.md} object-contain flex-shrink-0 ${className}`}
       />
     )
@@ -28,8 +28,8 @@ export default function Logo({ variant = 'full', size = 'md', className = '' }) 
 
   return (
     <img
-      src="/logo.png"
-      alt="ExamPrep Zambia — Practice Smart. Pass Confidently."
+      src="/logo.svg"
+      alt="ZedExams — Practise smart."
       className={`${fullH[size] ?? fullH.md} w-auto object-contain flex-shrink-0 ${className}`}
     />
   )

@@ -280,6 +280,8 @@ export default function GradeHub() {
                       {accessBadge.icon} {accessBadge.label}
                     </span>
                   </div>
+                  <Link to="/profile" onClick={() => setMenuOpen(false)}
+                    className="block px-4 py-2 text-sm theme-text hover:theme-bg-subtle font-bold">👤 My Profile</Link>
                   <Link to="/my-results" onClick={() => setMenuOpen(false)}
                     className="block px-4 py-2 text-sm theme-text hover:theme-bg-subtle font-bold">📊 My Results</Link>
                   <Link to="/my-badges" onClick={() => setMenuOpen(false)}

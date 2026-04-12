@@ -14,6 +14,7 @@ import LessonsList from './components/lessons/LessonsList'
 import LessonView from './components/lessons/LessonView'
 import MyResults from './components/dashboard/MyResults'
 import BadgesPage from './components/dashboard/BadgesPage'
+import ProfilePage from './components/dashboard/ProfilePage'
 
 // Admin section
 import AdminLayout from './components/admin/AdminLayout'
@@ -23,6 +24,7 @@ import CreateQuiz from './components/admin/CreateQuiz'
 import ManageContent from './components/admin/ManageContent'
 import AdminResults from './components/admin/AdminResults'
 import ContentApprovals from './components/admin/ContentApprovals'
+import PaymentsPanel from './components/admin/PaymentsPanel'
 
 // Teacher section
 import TeacherLayout from './components/teacher/TeacherLayout'
@@ -78,6 +80,7 @@ export default function App() {
         <Route path="/lessons/:lessonId" element={<ProtectedRoute><Navbar /><LessonView /></ProtectedRoute>} />
         <Route path="/my-results"        element={<ProtectedRoute><Navbar /><MyResults /></ProtectedRoute>} />
         <Route path="/my-badges"         element={<ProtectedRoute><Navbar /><BadgesPage /></ProtectedRoute>} />
+        <Route path="/profile"           element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
         {/* /teacher is now handled by the TeacherRoute block below */}
 
         {/* ── Admin routes (all wrapped in AdminLayout) ──────── */}
@@ -89,6 +92,7 @@ export default function App() {
         <Route path="/admin/content"                  element={<AdminRoute><ManageContent /></AdminRoute>} />
         <Route path="/admin/approvals"                element={<AdminRoute><ContentApprovals /></AdminRoute>} />
         <Route path="/admin/results"                  element={<AdminRoute><AdminResults /></AdminRoute>} />
+        <Route path="/admin/payments"                 element={<AdminRoute><PaymentsPanel /></AdminRoute>} />
 
         {/* ── Teacher routes (all wrapped in TeacherLayout) ─── */}
         <Route path="/teacher"                        element={<TeacherRoute><TeacherDashboard /></TeacherRoute>} />
