@@ -27,6 +27,7 @@ const ManageContent = lazy(() => import('./components/admin/ManageContent'))
 const AdminResults = lazy(() => import('./components/admin/AdminResults'))
 const ContentApprovals = lazy(() => import('./components/admin/ContentApprovals'))
 const PaymentsPanel = lazy(() => import('./components/admin/PaymentsPanel'))
+const TeacherApplications = lazy(() => import('./components/admin/TeacherApplications'))
 
 // Teacher section
 const TeacherLayout = lazy(() => import('./components/teacher/TeacherLayout'))
@@ -105,6 +106,7 @@ export default function App() {
           <Route path="/admin/papers/upload"            element={<AdminRoute><TeacherPaperUpload /></AdminRoute>} />
           <Route path="/admin/content"                  element={<AdminRoute><ManageContent /></AdminRoute>} />
           <Route path="/admin/approvals"                element={<AdminRoute><ContentApprovals /></AdminRoute>} />
+          <Route path="/admin/teacher-applications"     element={<AdminRoute><TeacherApplications /></AdminRoute>} />
           <Route path="/admin/results"                  element={<AdminRoute><AdminResults /></AdminRoute>} />
           <Route path="/admin/payments"                 element={<AdminRoute><PaymentsPanel /></AdminRoute>} />
 

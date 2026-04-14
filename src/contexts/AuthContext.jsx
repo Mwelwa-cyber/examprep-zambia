@@ -25,12 +25,13 @@ export function AuthProvider({ children }) {
   const [loading, setLoading]         = useState(true)
 
   async function register(email, password, displayName, grade, school, role = ROLES.LEARNER) {
+    const wantsTeacherAccess = role === ROLES.TEACHER
     const cred = await createUserWithEmailAndPassword(auth, email, password)
     await updateProfile(cred.user, { displayName })
-    await setDoc(doc(db, 'users', cred.user.uid), {
+    const userRecord = {
       displayName,
       email,
-      role,
+      role: ROLES.LEARNER,
       grade: grade ?? null,
       school: school ?? '',
       isPremium: false,
@@ -40,7 +41,11 @@ export function AuthProvider({ children }) {
       dailyAttempts: 0,
       lastAttemptDate: '',
       createdAt: serverTimestamp(),
-    })
+    }
+    if (wantsTeacherAccess) {
+      userRecord.teacherApplicationStatus = 'not_submitted'
+    }
+    await setDoc(doc(db, 'users', cred.user.uid), userRecord)
     return cred
   }
 

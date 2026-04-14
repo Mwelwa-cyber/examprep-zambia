@@ -44,9 +44,9 @@ function QuickAction({ to, icon, label, sub, color }) {
 
 export default function AdminDashboard() {
   const { currentUser } = useAuth()
-  const { getAllLessons, getAllQuizzes, getAllUsers, getAllResults, getPendingApprovals } = useFirestore()
+  const { getAllLessons, getAllQuizzes, getAllUsers, getAllResults, getPendingApprovals, getPendingTeacherApplications } = useFirestore()
 
-  const [stats, setStats]     = useState({ lessons: 0, quizzes: 0, learners: 0, results: 0, pending: 0 })
+  const [stats, setStats]     = useState({ lessons: 0, quizzes: 0, learners: 0, results: 0, pending: 0, teacherApps: 0 })
   const [recent, setRecent]   = useState([])
   const [loading, setLoading] = useState(true)
   const [seeding, setSeeding] = useState(false)
@@ -65,8 +65,8 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     async function load() {
-      const [lessons, quizzes, users, results, pending] = await Promise.all([
-        getAllLessons(), getAllQuizzes(), getAllUsers(), getAllResults(), getPendingApprovals(),
+      const [lessons, quizzes, users, results, pending, teacherApps] = await Promise.all([
+        getAllLessons(), getAllQuizzes(), getAllUsers(), getAllResults(), getPendingApprovals(), getPendingTeacherApplications(),
       ])
       setStats({
         lessons:  lessons.length,
@@ -74,6 +74,7 @@ export default function AdminDashboard() {
         learners: users.filter(u => u.role === 'learner' || u.role === 'student').length,
         results:  results.length,
         pending:  pending.length,
+        teacherApps: teacherApps.length,
       })
       setRecent(results.slice(0, 8))
       setLoading(false)
@@ -101,21 +102,23 @@ export default function AdminDashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <StatCard icon="📖" label="Lessons"  value={stats.lessons}  color="green"  loading={loading} />
         <StatCard icon="📝" label="Quizzes"  value={stats.quizzes}  color="blue"   loading={loading} />
         <StatCard icon="👥" label="Learners" value={stats.learners} color="orange" loading={loading} />
         <StatCard icon="📊" label="Results"  value={stats.results}  color="purple" loading={loading} />
-        <StatCard icon="🔔" label="Pending"  value={stats.pending}  color="yellow" loading={loading} linkTo="/admin/approvals" />
+        <StatCard icon="🔔" label="Content Pending" value={stats.pending}  color="yellow" loading={loading} linkTo="/admin/approvals" />
+        <StatCard icon="🧑‍🏫" label="Teacher Apps" value={stats.teacherApps} color="blue" loading={loading} linkTo="/admin/teacher-applications" />
       </div>
 
       {/* Quick Actions */}
       <div>
         <h2 className="font-black text-gray-700 text-sm mb-3">Quick Actions</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <QuickAction to="/admin/lessons/new" icon="📖" label="Create Lesson" sub="Add a new lesson for learners" color="green" />
           <QuickAction to="/admin/quizzes/new" icon="✏️" label="Create Quiz"   sub="Build a new quiz or test"    color="blue"  />
           <QuickAction to="/admin/content"     icon="📁" label="Manage Content" sub="Edit or delete existing content" color="orange" />
+          <QuickAction to="/admin/teacher-applications" icon="🧑‍🏫" label="Review Teachers" sub="Approve verified teacher accounts" color="blue" />
         </div>
       </div>
 

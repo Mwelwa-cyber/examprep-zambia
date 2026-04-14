@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { ref as storageRef, uploadBytes } from 'firebase/storage'
 import { useAuth } from '../../contexts/AuthContext'
+import { useFirestore } from '../../hooks/useFirestore'
+import { storage } from '../../firebase/config'
 import Logo from '../ui/Logo'
 
 const FRIENDLY = {
@@ -9,26 +12,102 @@ const FRIENDLY = {
   'auth/invalid-email':        'Please enter a valid email address.',
 }
 
+const MAX_PROOF_SIZE = 10 * 1024 * 1024
+const ALLOWED_PROOF_TYPES = new Set([
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+])
+
+function safeFileName(name) {
+  const cleaned = String(name || 'teacher-proof')
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+  return cleaned.slice(0, 90) || 'teacher-proof'
+}
+
 export default function Register() {
   const { register } = useAuth()
+  const { submitTeacherApplication } = useFirestore()
   const navigate     = useNavigate()
-  const [form, setForm] = useState({ displayName: '', email: '', password: '', confirm: '', grade: '4', school: '', role: 'learner' })
+  const [form, setForm] = useState({
+    displayName: '',
+    email: '',
+    password: '',
+    confirm: '',
+    grade: '4',
+    school: '',
+    role: 'learner',
+    phone: '',
+    nrc: '',
+  })
+  const [proofFile, setProofFile] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState('')
+  const [success, setSuccess] = useState('')
 
   function set(field) { return e => setForm(f => ({ ...f, [field]: e.target.value })) }
+
+  function handleProofChange(e) {
+    const file = e.target.files?.[0] || null
+    setProofFile(file)
+  }
+
+  function validateTeacherFields() {
+    if (!form.displayName.trim()) return 'Full name is required.'
+    if (!form.school.trim()) return 'School name is required.'
+    if (!form.phone.trim()) return 'Phone number is required.'
+    if (!/^[+0-9()\s-]{7,24}$/.test(form.phone.trim())) return 'Enter a valid phone number.'
+    if (!form.nrc.trim()) return 'NRC number is required.'
+    if (!/^[0-9/\-\s]{6,24}$/.test(form.nrc.trim())) return 'Enter a valid NRC number.'
+    if (!proofFile) return 'Upload a teaching certificate or school proof document.'
+    if (!ALLOWED_PROOF_TYPES.has(proofFile.type)) return 'Upload a PDF, image, or DOCX proof document.'
+    if (proofFile.size > MAX_PROOF_SIZE) return 'Proof document must be 10MB or smaller.'
+    return ''
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
     if (form.password !== form.confirm) { setError('Passwords do not match.'); return }
     if (form.password.length < 6)       { setError('Password must be at least 6 characters.'); return }
-    setError(''); setLoading(true)
+    const isTeacherSignup = form.role === 'teacher'
+    const teacherError = isTeacherSignup ? validateTeacherFields() : ''
+    if (teacherError) { setError(teacherError); return }
+
+    setError(''); setSuccess(''); setLoading(true)
+    let accountCreated = false
     try {
-      await register(form.email.trim(), form.password, form.displayName.trim(), form.grade, form.school.trim(), form.role)
-      // RootRedirect will send learners → /dashboard, teachers → /teacher
-      navigate('/')
+      const cred = await register(form.email.trim(), form.password, form.displayName.trim(), form.grade, form.school.trim(), form.role)
+      accountCreated = true
+
+      if (isTeacherSignup) {
+        const proofPath = `teacher-verification/${cred.user.uid}/${Date.now()}-${safeFileName(proofFile.name)}`
+        await uploadBytes(storageRef(storage, proofPath), proofFile, { contentType: proofFile.type })
+        await submitTeacherApplication(cred.user.uid, {
+          email: form.email.trim(),
+          fullName: form.displayName.trim(),
+          phoneNumber: form.phone.trim(),
+          schoolName: form.school.trim(),
+          nrcNumber: form.nrc.trim(),
+          proofPath,
+          proofFileName: proofFile.name,
+          proofContentType: proofFile.type,
+          proofSize: proofFile.size,
+        })
+        setSuccess('Teacher application submitted. You can use learner features while an admin reviews it.')
+        setTimeout(() => navigate('/dashboard'), 1200)
+      } else {
+        navigate('/')
+      }
     } catch (err) {
-      setError(FRIENDLY[err.code] ?? 'Registration failed. Please try again.')
+      const message = FRIENDLY[err.code] ?? err.message ?? 'Registration failed. Please try again.'
+      setError(accountCreated && isTeacherSignup
+        ? `${message} Your account was created as a learner, but the teacher application was not completed.`
+        : message)
     } finally { setLoading(false) }
   }
 
@@ -85,11 +164,44 @@ export default function Register() {
             )}
           </div>
 
+          {form.role === 'teacher' && (
+            <div className="rounded-2xl border-2 border-blue-100 bg-blue-50 p-4 space-y-3">
+              <div>
+                <p className="text-sm font-black text-blue-900">Teacher verification</p>
+                <p className="text-xs text-blue-700 mt-0.5">
+                  Teacher access starts after admin approval. Until then, your account stays as a learner.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-blue-900 mb-1">Phone Number</label>
+                <input type="tel" value={form.phone} onChange={set('phone')} required={form.role === 'teacher'} placeholder="e.g. 0968 123 456"
+                  className="w-full border-2 rounded-xl px-3 py-2.5 text-base focus:border-blue-500 focus:outline-none transition-colors theme-input" />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-blue-900 mb-1">NRC Number</label>
+                <input type="text" value={form.nrc} onChange={set('nrc')} required={form.role === 'teacher'} placeholder="e.g. 123456/78/9"
+                  className="w-full border-2 rounded-xl px-3 py-2.5 text-base focus:border-blue-500 focus:outline-none transition-colors theme-input" />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-blue-900 mb-1">Teaching Certificate or School Proof</label>
+                <input type="file" onChange={handleProofChange} required={form.role === 'teacher'} accept=".pdf,.jpg,.jpeg,.png,.webp,.docx"
+                  className="w-full border-2 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none transition-colors theme-input file:mr-3 file:rounded-lg file:border-0 file:bg-blue-100 file:px-3 file:py-1.5 file:text-xs file:font-black file:text-blue-700" />
+                <p className="text-xs text-blue-700 mt-1">PDF, image, or DOCX. Maximum 10MB.</p>
+              </div>
+            </div>
+          )}
+
           {error && <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</p>}
+          {success && <p className="text-green-700 text-sm bg-green-50 border border-green-200 rounded-xl px-3 py-2">{success}</p>}
 
           <button type="submit" disabled={loading}
             className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-black text-base py-3.5 rounded-2xl shadow-md transition-colors">
-            {loading ? 'Creating account…' : 'Create Free Account'}
+            {loading
+              ? form.role === 'teacher' ? 'Submitting application…' : 'Creating account…'
+              : form.role === 'teacher' ? 'Submit Teacher Application' : 'Create Free Account'}
           </button>
         </form>
 

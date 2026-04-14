@@ -10,6 +10,7 @@ const NAV = [
   { to: '/admin/papers/upload', icon: '📤', label: 'Upload Paper'            },
   { to: '/admin/content',     icon: '📁', label: 'Manage Content'            },
   { to: '/admin/approvals',   icon: '🔔', label: 'Approvals'                 },
+  { to: '/admin/teacher-applications', icon: '🧑‍🏫', label: 'Teacher Apps'   },
   { to: '/admin/results',     icon: '📈', label: 'Results'                   },
   { to: '/admin/payments',    icon: '💳', label: 'Payments'                  },
 ]
