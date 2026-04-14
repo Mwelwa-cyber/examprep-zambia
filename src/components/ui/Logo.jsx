@@ -2,7 +2,7 @@
  * ZedExams Logo component
  *
  * Assets in /public:
- *   /public/logo.png       — ZedExams logo
+ *   /public/zedexams-logo.png — ZedExams logo
  *
  * Props:
  *   variant:   'full' | 'icon'
@@ -10,7 +10,7 @@
  *   className: extra tailwind classes
  */
 export default function Logo({ variant = 'full', size = 'md', className = '' }) {
-  const logoSrc = '/zedexams-logo.png?v=3'
+  const logoSrc = '/zedexams-logo.png?v=4'
   // Heights for the full logo (wider landscape image)
   const fullH = { sm: 'h-14', md: 'h-20', lg: 'h-28', xl: 'h-40' }
   // Sizes for the square icon
