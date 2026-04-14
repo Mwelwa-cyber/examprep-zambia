@@ -7,7 +7,7 @@ import {
   updateProfile,
   sendPasswordResetEmail,
 } from 'firebase/auth'
-import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, setDoc, getDoc, updateDoc, serverTimestamp, onSnapshot } from 'firebase/firestore'
 import { auth, db } from '../firebase/config'
 import { ROLES } from '../utils/subscriptionConfig'
 
@@ -90,20 +90,43 @@ export function AuthProvider({ children }) {
   })()
   // Paid teacher: has teacher role AND active premium subscription
   const isPaidTeacher = (userProfile?.role === ROLES.TEACHER) && isPremium
-  // Full content access: admin always, or paid teacher
-  const canAccessFullContent = isAdmin || isPaidTeacher
+  // Full content access: admin always, paid teachers, or premium learners.
+  const canAccessFullContent = isAdmin || isPaidTeacher || isPremium
 
   useEffect(() => {
+    let unsubProfile = null
     const timeout = setTimeout(() => setLoading(false), 2500)
-    const unsub = onAuthStateChanged(auth, async (user) => {
+    const unsub = onAuthStateChanged(auth, (user) => {
       clearTimeout(timeout)
+      if (unsubProfile) {
+        unsubProfile()
+        unsubProfile = null
+      }
       setCurrentUser(user)
-      if (user) await fetchUserProfile(user.uid)
-      else setUserProfile(null)
-      setLoading(false)
+      if (user) {
+        unsubProfile = onSnapshot(
+          doc(db, 'users', user.uid),
+          (snap) => {
+            setUserProfile(snap.exists() ? { id: user.uid, ...snap.data() } : null)
+            setLoading(false)
+          },
+          (e) => {
+            console.error('profile subscription:', e)
+            setUserProfile(null)
+            setLoading(false)
+          },
+        )
+      } else {
+        setUserProfile(null)
+        setLoading(false)
+      }
     })
-    return () => { clearTimeout(timeout); unsub() }
-  }, [fetchUserProfile])
+    return () => {
+      clearTimeout(timeout)
+      if (unsubProfile) unsubProfile()
+      unsub()
+    }
+  }, [])
 
   return (
     <AuthContext.Provider value={{

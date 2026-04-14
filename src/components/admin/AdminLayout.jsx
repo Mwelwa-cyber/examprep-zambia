@@ -69,7 +69,7 @@ export default function AdminLayout({ children }) {
 
       {/* ── Mobile Header ───────────────────────────────── */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-100 shadow-sm">
-        <div className="flex items-center justify-between px-4 h-16">
+        <div className="flex items-center justify-between px-4 h-20">
           <div className="flex items-center gap-2.5">
             <Logo variant="icon" size="md" />
             <span className="font-black text-gray-800 text-sm">Admin Panel</span>
@@ -85,7 +85,7 @@ export default function AdminLayout({ children }) {
       {mobileOpen && (
         <div className="md:hidden fixed inset-0 z-30" onClick={() => setMobileOpen(false)}>
           <div className="absolute inset-0 bg-black/30" />
-          <nav className="absolute top-14 left-0 right-0 bg-white shadow-xl border-t border-gray-100 p-3 space-y-1"
+          <nav className="absolute top-20 left-0 right-0 bg-white shadow-xl border-t border-gray-100 p-3 space-y-1"
             onClick={e => e.stopPropagation()}>
             {NAV.map(item => (
               <NavLink key={item.to} to={item.to} end={item.end}
@@ -107,7 +107,7 @@ export default function AdminLayout({ children }) {
       )}
 
       {/* ── Main Content ────────────────────────────────── */}
-      <main className="flex-1 min-w-0 md:pt-0 pt-14">
+      <main className="flex-1 min-w-0 md:pt-0 pt-20">
         <div className="max-w-4xl mx-auto px-4 py-6">
           {children}
         </div>

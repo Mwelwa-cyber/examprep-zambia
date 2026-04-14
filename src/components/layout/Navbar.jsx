@@ -37,7 +37,7 @@ export default function Navbar() {
 
   return (
     <nav className="theme-card border-b theme-border shadow-sm sticky top-0 z-40">
-      <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
+      <div className="max-w-5xl mx-auto px-4 h-20 flex items-center justify-between gap-4">
 
         {/* Logo */}
         <Link to="/dashboard" className="flex items-center min-h-0 flex-shrink-0">

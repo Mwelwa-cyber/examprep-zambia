@@ -241,22 +241,25 @@ export default function GradeHub() {
       <OnboardingOverlay />
       {/* ──────────── HEADER ─────────────────────────────────── */}
       <header className="sticky top-0 z-30 theme-card border-b theme-border shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
+        <div className="max-w-4xl mx-auto px-4 h-20 flex items-center justify-between gap-3">
           <Logo variant="full" size="sm" />
 
           <div className="flex items-center gap-2">
             <DataSaverToggle />
-            <ThemeSelector compact />
+            <ThemeSelector compact quizStyle />
 
-            {/* Notifications placeholder */}
-            <button className="relative w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 min-h-0 bg-transparent shadow-none">
+            <Link
+              to="/my-badges"
+              aria-label="View notifications and badges"
+              className="relative w-9 h-9 flex items-center justify-center text-gray-500 hover:text-gray-700 min-h-0 bg-transparent shadow-none rounded-lg hover:theme-bg-subtle"
+            >
               🔔
               {earnedBadges.length > 0 && (
                 <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center font-black leading-none">
                   {earnedBadges.length > 9 ? '9+' : earnedBadges.length}
                 </span>
               )}
-            </button>
+            </Link>
 
             {/* User avatar */}
             <div className="relative">

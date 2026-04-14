@@ -8,8 +8,8 @@ export function useSubscription() {
 
   const plan = getActivePlan(userProfile)
 
-  // Access level: admin and paid teachers get full content; everyone else is demo-only
-  const canAccessFullContent = isAdmin || isPaidTeacher
+  // Access level: admins, paid teachers, and premium learners get full content.
+  const canAccessFullContent = isAdmin || isPaidTeacher || isPremium
   const isDemoOnly           = !canAccessFullContent
   const accessLevel          = canAccessFullContent ? ACCESS_LEVELS.FULL : ACCESS_LEVELS.DEMO_ONLY
 

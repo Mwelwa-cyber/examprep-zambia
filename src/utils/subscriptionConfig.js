@@ -9,7 +9,7 @@ export const ROLES = {
 
 // Access levels for content gating.
 // - DEMO_ONLY: free learners + unpaid teachers (demo quizzes only)
-// - FULL:      admin + paid teachers (all quizzes)
+// - FULL:      admin + paid teachers + premium learners (all quizzes)
 export const ACCESS_LEVELS = {
   DEMO_ONLY: 'demo_only',
   FULL:      'full',

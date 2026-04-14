@@ -2,8 +2,7 @@
  * ZedExams Logo component
  *
  * Assets in /public:
- *   /public/logo.svg       — full stacked logo (book + ZedExams + Practise smart.)
- *   /public/logo-icon.svg  — square app icon (blue rounded bg + book/leaf)
+ *   /public/logo.png       — ZedExams logo
  *
  * Props:
  *   variant:   'full' | 'icon'
@@ -11,15 +10,16 @@
  *   className: extra tailwind classes
  */
 export default function Logo({ variant = 'full', size = 'md', className = '' }) {
+  const logoSrc = '/zedexams-logo.png?v=3'
   // Heights for the full logo (wider landscape image)
-  const fullH = { sm: 'h-9', md: 'h-12', lg: 'h-20', xl: 'h-28' }
+  const fullH = { sm: 'h-14', md: 'h-20', lg: 'h-28', xl: 'h-40' }
   // Sizes for the square icon
-  const iconH = { sm: 'h-8 w-8', md: 'h-10 w-10', lg: 'h-14 w-14', xl: 'h-20 w-20' }
+  const iconH = { sm: 'h-12 w-12', md: 'h-14 w-14', lg: 'h-20 w-20', xl: 'h-28 w-28' }
 
   if (variant === 'icon') {
     return (
       <img
-        src="/logo-icon.svg"
+        src={logoSrc}
         alt="ZedExams"
         className={`${iconH[size] ?? iconH.md} object-contain flex-shrink-0 ${className}`}
       />
@@ -28,8 +28,8 @@ export default function Logo({ variant = 'full', size = 'md', className = '' }) 
 
   return (
     <img
-      src="/logo.svg"
-      alt="ZedExams — Practise smart."
+      src={logoSrc}
+      alt="ZedExams"
       className={`${fullH[size] ?? fullH.md} w-auto object-contain flex-shrink-0 ${className}`}
     />
   )
