@@ -63,6 +63,11 @@ function QuizRow({ quiz, onTogglePublish, onDelete, deleting }) {
           <Pill color="bg-indigo-100 text-indigo-700">G{quiz.grade}</Pill>
           <Pill color="bg-gray-100 text-gray-600">T{quiz.term}</Pill>
           <Pill color="bg-gray-50 text-gray-500">{quiz.questionCount ?? '?'}Q · {quiz.duration}m</Pill>
+          {quiz.mode === 'imported_document' && (
+            <Pill color={quiz.importStatus === 'needs_review' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}>
+              Imported
+            </Pill>
+          )}
           <StatusPill status={status} />
         </div>
         {quiz.rejectionReason && (
@@ -254,6 +259,10 @@ export default function ManageContent() {
           <Link to="/admin/quizzes/new"
             className="bg-green-600 hover:bg-green-700 text-white font-black text-sm px-4 py-2 rounded-xl transition-colors">
             + Quiz
+          </Link>
+          <Link to="/admin/quizzes/new?mode=import"
+            className="border-2 border-emerald-600 text-emerald-700 font-black text-sm px-4 py-2 rounded-xl hover:bg-emerald-50 transition-colors">
+            Import Quiz
           </Link>
           <Link to="/admin/lessons/new"
             className="border-2 border-green-600 text-green-600 font-black text-sm px-4 py-2 rounded-xl hover:bg-green-50 transition-colors">

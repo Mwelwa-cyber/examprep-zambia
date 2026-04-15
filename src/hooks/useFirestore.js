@@ -6,7 +6,7 @@ import { db } from '../firebase/config'
 
 function normalizeQuestionPayload(q, order) {
   const type = q.type || 'mcq'
-  const isShortAnswer = type === 'short_answer'
+  const isShortAnswer = type === 'short_answer' || type === 'diagram'
   const options = isShortAnswer
     ? []
     : Array.isArray(q.options)
@@ -25,8 +25,13 @@ function normalizeQuestionPayload(q, order) {
     topic:         String(q.topic ?? '').trim(),
     marks:         Number(q.marks) || 1,
     type,
+    detectedType:  q.detectedType || type,
     imageUrl:      q.imageUrl || null,
     diagramText:   q.diagramText || null,
+    requiresReview: Boolean(q.requiresReview),
+    reviewNotes:   Array.isArray(q.reviewNotes) ? q.reviewNotes.map(note => String(note ?? '').trim()).filter(Boolean) : [],
+    importWarnings: Array.isArray(q.importWarnings) ? q.importWarnings.map(note => String(note ?? '').trim()).filter(Boolean) : [],
+    sourcePage:    q.sourcePage || null,
     order,
   }
 }

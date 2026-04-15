@@ -57,8 +57,13 @@ function emptyQuestion() {
     _id: null,               // null → new question (no Firestore doc yet)
     text: '', options: ['', '', '', ''], correctAnswer: 0,
     explanation: '', topic: '', marks: 1, type: 'mcq',
-    imageUrl: '', imageUploading: false, imageUploadStep: '',
+    imageUrl: '', imageAssetId: '', imageUploading: false, imageUploadStep: '',
     diagramText: '',
+    detectedType: 'mcq',
+    requiresReview: false,
+    reviewNotes: [],
+    importWarnings: [],
+    sourcePage: null,
   }
 }
 
@@ -130,7 +135,7 @@ function QuestionCard({ q, qi, total, onChange, onRemove, onMove, onImageUpload,
     const opts = [...q.options]; opts[oi] = val; onChange(qi, 'options', opts)
   }
   const isTF = q.type === 'truefalse'
-  const isSA = q.type === 'short_answer'
+  const isSA = q.type === 'short_answer' || q.type === 'diagram'
 
   return (
     <div className={`bg-white rounded-2xl border-2 p-5 space-y-4 shadow-sm transition-colors ${
@@ -153,7 +158,7 @@ function QuestionCard({ q, qi, total, onChange, onRemove, onMove, onImageUpload,
               set('type', nextType)
               if (nextType === 'truefalse') {
                 onChange(qi, 'options', ['True', 'False']); onChange(qi, 'correctAnswer', 0)
-              } else if (nextType === 'short_answer') {
+              } else if (nextType === 'short_answer' || nextType === 'diagram') {
                 onChange(qi, 'options', []); onChange(qi, 'correctAnswer', typeof q.correctAnswer === 'string' ? q.correctAnswer : '')
               } else if (q.options.length < 4) {
                 onChange(qi, 'options', ['', '', '', '']); onChange(qi, 'correctAnswer', 0)
@@ -163,6 +168,7 @@ function QuestionCard({ q, qi, total, onChange, onRemove, onMove, onImageUpload,
             <option value="mcq">MCQ</option>
             <option value="truefalse">True / False</option>
             <option value="short_answer">Short Answer</option>
+            <option value="diagram">Diagram / Image</option>
           </select>
           <button onClick={() => onMove(qi, -1)} disabled={qi === 0}
             className="text-gray-400 hover:text-gray-600 disabled:opacity-30 text-sm min-h-0 bg-transparent shadow-none p-1">↑</button>
@@ -176,6 +182,17 @@ function QuestionCard({ q, qi, total, onChange, onRemove, onMove, onImageUpload,
           )}
         </div>
       </div>
+
+      {q.requiresReview && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+          <p className="text-xs font-black text-amber-900">Needs review</p>
+          <ul className="mt-1 space-y-0.5">
+            {(q.reviewNotes || q.importWarnings || ['Check this imported question before publishing.']).slice(0, 3).map((note, index) => (
+              <li key={`${note}-${index}`} className="text-xs font-bold leading-relaxed text-amber-800">{note}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Image */}
       <QuestionImageUpload
@@ -318,6 +335,11 @@ export default function EditQuiz() {
         type:     quiz.type     ?? 'quiz',
         topic:    quiz.topic    ?? '',
         isDemo:   quiz.isDemo   ?? false,
+        mode:     quiz.mode     ?? '',
+        importStatus: quiz.importStatus ?? '',
+        sourceFileName: quiz.sourceFileName ?? '',
+        sourceContentType: quiz.sourceContentType ?? '',
+        importWarnings: quiz.importWarnings ?? [],
       })
       setQuizStatus(quiz.status ?? (quiz.isPublished ? 'published' : 'draft'))
       setQuizOwner(quiz.createdBy)
@@ -325,7 +347,7 @@ export default function EditQuiz() {
       // Map Firestore docs → local question objects
       setQuestions(qs.map(q => {
         const type = q.type ?? 'mcq'
-        const isShortAnswer = type === 'short_answer'
+        const isShortAnswer = type === 'short_answer' || type === 'diagram'
         return {
           _id:           q.id,                    // Firestore doc ID
           text:          q.text          ?? '',
@@ -335,8 +357,14 @@ export default function EditQuiz() {
           topic:         q.topic         ?? '',
           marks:         q.marks         ?? 1,
           type,
+          detectedType:  q.detectedType  ?? type,
           imageUrl:      q.imageUrl      ?? '',
+          imageAssetId:   q.imageAssetId   ?? '',
           diagramText:   q.diagramText   ?? '',
+          requiresReview: Boolean(q.requiresReview),
+          reviewNotes:   q.reviewNotes   ?? [],
+          importWarnings: q.importWarnings ?? [],
+          sourcePage:    q.sourcePage    ?? null,
           imageUploading: false,
           imageUploadStep: '',
         }
@@ -382,7 +410,7 @@ export default function EditQuiz() {
     if (!ALLOWED_TYPES.includes(file.type)) { show('❌ Only JPG, PNG, WEBP allowed.', true); return }
     if (file.size > 15 * 1024 * 1024) { show('❌ Image must be under 15 MB.', true); return }
     setQuestions(qs => qs.map((q, i) => i === qi
-      ? { ...q, imageUploading: true, imageUploadStep: 'compressing', imageUrl: '' } : q))
+      ? { ...q, imageUploading: true, imageUploadStep: 'compressing', imageUrl: '', imageAssetId: '' } : q))
     try {
       const compressed = await compressImage(file)
       setQuestions(qs => qs.map((q, i) => i === qi ? { ...q, imageUploadStep: 'uploading' } : q))
@@ -390,7 +418,7 @@ export default function EditQuiz() {
       const snap = await uploadBytes(storageRef(storage, path), compressed, { contentType: 'image/jpeg' })
       const url  = await getDownloadURL(snap.ref)
       setQuestions(qs => qs.map((q, i) => i === qi
-        ? { ...q, imageUrl: url, imageUploading: false, imageUploadStep: '' } : q))
+        ? { ...q, imageUrl: url, imageAssetId: '', imageUploading: false, imageUploadStep: '' } : q))
       show(`✅ Image uploaded (${Math.round(compressed.size / 1024)} KB)`)
     } catch (e) {
       setQuestions(qs => qs.map((q, i) => i === qi ? { ...q, imageUploading: false, imageUploadStep: '' } : q))
@@ -398,7 +426,10 @@ export default function EditQuiz() {
     }
   }
 
-  function removeQuestionImage(qi) { handleQChange(qi, 'imageUrl', '') }
+  function removeQuestionImage(qi) {
+    setQuestions(qs => qs.map((q, i) => i === qi ? { ...q, imageUrl: '', imageAssetId: '' } : q))
+    setDirty(true)
+  }
 
   // ── Validation ─────────────────────────────────────────────────────────
   function validate() {
@@ -629,6 +660,21 @@ export default function EditQuiz() {
           </label>
         </div>
       </div>
+
+      {form.mode === 'imported_document' && (
+        <div className={`rounded-2xl border px-4 py-3 ${
+          form.importStatus === 'needs_review'
+            ? 'border-amber-200 bg-amber-50'
+            : 'border-emerald-200 bg-emerald-50'
+        }`}>
+          <p className={`text-sm font-black ${form.importStatus === 'needs_review' ? 'text-amber-900' : 'text-emerald-900'}`}>
+            Imported from Word/PDF
+          </p>
+          <p className={`mt-1 text-xs font-bold leading-relaxed ${form.importStatus === 'needs_review' ? 'text-amber-800' : 'text-emerald-800'}`}>
+            Source: {form.sourceFileName || 'document'} · Status: {form.importStatus || 'success'} · Check all marked questions before publishing.
+          </p>
+        </div>
+      )}
 
       {/* ── Questions ─────────────────────────────────────────────────────── */}
       {questions.length === 0 ? (

@@ -9,6 +9,7 @@ import { getPakoTip } from '../../config/curriculum'
 import { checkAnswerWithAI } from '../../utils/geminiChecker'
 
 function fmt(s) { return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` }
+function isTextAnswerType(type) { return type === 'short_answer' || type === 'diagram' }
 
 // ── Theme presets ─────────────────────────────────────────────────────────────
 const THEMES = {
@@ -510,8 +511,8 @@ export default function QuizRunner() {
       let score = 0, total = 0
       const topicScores = {}
       questions.forEach(q => {
-        // short_answer stores {text, correct}; MCQ/TF store the option index
-        const ok = q.type === 'short_answer'
+        // Text-answer questions store {text, correct}; MCQ/TF store the option index.
+        const ok = isTextAnswerType(q.type)
           ? answers[q.id]?.correct === true
           : answers[q.id] === q.correctAnswer
         total += q.marks || 1; if (ok) score += q.marks || 1
@@ -787,7 +788,7 @@ export default function QuizRunner() {
         </div>
 
         {/* ── SHORT ANSWER (AI-checked) ──────────────────────────────────── */}
-        {q.type === 'short_answer' ? (() => {
+        {isTextAnswerType(q.type) ? (() => {
           const aiRes     = aiResults[q.id]
           const checking  = aiChecking[q.id]
           const typed     = shortText[q.id] ?? ''

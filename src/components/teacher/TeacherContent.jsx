@@ -35,6 +35,11 @@ function ContentRow({ item, onSubmit, onWithdraw, onDelete, busy }) {
             {item.grade   && <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">Grade {item.grade}</span>}
             {item.subject && <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-0.5 rounded-full">{item.subject}</span>}
             {item.term    && <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-0.5 rounded-full">T{item.term}</span>}
+            {item.mode === 'imported_document' && (
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${item.importStatus === 'needs_review' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                Imported
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             <StatusBadge status={status} />
@@ -170,9 +175,25 @@ export default function TeacherContent() {
       )}
 
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-black text-gray-800">📁 My Content</h1>
-        <p className="text-gray-500 text-sm mt-0.5">Manage and submit your quizzes, lessons, and papers</p>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-black text-gray-800">📁 My Content</h1>
+          <p className="text-gray-500 text-sm mt-0.5">Manage and submit your quizzes, lessons, and papers</p>
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          <Link to="/teacher/quizzes/new"
+            className="bg-blue-600 hover:bg-blue-700 text-white font-black text-sm px-4 py-2 rounded-xl transition-colors">
+            + Quiz
+          </Link>
+          <Link to="/teacher/quizzes/new?mode=import"
+            className="border-2 border-emerald-600 text-emerald-700 font-black text-sm px-4 py-2 rounded-xl hover:bg-emerald-50 transition-colors">
+            Import Quiz
+          </Link>
+          <Link to="/teacher/lessons/new"
+            className="border-2 border-blue-600 text-blue-700 font-black text-sm px-4 py-2 rounded-xl hover:bg-blue-50 transition-colors">
+            + Lesson
+          </Link>
+        </div>
       </div>
 
       {/* Filter tabs */}

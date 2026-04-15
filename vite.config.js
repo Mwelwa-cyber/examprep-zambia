@@ -9,6 +9,7 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return undefined
+          if (id.includes('pdfjs-dist')) return 'pdfjs'
           if (id.includes('/react') || id.includes('\\react')) return 'react-vendor'
           if (id.includes('/firebase') || id.includes('\\firebase')) return 'firebase-vendor'
           return 'vendor'
