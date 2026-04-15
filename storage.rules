@@ -35,6 +35,21 @@ service firebase.storage {
         && request.resource.contentType.matches('image/(jpeg|png|webp)');
     }
 
+    function validLessonImageUpload() {
+      return request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp|gif)');
+    }
+
+    function validLessonPresentationUpload() {
+      return request.resource.size <= 50 * 1024 * 1024
+        && (
+          request.resource.contentType == 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+          || request.resource.contentType == 'application/pdf'
+          || request.resource.contentType == 'image/svg+xml'
+          || request.resource.contentType.matches('image/(jpeg|png|webp)')
+        );
+    }
+
     function validTeacherProofUpload() {
       return request.resource.size <= 10 * 1024 * 1024
         && (
@@ -75,6 +90,25 @@ service firebase.storage {
       allow create, update: if ownsPath(ownerUid)
         && isTeacherOrAdmin()
         && validQuizImageUpload();
+      allow delete: if ownsPath(ownerUid) && isTeacherOrAdmin();
+    }
+
+    // Imported lesson images: teachers/admins upload into their own folder.
+    // Learners can read them as part of playable lessons.
+    match /lesson-images/{ownerUid}/{assetBatchId}/{fileName=**} {
+      allow read: if isAuthed();
+      allow create, update: if ownsPath(ownerUid)
+        && isTeacherOrAdmin()
+        && validLessonImageUpload();
+      allow delete: if ownsPath(ownerUid) && isTeacherOrAdmin();
+    }
+
+    // Preserved PowerPoint lessons: original PPTX plus generated web slides.
+    match /lesson-presentations/{ownerUid}/{assetBatchId}/{fileName=**} {
+      allow read: if isAuthed();
+      allow create, update: if ownsPath(ownerUid)
+        && isTeacherOrAdmin()
+        && validLessonPresentationUpload();
       allow delete: if ownsPath(ownerUid) && isTeacherOrAdmin();
     }
 

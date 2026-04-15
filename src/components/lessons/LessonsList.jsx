@@ -81,7 +81,9 @@ function LessonCard({ lesson }) {
   const { icon, style } = getSubjectMeta(lesson.subject)
   const gradeStyle = GRADE_STYLES[lesson.grade] ?? GRADE_STYLES['6']
   const wordCount  = lesson.content ? lesson.content.split(/\s+/).length : 0
-  const readMins   = Math.max(1, Math.round(wordCount / 200))
+  const slideCount = lesson.presentation?.slideCount || lesson.slides?.length || 0
+  const readMins   = Math.max(1, Math.round(Math.max(wordCount / 200, slideCount * 0.8)))
+  const isPresentation = lesson.mode === 'pptx_viewer' || lesson.creationMode === 'pptx_viewer'
 
   return (
     <Link to={`/lessons/${lesson.id}`}
@@ -89,7 +91,7 @@ function LessonCard({ lesson }) {
       <div className="p-4 flex items-start gap-4">
         {/* Subject icon */}
         <div className={`${style.icon} w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0 group-hover:scale-105 transition-transform`}>
-          {icon}
+          {isPresentation ? '▣' : icon}
         </div>
 
         {/* Content */}
@@ -112,6 +114,9 @@ function LessonCard({ lesson }) {
             <span className="theme-text-muted text-xs flex items-center gap-1">
               <span>⏱</span> {readMins} min read
             </span>
+            {isPresentation && (
+              <span className="theme-bg-subtle theme-text-muted text-xs font-bold px-2 py-0.5 rounded-full">PowerPoint viewer</span>
+            )}
           </div>
         </div>
 

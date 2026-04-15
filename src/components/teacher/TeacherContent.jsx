@@ -11,7 +11,7 @@ function ContentRow({ item, onSubmit, onWithdraw, onDelete, busy }) {
   const canSubmit   = status === 'draft' || status === 'rejected'
   const canWithdraw = status === 'pending'
   const canDelete   = status === 'draft' || status === 'rejected'
-  const canEdit     = item.contentType === 'quiz' && (status === 'draft' || status === 'rejected' || status === 'pending')
+  const canEdit     = (item.contentType === 'quiz' || item.contentType === 'lesson') && (status === 'draft' || status === 'rejected' || status === 'pending')
 
   function fmt(ts) {
     if (!ts) return '—'
@@ -56,9 +56,9 @@ function ContentRow({ item, onSubmit, onWithdraw, onDelete, busy }) {
       <div className="flex gap-2 flex-wrap">
         {canEdit && (
           <Link
-            to={`/teacher/quizzes/${item.id}/edit`}
+            to={item.contentType === 'lesson' ? `/teacher/lessons/${item.id}/edit` : `/teacher/quizzes/${item.id}/edit`}
             className="bg-gray-100 hover:bg-gray-200 border border-gray-200 text-gray-700 font-black text-xs px-4 py-2 rounded-xl min-h-0 transition-colors">
-            ✏️ Edit Quiz
+            ✏️ Edit {item.contentType === 'lesson' ? 'Lesson' : 'Quiz'}
           </Link>
         )}
         {canSubmit && (

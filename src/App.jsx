@@ -12,8 +12,10 @@ const QuizList = lazy(() => import('./components/quiz/QuizList'))
 const QuizRunner = lazy(() => import('./components/quiz/QuizRunner'))
 const QuizResults = lazy(() => import('./components/quiz/QuizResults'))
 const PapersLibrary = lazy(() => import('./components/papers/PapersLibrary'))
-const LessonsList = lazy(() => import('./components/lessons/LessonsList'))
-const LessonView = lazy(() => import('./components/lessons/LessonView'))
+const LessonsList = lazy(() => import('./components/lessons/LessonLibrary'))
+const LessonView = lazy(() => import('./components/lessons/LessonPlayer'))
+const LessonDashboard = lazy(() => import('./components/lessons/LessonDashboard'))
+const LessonEditor = lazy(() => import('./components/lessons/LessonEditor'))
 const MyResults = lazy(() => import('./components/dashboard/MyResults'))
 const BadgesPage = lazy(() => import('./components/dashboard/BadgesPage'))
 const ProfilePage = lazy(() => import('./components/dashboard/ProfilePage'))
@@ -22,7 +24,6 @@ const FloatingAIAssistant = lazy(() => import('./components/ai/FloatingAIAssista
 // Admin section
 const AdminLayout = lazy(() => import('./components/admin/AdminLayout'))
 const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard'))
-const CreateLesson = lazy(() => import('./components/admin/CreateLesson'))
 const CreateQuiz = lazy(() => import('./components/admin/CreateQuiz'))
 const ManageContent = lazy(() => import('./components/admin/ManageContent'))
 const AdminResults = lazy(() => import('./components/admin/AdminResults'))
@@ -101,7 +102,9 @@ export default function App() {
 
           {/* ── Admin routes (all wrapped in AdminLayout) ──────── */}
           <Route path="/admin"                 element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-          <Route path="/admin/lessons/new"              element={<AdminRoute><CreateLesson /></AdminRoute>} />
+          <Route path="/admin/lessons"                  element={<AdminRoute><LessonDashboard /></AdminRoute>} />
+          <Route path="/admin/lessons/new"              element={<AdminRoute><LessonEditor /></AdminRoute>} />
+          <Route path="/admin/lessons/:lessonId/edit"   element={<AdminRoute><LessonEditor /></AdminRoute>} />
           <Route path="/admin/quizzes/new"              element={<AdminRoute><CreateQuiz /></AdminRoute>} />
           <Route path="/admin/quizzes/:quizId/edit"     element={<AdminRoute><EditQuiz /></AdminRoute>} />
           <Route path="/admin/papers/upload"            element={<AdminRoute><TeacherPaperUpload /></AdminRoute>} />
@@ -116,7 +119,9 @@ export default function App() {
           <Route path="/teacher/content"               element={<TeacherRoute><TeacherContent /></TeacherRoute>} />
           <Route path="/teacher/quizzes/new"           element={<TeacherRoute><CreateQuiz /></TeacherRoute>} />
           <Route path="/teacher/quizzes/:quizId/edit"  element={<TeacherRoute><EditQuiz /></TeacherRoute>} />
-          <Route path="/teacher/lessons/new"           element={<TeacherRoute><CreateLesson /></TeacherRoute>} />
+          <Route path="/teacher/lessons"               element={<TeacherRoute><LessonDashboard /></TeacherRoute>} />
+          <Route path="/teacher/lessons/new"           element={<TeacherRoute><LessonEditor /></TeacherRoute>} />
+          <Route path="/teacher/lessons/:lessonId/edit" element={<TeacherRoute><LessonEditor /></TeacherRoute>} />
           <Route path="/teacher/papers/upload"         element={<TeacherRoute><TeacherPaperUpload /></TeacherRoute>} />
 
           <Route path="*" element={<Navigate to="/" replace />} />

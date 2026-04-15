@@ -108,6 +108,10 @@ function LessonRow({ lesson, onTogglePublish, onDelete, deleting }) {
         </div>
       </div>
       <div className="flex flex-col sm:flex-row gap-1.5 flex-shrink-0 mt-0.5">
+        <Link to={`/admin/lessons/${lesson.id}/edit`}
+          className="text-xs font-black px-3 py-1.5 rounded-full border-2 border-blue-300 text-blue-700 hover:bg-blue-50 transition-colors">
+          ✏️ Edit
+        </Link>
         <button onClick={() => onTogglePublish(lesson)}
           className={`text-xs font-bold px-3 py-1.5 rounded-full border min-h-0 transition-colors ${
             lesson.isPublished

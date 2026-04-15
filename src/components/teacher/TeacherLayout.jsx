@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import Logo from '../ui/Logo'
 
 const NAV = [
   { to: '/teacher',               icon: '📊', label: 'My Dashboard', end: true },
   { to: '/teacher/content',       icon: '📁', label: 'My Content'              },
+  { to: '/teacher/lessons',       icon: '▦', label: 'My Lessons'              },
   { to: '/teacher/quizzes/new',   icon: '✏️', label: 'Create Quiz'             },
   { to: '/teacher/lessons/new',   icon: '📖', label: 'Create Lesson'           },
   { to: '/teacher/papers/upload', icon: '📤', label: 'Upload Paper'            },
@@ -14,7 +15,9 @@ const NAV = [
 export default function TeacherLayout({ children }) {
   const { logout, userProfile } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const isLessonWorkspace = location.pathname.startsWith('/teacher/lessons')
 
   async function handleLogout() {
     await logout()
@@ -123,7 +126,7 @@ export default function TeacherLayout({ children }) {
 
       {/* ── Main Content ────────────────────────────────── */}
       <main className="flex-1 min-w-0 md:pt-0 pt-20">
-        <div className="max-w-4xl mx-auto px-4 py-6">
+        <div className={`${isLessonWorkspace ? 'max-w-7xl' : 'max-w-4xl'} mx-auto px-4 py-6`}>
           {children}
         </div>
       </main>

@@ -1,0 +1,130 @@
+import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { useFirestore } from '../../hooks/useFirestore'
+import ComingSoon from '../ui/ComingSoon'
+import { LESSON_GRADES, LESSON_SUBJECTS } from './lessonConstants'
+
+function getReadTime(lesson) {
+  const words = String(lesson.content || '').split(/\s+/).filter(Boolean).length
+  const slides = lesson.presentation?.slideCount || lesson.slides?.length || 0
+  return Math.max(1, Math.round(Math.max(words / 180, slides * 0.8)))
+}
+
+function LessonCard({ lesson }) {
+  const isPresentation = lesson.mode === 'pptx_viewer' || lesson.creationMode === 'pptx_viewer'
+  const slideCount = lesson.presentation?.slideCount || lesson.slides?.length || 0
+  const readMins = getReadTime(lesson)
+
+  return (
+    <Link to={`/lessons/${lesson.id}`} className="group block rounded-3xl border border-gray-100 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+      <div className="flex gap-4">
+        <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-2xl font-black text-emerald-700">
+          {isPresentation ? '▣' : '▦'}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-sky-50 px-2 py-0.5 text-xs font-black text-sky-700">Grade {lesson.grade}</span>
+            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-black text-emerald-700">{lesson.subject}</span>
+          </div>
+          <h2 className="mt-2 text-lg font-black leading-tight text-gray-900 group-hover:text-emerald-700">{lesson.title}</h2>
+          {lesson.topic && <p className="mt-1 text-sm font-bold text-gray-500">{lesson.topic}</p>}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <span className="rounded-full bg-gray-50 px-2 py-0.5 text-xs font-black text-gray-600">{slideCount || 'Slide'} slides</span>
+            {isPresentation && <span className="rounded-full bg-sky-50 px-2 py-0.5 text-xs font-black text-sky-700">PowerPoint viewer</span>}
+            <span className="rounded-full bg-gray-50 px-2 py-0.5 text-xs font-black text-gray-600">{readMins} min</span>
+            {lesson.linkedQuizId && <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-black text-amber-700">Quiz linked</span>}
+          </div>
+        </div>
+        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gray-50 text-lg font-black text-gray-400 transition-colors group-hover:bg-emerald-600 group-hover:text-white">
+          →
+        </div>
+      </div>
+    </Link>
+  )
+}
+
+export default function LessonLibrary() {
+  const { getLessons } = useFirestore()
+  const [lessons, setLessons] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [filters, setFilters] = useState({ search: '', grade: '', subject: '', topic: '' })
+
+  useEffect(() => {
+    async function load() {
+      setLoading(true)
+      const data = await getLessons({ grade: filters.grade, subject: filters.subject })
+      setLessons(data)
+      setLoading(false)
+    }
+    load()
+  }, [filters.grade, filters.subject])
+
+  const topics = useMemo(() => [...new Set(lessons.map(lesson => lesson.topic).filter(Boolean))].sort(), [lessons])
+
+  const filtered = useMemo(() => {
+    const search = filters.search.toLowerCase()
+    return lessons.filter(lesson => (
+      (!filters.topic || lesson.topic === filters.topic) &&
+      (!search || [lesson.title, lesson.subject, lesson.topic].some(value => String(value || '').toLowerCase().includes(search)))
+    ))
+  }, [filters, lessons])
+
+  function patchFilter(field, value) {
+    setFilters(current => ({ ...current, [field]: value }))
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-gradient-to-br from-emerald-700 via-sky-700 to-amber-500 px-4 py-8 text-white">
+        <div className="mx-auto max-w-5xl">
+          <p className="text-sm font-black uppercase tracking-wide text-white/75">Lessons</p>
+          <h1 className="mt-2 text-3xl font-black sm:text-4xl">Slide lessons for focused study</h1>
+          <p className="mt-2 max-w-2xl text-sm font-bold leading-relaxed text-white/80">
+            Open a topic, move slide by slide, then take the linked quiz or check activity answers.
+          </p>
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-5xl px-4 py-5">
+        <div className="-mt-10 rounded-3xl border border-white/70 bg-white p-4 shadow-sm">
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(130px,0.6fr))]">
+            <input value={filters.search} onChange={event => patchFilter('search', event.target.value)} placeholder="Search lessons or topics" className="rounded-xl border-2 border-gray-200 px-3 py-2 text-sm font-bold outline-none focus:border-emerald-500" />
+            <select value={filters.grade} onChange={event => patchFilter('grade', event.target.value)} className="rounded-xl border-2 border-gray-200 px-3 py-2 text-sm font-bold outline-none focus:border-emerald-500">
+              <option value="">All Grades</option>
+              {LESSON_GRADES.map(grade => <option key={grade} value={grade}>Grade {grade}</option>)}
+            </select>
+            <select value={filters.subject} onChange={event => patchFilter('subject', event.target.value)} className="rounded-xl border-2 border-gray-200 px-3 py-2 text-sm font-bold outline-none focus:border-emerald-500">
+              <option value="">All Subjects</option>
+              {LESSON_SUBJECTS.map(subject => <option key={subject} value={subject}>{subject}</option>)}
+            </select>
+            <select value={filters.topic} onChange={event => patchFilter('topic', event.target.value)} className="rounded-xl border-2 border-gray-200 px-3 py-2 text-sm font-bold outline-none focus:border-emerald-500">
+              <option value="">All Topics</option>
+              {topics.map(topic => <option key={topic} value={topic}>{topic}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-3">
+          {loading ? (
+            Array.from({ length: 4 }).map((_, index) => <div key={index} className="h-32 animate-pulse rounded-3xl bg-gray-200" />)
+          ) : lessons.length === 0 ? (
+            <ComingSoon
+              title="Lessons Coming Soon"
+              message="Teachers are preparing slide lessons for learners. Check back soon or try a quiz."
+              icon="▦"
+            />
+          ) : filtered.length === 0 ? (
+            <div className="rounded-3xl border border-gray-100 bg-white py-16 text-center shadow-sm">
+              <h2 className="text-xl font-black text-gray-900">No lessons match those filters</h2>
+              <button onClick={() => setFilters({ search: '', grade: '', subject: '', topic: '' })} className="mt-3 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-black text-white">
+                Clear Filters
+              </button>
+            </div>
+          ) : (
+            filtered.map(lesson => <LessonCard key={lesson.id} lesson={lesson} />)
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
