@@ -4,6 +4,7 @@ import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage
 import { useFirestore } from '../../hooks/useFirestore'
 import { useAuth } from '../../contexts/AuthContext'
 import { storage } from '../../firebase/config'
+import { generateAIQuizQuestions } from '../../utils/aiAssistant'
 
 const SUBJECTS = ['Mathematics', 'English', 'Science', 'Social Studies']
 const GRADES   = ['5', '6', '7']
@@ -319,11 +320,58 @@ export default function CreateQuiz() {
   const [questions, setQuestions] = useState([emptyQuestion()])
   const [saving, setSaving]       = useState(false)
   const [toast, setToast]         = useState(null)
+  const [aiForm, setAiForm]       = useState({ topic: '', count: 5, type: 'mcq' })
+  const [aiGenerating, setAiGenerating] = useState(false)
 
   function setF(field, val) { setForm(f => ({ ...f, [field]: val })) }
+  function setAi(field, val) { setAiForm(f => ({ ...f, [field]: val })) }
   function show(msg, isErr = false) {
     setToast({ msg, isErr })
     setTimeout(() => setToast(null), 3500)
+  }
+
+  function hasOnlyEmptyStarter(qs) {
+    if (qs.length !== 1) return false
+    const q = qs[0]
+    return !q.text.trim() &&
+      !q.explanation.trim() &&
+      !q.topic.trim() &&
+      q.options.every(opt => !opt.trim())
+  }
+
+  async function handleGenerateQuestions() {
+    const topic = aiForm.topic.trim()
+    if (!topic) {
+      show('❌ Add a topic for Zed to generate questions.', true)
+      return
+    }
+
+    setAiGenerating(true)
+    try {
+      const generated = await generateAIQuizQuestions({
+        subject: form.subject,
+        grade: form.grade,
+        topic,
+        count: aiForm.count,
+        type: aiForm.type,
+      })
+      const nextQuestions = generated.map(q => ({
+        ...emptyQuestion(),
+        ...q,
+        options: q.options?.length ? q.options : ['', '', '', ''],
+        imageUrl: '',
+        imageUploading: false,
+      }))
+      setQuestions(qs => hasOnlyEmptyStarter(qs) ? nextQuestions : [...qs, ...nextQuestions])
+      if (!form.title.trim()) {
+        setF('title', `Grade ${form.grade} ${form.subject} — ${topic}`)
+      }
+      show(`✦ Added ${nextQuestions.length} AI-generated question${nextQuestions.length !== 1 ? 's' : ''}. Review before saving.`)
+    } catch (error) {
+      show('❌ ' + error.message, true)
+    } finally {
+      setAiGenerating(false)
+    }
   }
 
   function handleQChange(qi, field, val) {
@@ -504,6 +552,55 @@ export default function CreateQuiz() {
             </span>
           )}
         </div>
+      </div>
+
+      {/* AI quiz generator */}
+      <div className="bg-sky-50 rounded-2xl border border-sky-100 p-5 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="font-black text-sky-900">✦ AI Quiz Generator</h2>
+            <p className="text-sky-700 text-sm mt-0.5">
+              Generate draft multiple-choice questions, then edit them below before saving.
+            </p>
+          </div>
+          <span className="hidden sm:inline-flex bg-white/80 text-sky-700 border border-sky-100 text-xs font-black px-3 py-1 rounded-full">
+            Teacher tool
+          </span>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+          <select value={form.grade} onChange={e => setF('grade', e.target.value)} className={SELECT}>
+            {GRADES.map(g => <option key={g} value={g}>Grade {g}</option>)}
+          </select>
+          <select value={form.subject} onChange={e => setF('subject', e.target.value)} className={SELECT}>
+            {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <input
+            value={aiForm.topic}
+            onChange={e => setAi('topic', e.target.value)}
+            placeholder="Topic, e.g. Fractions"
+            className="col-span-2 lg:col-span-1 border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-sky-500 focus:outline-none"
+          />
+          <input
+            type="number"
+            min={1}
+            max={10}
+            value={aiForm.count}
+            onChange={e => setAi('count', +e.target.value)}
+            className="border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-sky-500 focus:outline-none"
+            aria-label="Number of questions"
+          />
+          <select value={aiForm.type} onChange={e => setAi('type', e.target.value)} className={SELECT}>
+            <option value="mcq">Multiple choice</option>
+          </select>
+        </div>
+        <button
+          type="button"
+          onClick={handleGenerateQuestions}
+          disabled={aiGenerating || saving}
+          className="w-full sm:w-auto bg-sky-600 hover:bg-sky-700 disabled:opacity-60 text-white font-black px-5 py-3 rounded-xl min-h-0 transition-colors"
+        >
+          {aiGenerating ? '✦ Generating...' : '✦ Generate Questions'}
+        </button>
       </div>
 
       {/* Questions */}

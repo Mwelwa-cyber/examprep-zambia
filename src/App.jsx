@@ -17,6 +17,7 @@ const LessonView = lazy(() => import('./components/lessons/LessonView'))
 const MyResults = lazy(() => import('./components/dashboard/MyResults'))
 const BadgesPage = lazy(() => import('./components/dashboard/BadgesPage'))
 const ProfilePage = lazy(() => import('./components/dashboard/ProfilePage'))
+const FloatingAIAssistant = lazy(() => import('./components/ai/FloatingAIAssistant'))
 
 // Admin section
 const AdminLayout = lazy(() => import('./components/admin/AdminLayout'))
@@ -120,6 +121,7 @@ export default function App() {
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        <FloatingAIAssistant />
       </Suspense>
     </BrowserRouter>
   )

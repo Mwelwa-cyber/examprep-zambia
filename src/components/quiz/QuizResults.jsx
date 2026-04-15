@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useFirestore } from '../../hooks/useFirestore'
+import { explainQuizAnswer } from '../../utils/aiAssistant'
 
 function ScoreCircle({ percentage }) {
   const r = 54, circ = 2 * Math.PI * r
@@ -31,6 +32,8 @@ export default function QuizResults() {
   const [questions, setQuestions] = useState([])
   const [loading, setLoading]   = useState(true)
   const [showReview, setShowReview] = useState(false)
+  const [aiExplanations, setAiExplanations] = useState({})
+  const [aiLoading, setAiLoading] = useState({})
 
   useEffect(() => {
     async function load() {
@@ -70,6 +73,34 @@ export default function QuizResults() {
 
   const mins = result.timeSpent ? Math.floor(result.timeSpent / 60) : 0
   const secs = result.timeSpent ? result.timeSpent % 60 : 0
+
+  function answerToText(q, answer) {
+    if (answer === undefined || answer === null || answer === '') return 'No answer'
+    const index = Number(answer)
+    if (Array.isArray(q.options) && Number.isInteger(index) && q.options[index]) {
+      return q.options[index]
+    }
+    return String(answer)
+  }
+
+  async function handleExplainAnswer(q, userAns) {
+    setAiLoading(prev => ({ ...prev, [q.id]: true }))
+    try {
+      const explanation = await explainQuizAnswer({
+        question: q.text,
+        learnerAnswer: answerToText(q, userAns),
+        correctAnswer: answerToText(q, q.correctAnswer),
+        subject: result.subject,
+        grade: result.grade,
+        topic: q.topic || '',
+      })
+      setAiExplanations(prev => ({ ...prev, [q.id]: explanation }))
+    } catch (error) {
+      setAiExplanations(prev => ({ ...prev, [q.id]: error.message }))
+    } finally {
+      setAiLoading(prev => ({ ...prev, [q.id]: false }))
+    }
+  }
 
   return (
     <div className="max-w-xl md:max-w-2xl mx-auto px-4 py-6">
@@ -141,13 +172,33 @@ export default function QuizResults() {
                       <p className="text-sm font-bold text-gray-800 leading-snug">Q{i + 1}. {q.text}</p>
                     </div>
                     <div className="ml-9 space-y-1">
-                      {q.options.map((opt, oi) => (
+                      {(q.options || []).map((opt, oi) => (
                         <div key={oi} className={`text-sm px-2 py-1 rounded-lg ${oi === q.correctAnswer ? 'bg-green-50 text-green-700 font-bold' : oi === userAns && !correct ? 'bg-red-50 text-red-600 line-through' : 'text-gray-500'}`}>
                           {['A', 'B', 'C', 'D'][oi]}. {opt}
                           {oi === q.correctAnswer && ' ✅'}
                           {oi === userAns && !correct && ' (your answer)'}
                         </div>
                       ))}
+                      {!q.options?.length && (
+                        <div className="space-y-1 text-sm">
+                          <p className="text-gray-500">Your answer: <span className="font-bold">{answerToText(q, userAns)}</span></p>
+                          <p className="text-green-700">Expected answer: <span className="font-bold">{answerToText(q, q.correctAnswer)}</span></p>
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleExplainAnswer(q, userAns)}
+                        disabled={aiLoading[q.id]}
+                        className="mt-3 inline-flex items-center gap-1.5 bg-sky-50 text-sky-700 border border-sky-100 font-black text-xs px-3 py-2 rounded-xl hover:bg-sky-100 disabled:opacity-60 min-h-0"
+                      >
+                        ✦ {aiLoading[q.id] ? 'Explaining...' : 'Explain this answer'}
+                      </button>
+                      {aiExplanations[q.id] && (
+                        <div className="mt-2 rounded-xl border border-sky-100 bg-sky-50 px-3 py-2 text-sm text-sky-900 leading-relaxed">
+                          <p className="font-black text-xs text-sky-700 mb-1">Zed explains</p>
+                          {aiExplanations[q.id]}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )

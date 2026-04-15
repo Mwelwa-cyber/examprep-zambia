@@ -5,6 +5,20 @@ const admin = require("firebase-admin");
 
 admin.initializeApp();
 
+const {
+  LIMITS,
+  assertDailyLimit,
+  buildChatMessages,
+  buildExplainMessages,
+  buildQuizMessages,
+  callOpenAI,
+  cleanString: cleanAiString,
+  getApiKey,
+  getUserRole,
+  isStaffRole,
+  parseGeneratedQuiz,
+} = require("./aiService");
+
 const openAiApiKey = defineSecret("OPENAI_API_KEY");
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 const MAX_LEN = {
@@ -60,10 +74,123 @@ exports.setUserRole = functions.auth.user().onCreate(async (user) => {
   const email = (user.email || "").toLowerCase();
   const role = adminEmails.includes(email) ? "admin" : "learner";
 
-  await admin.auth().setCustomUserClaims(user.uid, { role });
+  await admin.auth().setCustomUserClaims(user.uid, {role});
 
   return null;
 });
+
+exports.aiChat = onCall(
+  {secrets: [openAiApiKey], region: "us-central1", timeoutSeconds: 30},
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Please sign in first.");
+    }
+
+    const message = cleanAiString(request.data?.message, LIMITS.message);
+    if (!message) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Please enter a question for Zed.",
+      );
+    }
+
+    const role = await getUserRole(request.auth.uid);
+    await assertDailyLimit(request.auth.uid, role, "chat");
+
+    const reply = await callOpenAI(getApiKey(openAiApiKey), {
+      messages: buildChatMessages({
+        message,
+        context: request.data?.context || {},
+        role,
+      }),
+      maxTokens: 420,
+      temperature: 0.35,
+    });
+
+    return {reply};
+  },
+);
+
+exports.explainAnswer = onCall(
+  {secrets: [openAiApiKey], region: "us-central1", timeoutSeconds: 30},
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Please sign in first.");
+    }
+
+    const question = cleanAiString(request.data?.question, LIMITS.question);
+    const correctAnswer = cleanAiString(
+      request.data?.correctAnswer,
+      LIMITS.answer,
+    );
+    if (!question || !correctAnswer) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Question and correct answer are required.",
+      );
+    }
+
+    const role = await getUserRole(request.auth.uid);
+    await assertDailyLimit(request.auth.uid, role, "explain");
+
+    const explanation = await callOpenAI(getApiKey(openAiApiKey), {
+      messages: buildExplainMessages({
+        ...request.data,
+        question,
+        correctAnswer,
+      }),
+      maxTokens: 220,
+      temperature: 0.25,
+    });
+
+    return {explanation};
+  },
+);
+
+exports.generateQuizQuestions = onCall(
+  {secrets: [openAiApiKey], region: "us-central1", timeoutSeconds: 45},
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Please sign in first.");
+    }
+
+    const role = await getUserRole(request.auth.uid);
+    if (!isStaffRole(role)) {
+      throw new HttpsError(
+        "permission-denied",
+        "Only teachers and admins can generate quiz questions.",
+      );
+    }
+
+    const subject = cleanAiString(request.data?.subject, LIMITS.subject);
+    const grade = cleanAiString(request.data?.grade, LIMITS.grade);
+    const topic = cleanAiString(request.data?.topic, LIMITS.topic);
+    if (!subject || !grade || !topic) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Subject, grade, and topic are required.",
+      );
+    }
+
+    await assertDailyLimit(request.auth.uid, role, "generateQuiz");
+    const {messages} = buildQuizMessages({
+      ...request.data,
+      subject,
+      grade,
+      topic,
+    });
+    const raw = await callOpenAI(getApiKey(openAiApiKey), {
+      messages,
+      maxTokens: 1400,
+      temperature: 0.45,
+      json: true,
+    });
+
+    return {
+      questions: parseGeneratedQuiz(raw, topic),
+    };
+  },
+);
 
 exports.checkShortAnswer = onCall(
   {secrets: [openAiApiKey], region: "us-central1", timeoutSeconds: 30},
