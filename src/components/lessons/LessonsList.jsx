@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useFirestore } from '../../hooks/useFirestore'
 import ComingSoon from '../ui/ComingSoon'
+import SubjectScroller from '../ui/SubjectScroller'
 
 // ── Design tokens ──────────────────────────────────────────────────────────
 const GRADES = ['4', '5', '6']
@@ -217,16 +218,6 @@ export default function LessonsList() {
             </div>
           </div>
           <div>
-            <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">Subject</p>
-            <div className="flex gap-2 flex-wrap">
-              <Chip label="All" active={!subjectF} onClick={() => setSubjectF('')} />
-              {SUBJECTS.map(s => (
-                <Chip key={s.id} label={s.label} icon={s.icon} active={subjectF === s.id}
-                  onClick={() => setSubjectF(s.id === subjectF ? '' : s.id)} />
-              ))}
-            </div>
-          </div>
-          <div>
             <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">Term</p>
             <div className="flex gap-2 flex-wrap">
               <Chip label="All Terms" active={!termF} onClick={() => setTermF('')} />
@@ -235,6 +226,15 @@ export default function LessonsList() {
                   onClick={() => setTermF(t === termF ? '' : t)} />
               ))}
             </div>
+          </div>
+          <div>
+            <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">Subject</p>
+            <SubjectScroller
+              subjects={SUBJECTS}
+              value={subjectF}
+              onChange={setSubjectF}
+              variant="purple"
+            />
           </div>
           {hasActiveFilter && (
             <button

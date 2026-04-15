@@ -3,9 +3,11 @@ import { useFirestore } from '../../hooks/useFirestore'
 import { useSubscription } from '../../hooks/useSubscription'
 import UpgradeModal from '../subscription/UpgradeModal'
 import ComingSoon from '../ui/ComingSoon'
+import SubjectScroller from '../ui/SubjectScroller'
 
 // ── Design tokens ──────────────────────────────────────────────────────────
 const GRADES = ['4', '5', '6']
+const TERMS  = ['1', '2', '3']
 
 const SUBJECTS = [
   { id: 'Mathematics',        label: 'Mathematics',        icon: '➗', color: 'blue'   },
@@ -175,6 +177,7 @@ export default function PapersLibrary() {
   const [loading, setLoading]   = useState(true)
   const [gradeF, setGradeF]     = useState('')
   const [subjectF, setSubjectF] = useState('')
+  const [termF, setTermF]       = useState('')
   const [yearF, setYearF]       = useState('')
   const [search, setSearch]     = useState('')
   const [showUpgrade, setShowUpgrade] = useState(false)
@@ -182,12 +185,12 @@ export default function PapersLibrary() {
   useEffect(() => {
     async function load() {
       setLoading(true)
-      const data = await getPapers({ grade: gradeF, subject: subjectF })
+      const data = await getPapers({ grade: gradeF, subject: subjectF, term: termF })
       setPapers(data)
       setLoading(false)
     }
     load()
-  }, [gradeF, subjectF])
+  }, [gradeF, subjectF, termF])
 
   const filtered = papers.filter(p =>
     (!yearF  || p.year === yearF) &&
@@ -203,7 +206,7 @@ export default function PapersLibrary() {
     }
   }
 
-  const hasActiveFilter = gradeF || subjectF || yearF || search
+  const hasActiveFilter = gradeF || subjectF || termF || yearF || search
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -276,14 +279,23 @@ export default function PapersLibrary() {
             </div>
           </div>
           <div>
-            <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">Subject</p>
+            <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">Term</p>
             <div className="flex gap-2 flex-wrap">
-              <Chip label="All" active={!subjectF} onClick={() => setSubjectF('')} />
-              {SUBJECTS.map(s => (
-                <Chip key={s.id} label={s.label} icon={s.icon} active={subjectF === s.id}
-                  onClick={() => setSubjectF(s.id === subjectF ? '' : s.id)} />
+              <Chip label="All Terms" active={!termF} onClick={() => setTermF('')} />
+              {TERMS.map(t => (
+                <Chip key={t} label={`Term ${t}`} active={termF === t}
+                  onClick={() => setTermF(t === termF ? '' : t)} />
               ))}
             </div>
+          </div>
+          <div>
+            <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">Subject</p>
+            <SubjectScroller
+              subjects={SUBJECTS}
+              value={subjectF}
+              onChange={setSubjectF}
+              variant="amber"
+            />
           </div>
           <div>
             <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">Year</p>
@@ -297,7 +309,7 @@ export default function PapersLibrary() {
           </div>
           {hasActiveFilter && (
             <button
-              onClick={() => { setSearch(''); setGradeF(''); setSubjectF(''); setYearF('') }}
+              onClick={() => { setSearch(''); setGradeF(''); setSubjectF(''); setTermF(''); setYearF('') }}
               className="text-xs text-red-500 font-bold hover:text-red-700 min-h-0 bg-transparent shadow-none p-0">
               ✕ Clear all filters
             </button>
@@ -326,9 +338,9 @@ export default function PapersLibrary() {
             <div className="bg-white rounded-2xl border border-gray-100 py-14 text-center shadow-sm">
               <div className="text-4xl mb-3">🔍</div>
               <p className="font-black text-gray-700">No papers match your filters</p>
-              <p className="text-gray-400 text-sm mt-1">Try a different grade, subject, or year</p>
+              <p className="text-gray-400 text-sm mt-1">Try a different grade, term, subject, or year</p>
               <button
-                onClick={() => { setSearch(''); setGradeF(''); setSubjectF(''); setYearF('') }}
+                onClick={() => { setSearch(''); setGradeF(''); setSubjectF(''); setTermF(''); setYearF('') }}
                 className="mt-4 text-amber-600 font-black text-sm hover:underline min-h-0 bg-transparent shadow-none">
                 Clear filters →
               </button>
