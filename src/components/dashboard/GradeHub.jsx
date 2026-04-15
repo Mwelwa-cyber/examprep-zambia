@@ -201,7 +201,7 @@ function SkeletonCard() {
 // ── Main Component ─────────────────────────────────────────────────────────
 
 export default function GradeHub() {
-  const { currentUser, userProfile, logout } = useAuth()
+  const { currentUser, userProfile, logout, isAdmin, isTeacher } = useAuth()
   const { getUserResults }                   = useFirestore()
   const { earned: earnedBadges, loading: badgesLoading } = useBadges(currentUser?.uid)
   const { dataSaver }                        = useDataSaver()
@@ -283,6 +283,14 @@ export default function GradeHub() {
                       {accessBadge.icon} {accessBadge.label}
                     </span>
                   </div>
+                  {isAdmin && (
+                    <Link to="/admin" onClick={() => setMenuOpen(false)}
+                      className="block px-4 py-2 text-sm theme-text hover:theme-bg-subtle font-bold">⚙️ Admin Panel</Link>
+                  )}
+                  {!isAdmin && isTeacher && (
+                    <Link to="/teacher" onClick={() => setMenuOpen(false)}
+                      className="block px-4 py-2 text-sm theme-text hover:theme-bg-subtle font-bold">🎓 Teacher Panel</Link>
+                  )}
                   <Link to="/profile" onClick={() => setMenuOpen(false)}
                     className="block px-4 py-2 text-sm theme-text hover:theme-bg-subtle font-bold">👤 My Profile</Link>
                   <Link to="/my-results" onClick={() => setMenuOpen(false)}
