@@ -6,6 +6,12 @@
   NODE_VERSION = "18"
 
 [[redirects]]
+  from = "/api/ai/chat"
+  to   = "https://us-central1-examsprepzambia.cloudfunctions.net/apiAiChat"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/*"
   to   = "/index.html"
   status = 200

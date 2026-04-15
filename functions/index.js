@@ -1,5 +1,5 @@
 const functions = require("firebase-functions/v1");
-const {onCall, HttpsError} = require("firebase-functions/v2/https");
+const {onCall, onRequest, HttpsError} = require("firebase-functions/v2/https");
 const {defineSecret} = require("firebase-functions/params");
 const admin = require("firebase-admin");
 
@@ -103,11 +103,79 @@ exports.aiChat = onCall(
         context: request.data?.context || {},
         role,
       }),
-      maxTokens: 420,
+      maxTokens: 650,
       temperature: 0.35,
     });
 
     return {reply};
+  },
+);
+
+function httpStatusForError(error) {
+  const map = {
+    "unauthenticated": 401,
+    "permission-denied": 403,
+    "invalid-argument": 400,
+    "resource-exhausted": 429,
+    "failed-precondition": 503,
+    "unavailable": 503,
+  };
+  return map[error?.code] || 500;
+}
+
+exports.apiAiChat = onRequest(
+  {secrets: [openAiApiKey], region: "us-central1", timeoutSeconds: 30},
+  async (req, res) => {
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+
+    if (req.method === "OPTIONS") {
+      res.status(204).send("");
+      return;
+    }
+    if (req.method !== "POST") {
+      res.status(405).json({error: "Use POST for Zed chat."});
+      return;
+    }
+
+    try {
+      const token = (req.get("authorization") || "").replace(/^Bearer\s+/i, "");
+      if (!token) {
+        throw new HttpsError("unauthenticated", "Please sign in first.");
+      }
+
+      const decoded = await admin.auth().verifyIdToken(token);
+      const message = cleanAiString(req.body?.message, LIMITS.message);
+      if (!message) {
+        throw new HttpsError(
+          "invalid-argument",
+          "Please enter a question for Zed.",
+        );
+      }
+
+      const role = await getUserRole(decoded.uid);
+      await assertDailyLimit(decoded.uid, role, "chat");
+      const reply = await callOpenAI(getApiKey(openAiApiKey), {
+        messages: buildChatMessages({
+          message,
+          context: req.body?.context || {},
+          role,
+        }),
+        maxTokens: 650,
+        temperature: 0.35,
+      });
+
+      res.status(200).json({reply});
+    } catch (error) {
+      console.error("apiAiChat error", {
+        code: error?.code,
+        message: error?.message,
+      });
+      res.status(httpStatusForError(error)).json({
+        error: error?.message || "Zed is unavailable right now.",
+      });
+    }
   },
 );
 

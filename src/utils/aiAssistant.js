@@ -1,5 +1,5 @@
 import { getFunctions, httpsCallable } from 'firebase/functions'
-import app from '../firebase/config'
+import app, { auth } from '../firebase/config'
 
 const functions = getFunctions(app, 'us-central1')
 
@@ -23,9 +23,31 @@ function messageFromError(error) {
 
 export async function sendAIChat({ message, context }) {
   try {
-    const response = await aiChatCallable({ message, context })
-    return String(response.data?.reply || '').trim()
+    const token = await auth.currentUser?.getIdToken()
+    if (!token) throw new Error('Please sign in before using Zed.')
+
+    const response = await fetch('/api/ai/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ message, context }),
+    })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      throw new Error(data.error || 'Zed is unavailable right now. Please try again.')
+    }
+    return String(data.reply || '').trim()
   } catch (error) {
+    if (import.meta.env.DEV && !error?.message?.includes('sign in')) {
+      try {
+        const response = await aiChatCallable({ message, context })
+        return String(response.data?.reply || '').trim()
+      } catch (fallbackError) {
+        throw new Error(messageFromError(fallbackError))
+      }
+    }
     throw new Error(messageFromError(error))
   }
 }

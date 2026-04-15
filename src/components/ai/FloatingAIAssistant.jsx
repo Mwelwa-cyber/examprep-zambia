@@ -17,38 +17,57 @@ function getArea(pathname) {
 
 function getGreeting(area, isStaff) {
   if (isStaff) {
-    return 'Hi, I am Zed. I can help draft quiz questions, simplify topics, and turn lesson ideas into learner-friendly practice.'
+    return 'Hi, I am Zed. I can help with school topics, quiz questions, lesson activities, revision ideas, and teaching support.'
   }
   if (area === 'quiz-results') {
-    return 'Hi, I am Zed. I can explain missed answers step by step and help you revise the tricky parts.'
+    return 'Hi, I am Zed. I can explain questions step by step, give examples, and help you revise tricky topics.'
   }
   if (area === 'lessons') {
-    return 'Hi, I am Zed. I can summarize lessons, explain topics, and answer study questions in simple words.'
+    return 'Hi, I am Zed. I can summarize lessons, explain topics, give examples, and answer school questions.'
   }
   if (area === 'past-papers') {
-    return 'Hi, I am Zed. I can help you understand past paper questions and plan revision.'
+    return 'Hi, I am Zed. I can help with past paper questions, revision, and school topics in simple steps.'
   }
-  return 'Hi, I am Zed, your study assistant. Ask me about lessons, quizzes, topics, or study tips.'
+  return 'Hi, I am Zed, your study assistant. Ask me any education-related question.'
 }
 
 function getActions(area, isStaff) {
+  const base = ['Explain this question', 'Give me a study tip', 'Help with a topic']
   if (isStaff) {
     return [
+      ...base,
       'Generate quiz questions',
       'Create a lesson activity',
-      'Make this topic easier',
     ]
   }
-  if (area === 'quiz-results') {
-    return ['Explain a wrong answer', 'Give me a hint', 'Make a revision plan']
-  }
   if (area === 'lessons') {
-    return ['Summarize this lesson', 'Help with this topic', 'Ask me a question']
+    return [...base, 'Summarize this lesson']
   }
   if (area === 'past-papers') {
-    return ['Help with this paper', 'Give me exam tips', 'Explain a topic']
+    return [...base, 'Give me exam tips']
   }
-  return ['Give me a study tip', 'Help me revise', 'Explain a topic simply']
+  return base
+}
+
+function BotAvatar({ compact = false }) {
+  return (
+    <span
+      className={`relative flex items-center justify-center rounded-full bg-white/95 shadow-inner ${
+        compact ? 'h-11 w-11' : 'h-10 w-10'
+      }`}
+      aria-hidden="true"
+    >
+      <span className="absolute -top-1 left-1/2 h-2 w-0.5 -translate-x-1/2 rounded-full bg-sky-600" />
+      <span className="absolute -top-2 left-1/2 h-2 w-2 -translate-x-1/2 rounded-full bg-cyan-300 ring-2 ring-white" />
+      <span className={`${compact ? 'h-7 w-8' : 'h-6 w-7'} rounded-lg border-2 border-sky-600 bg-gradient-to-b from-sky-50 to-cyan-100`}>
+        <span className="mt-2 flex justify-center gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-sky-700" />
+          <span className="h-1.5 w-1.5 rounded-full bg-sky-700" />
+        </span>
+        <span className="mx-auto mt-1 block h-0.5 w-3 rounded-full bg-cyan-500" />
+      </span>
+    </span>
+  )
 }
 
 function makeMessage(from, text) {
@@ -61,7 +80,7 @@ function makeMessage(from, text) {
 
 export default function FloatingAIAssistant() {
   const { currentUser, userProfile, isAdmin, isTeacher } = useAuth()
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
   const area = getArea(pathname)
   const isStaff = isAdmin || isTeacher
   const [open, setOpen] = useState(false)
@@ -87,11 +106,14 @@ export default function FloatingAIAssistant() {
   if (hidden) return null
 
   function buildContext() {
+    const params = new URLSearchParams(search)
     return {
       area,
       path: pathname,
       role: userProfile?.role || 'learner',
-      grade: userProfile?.grade || '',
+      grade: params.get('grade') || userProfile?.grade || '',
+      subject: params.get('subject') || '',
+      topic: params.get('topic') || '',
     }
   }
 
@@ -127,28 +149,28 @@ export default function FloatingAIAssistant() {
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Open Zed study assistant"
-          className="fixed bottom-24 right-4 sm:bottom-6 sm:right-6 z-50 h-16 w-16 rounded-full theme-accent-fill theme-on-accent shadow-2xl flex flex-col items-center justify-center font-black transition-all hover:-translate-y-0.5 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-sky-200"
+          className="fixed bottom-24 right-4 sm:bottom-6 sm:right-6 z-50 h-16 w-16 rounded-full bg-gradient-to-br from-sky-400 via-cyan-500 to-blue-700 text-white shadow-[0_18px_42px_rgba(14,165,233,0.42)] flex items-center justify-center font-black transition-all hover:scale-105 hover:-translate-y-0.5 active:scale-95 focus:outline-none focus:ring-4 focus:ring-sky-200"
         >
-          <span className="absolute inset-0 rounded-full theme-accent-fill animate-pulse opacity-25" />
-          <span className="relative text-xl leading-none">✦</span>
-          <span className="relative text-xs leading-none mt-0.5">Zed</span>
+          <span className="absolute -inset-2 rounded-full bg-sky-300/25 animate-pulse" />
+          <BotAvatar compact />
+          <span className="absolute -bottom-1 rounded-full bg-white px-2 py-0.5 text-[10px] font-black text-sky-700 shadow-sm">
+            Zed
+          </span>
         </button>
       )}
 
       {open && (
         <section
           aria-label="Zed study assistant"
-          className="fixed bottom-24 left-3 right-3 sm:left-auto sm:right-6 sm:bottom-24 z-50 sm:w-[390px] max-h-[78dvh] sm:max-h-[640px] theme-card border theme-border rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-slide-up"
+          className="fixed bottom-24 left-3 right-3 sm:left-auto sm:right-6 sm:bottom-6 z-50 sm:w-[400px] max-h-[78dvh] sm:max-h-[640px] theme-card border theme-border rounded-2xl shadow-[0_24px_80px_rgba(15,23,42,0.25)] overflow-hidden flex flex-col animate-slide-up"
         >
-          <header className="theme-hero px-4 py-3 text-white">
+          <header className="bg-gradient-to-br from-sky-600 via-cyan-600 to-blue-700 px-4 py-3 text-white">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center font-black">
-                  ✦
-                </div>
+                <BotAvatar />
                 <div className="min-w-0">
                   <p className="font-black leading-tight">Zed</p>
-                  <p className="text-xs text-white/75 truncate">Study Assistant</p>
+                  <p className="text-xs text-white/80 truncate">Study Assistant</p>
                 </div>
               </div>
               <button
@@ -160,9 +182,12 @@ export default function FloatingAIAssistant() {
                 ×
               </button>
             </div>
+            <p className="mt-3 text-xs leading-relaxed text-white/85">
+              Ask about Mathematics, English, Science, Social Studies, Literacy, CTS, RE, revision, quizzes, or teaching ideas.
+            </p>
           </header>
 
-          <div className="px-3 pt-3">
+          <div className="px-3 pt-3 theme-card">
             <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
               {actions.map(action => (
                 <button
@@ -170,7 +195,7 @@ export default function FloatingAIAssistant() {
                   type="button"
                   onClick={() => handleSend(action)}
                   disabled={loading}
-                  className="shrink-0 rounded-lg border theme-border theme-bg-subtle theme-text text-xs font-black px-3 py-2 min-h-0 hover:theme-card-hover disabled:opacity-50"
+                  className="shrink-0 rounded-lg border theme-border theme-bg-subtle theme-text text-xs font-black px-3 py-2 min-h-0 hover:theme-card-hover hover:border-sky-300 disabled:opacity-50"
                 >
                   {action}
                 </button>
@@ -199,7 +224,8 @@ export default function FloatingAIAssistant() {
             ))}
             {loading && (
               <div className="flex justify-start">
-                <div className="theme-bg-subtle theme-text-muted rounded-2xl rounded-bl-md px-3 py-2 text-sm font-bold">
+                <div className="theme-bg-subtle theme-text-muted rounded-2xl rounded-bl-md px-3 py-2 text-sm font-bold flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-sky-400 animate-pulse" />
                   Zed is thinking...
                 </div>
               </div>
@@ -218,12 +244,12 @@ export default function FloatingAIAssistant() {
               onChange={e => setInput(e.target.value)}
               placeholder="Ask Zed for help..."
               rows={1}
-              className="flex-1 resize-none rounded-xl border theme-input px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] max-h-24"
+              className="flex-1 resize-none rounded-xl border theme-input px-3 py-2.5 text-sm focus:outline-none focus:border-sky-400 max-h-24"
             />
             <button
               type="submit"
               disabled={!input.trim() || loading}
-              className="rounded-xl theme-accent-fill theme-on-accent font-black text-sm px-4 py-2.5 min-h-0 disabled:opacity-50"
+              className="rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-black text-sm px-4 py-2.5 min-h-0 disabled:opacity-50 transition-colors"
             >
               Send
             </button>
