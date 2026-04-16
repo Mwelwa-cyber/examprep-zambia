@@ -18,6 +18,7 @@ import { useBadges }           from '../../hooks/useBadges'
 import { useSubscription }     from '../../hooks/useSubscription'
 import { getRoleLandingPath }  from '../../utils/navigation'
 import { daysUntilExpiry }     from '../../utils/subscriptionConfig'
+import UpgradeModal            from '../subscription/UpgradeModal'
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -72,6 +73,7 @@ export default function ProfilePage() {
   const [error, setError]       = useState('')
   const [quizCount, setQuizCount] = useState(0)
   const [loading, setLoading]   = useState(true)
+  const [showUpgrade, setShowUpgrade] = useState(false)
 
   const isLearner = userProfile?.role === 'learner'
   const daysLeft  = daysUntilExpiry(userProfile)
@@ -202,7 +204,7 @@ export default function ProfilePage() {
           </div>
           {!isPremium && (
             <button
-              onClick={() => navigate(homePath)}
+              onClick={() => setShowUpgrade(true)}
               className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white text-xs font-black px-3 py-1.5 rounded-xl transition-colors min-h-0 shadow-none"
             >
               Upgrade
@@ -295,6 +297,8 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
     </div>
   )
 }

@@ -3,8 +3,22 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useFirestore } from '../../hooks/useFirestore'
 import { PLANS } from '../../utils/subscriptionConfig'
 
-const statusColors = { pending: 'bg-yellow-100 text-yellow-800', confirmed: 'bg-green-100 text-green-800', rejected: 'bg-red-100 text-red-800' }
-const statusIcons  = { pending: '⏳', confirmed: '✅', rejected: '❌' }
+const statusColors = {
+  pending: 'bg-yellow-100 text-yellow-800',
+  successful: 'bg-green-100 text-green-800',
+  confirmed: 'bg-green-100 text-green-800',
+  failed: 'bg-red-100 text-red-800',
+  timeout: 'bg-orange-100 text-orange-800',
+  rejected: 'bg-red-100 text-red-800',
+}
+const statusIcons  = {
+  pending: '⏳',
+  successful: '✅',
+  confirmed: '✅',
+  failed: '❌',
+  timeout: '⌛',
+  rejected: '❌',
+}
 
 function fmtDate(ts) {
   if (!ts) return '—'
@@ -46,8 +60,9 @@ export default function PaymentsPanel() {
   async function handleConfirm(p) {
     setActionId(p.id)
     try {
-      const plan = PLANS[p.plan]
-      await confirmPayment(p.id, p.userId, p.plan, plan?.durationDays ?? 30, currentUser.uid)
+      const planId = p.planId ?? p.plan
+      const plan = PLANS[planId]
+      await confirmPayment(p.id, p.userId, planId, plan?.durationDays ?? 30, currentUser.uid)
       show(`✅ Activated ${plan?.name} for ${p.displayName}`)
       load()
     } catch (e) { show('❌ ' + e.message) }
@@ -103,12 +118,14 @@ export default function PaymentsPanel() {
                 <div>
                   <div className="flex items-center gap-2 flex-wrap mb-1">
                     <span className="font-black text-gray-800">{p.displayName || '—'}</span>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${statusColors[p.status]}`}>{statusIcons[p.status]} {p.status}</span>
-                    <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-bold">{PLANS[p.plan]?.name ?? p.plan} K{p.amountZMW}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${statusColors[p.status] || statusColors.pending}`}>{statusIcons[p.status] || '⏳'} {p.status}</span>
+                    <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-bold">{PLANS[p.planId ?? p.plan]?.name ?? p.planId ?? p.plan} K{p.amountZMW}</span>
                   </div>
                   <p className="text-sm text-gray-500">{p.email}</p>
-                  <p className="text-sm text-gray-600 mt-1">{p.method}: <span className="font-bold">{p.phoneNumber}</span>{p.transactionRef && ` · Ref: ${p.transactionRef}`}</p>
+                  <p className="text-sm text-gray-600 mt-1">MTN MoMo: <span className="font-bold">{p.phoneNumber}</span></p>
                   <p className="text-xs text-gray-400 mt-1">Submitted: {fmtDate(p.createdAt)}</p>
+                  <p className="text-xs text-gray-400 mt-1">MTN status: {p.mtnStatus || '—'}</p>
+                  {p.reason && <p className="text-xs text-red-500 mt-1">{p.reason}</p>}
                 </div>
                 {p.status === 'pending' && (
                   <div className="flex gap-2 flex-shrink-0">

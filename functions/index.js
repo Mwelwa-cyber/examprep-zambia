@@ -1,7 +1,9 @@
 const functions = require("firebase-functions/v1");
 const {onCall, onRequest, HttpsError} = require("firebase-functions/v2/https");
+const {onSchedule} = require("firebase-functions/v2/scheduler");
 const {defineSecret} = require("firebase-functions/params");
 const admin = require("firebase-admin");
+const crypto = require("node:crypto");
 
 admin.initializeApp();
 
@@ -18,8 +20,21 @@ const {
   isStaffRole,
   parseGeneratedQuiz,
 } = require("./aiService");
+const {
+  buildMtnConfig,
+  DEFAULT_CURRENCY,
+  getPlanConfig,
+  getRequestToPayStatus,
+  nextPollingDelayMs,
+  normalizePhoneNumber,
+  requestToPay,
+} = require("./momoService");
 
 const openAiApiKey = defineSecret("OPENAI_API_KEY");
+const mtnApiUser = defineSecret("MTN_API_USER");
+const mtnApiKey = defineSecret("MTN_API_KEY");
+const mtnSubscriptionKey = defineSecret("MTN_SUBSCRIPTION_KEY");
+const mtnEnv = defineSecret("MTN_ENV");
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 const MAX_LEN = {
   question: 1200,
@@ -28,6 +43,14 @@ const MAX_LEN = {
   subject: 80,
   grade: 20,
 };
+const MOMO_PAYMENT_SECRETS = [
+  mtnApiUser,
+  mtnApiKey,
+  mtnSubscriptionKey,
+  mtnEnv,
+];
+const MOMO_MAX_STATUS_CHECKS = 8;
+const MOMO_MAX_PENDING_MINUTES = 15;
 const MARKING_EQUIVALENCES =
   "Accept common school terms and scientific terms as equivalent when they " +
   "refer to the same concept. Examples: alveoli = air sacs; oesophagus = " +
@@ -64,6 +87,50 @@ function parseMarkerResponse(raw) {
       "The marker could not read the AI response. Please try again.",
     );
   }
+}
+
+function getMtnRuntimeConfig() {
+  return buildMtnConfig({
+    apiUser: mtnApiUser.value() || process.env.MTN_API_USER,
+    apiKey: mtnApiKey.value() || process.env.MTN_API_KEY,
+    subscriptionKey:
+      mtnSubscriptionKey.value() || process.env.MTN_SUBSCRIPTION_KEY,
+    environment: mtnEnv.value() || process.env.MTN_ENV || "sandbox",
+  });
+}
+
+function setCorsHeaders(res) {
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+}
+
+async function requireHttpAuth(req) {
+  const token = (req.get("authorization") || "").replace(/^Bearer\s+/i, "");
+  if (!token) {
+    throw new HttpsError("unauthenticated", "Please sign in first.");
+  }
+  return admin.auth().verifyIdToken(token);
+}
+
+async function getUserProfileOrThrow(uid) {
+  const snap = await admin.firestore().doc(`users/${uid}`).get();
+  if (!snap.exists) {
+    throw new HttpsError(
+      "failed-precondition",
+      "Your user profile is missing. Please sign in again.",
+    );
+  }
+  return snap.data();
+}
+
+function toDate(value) {
+  if (!value) return null;
+  if (typeof value?.toDate === "function") {
+    return value.toDate();
+  }
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 exports.setUserRole = functions.auth.user().onCreate(async (user) => {
@@ -117,11 +184,190 @@ function httpStatusForError(error) {
     "unauthenticated": 401,
     "permission-denied": 403,
     "invalid-argument": 400,
+    "not-found": 404,
     "resource-exhausted": 429,
     "failed-precondition": 503,
     "unavailable": 503,
   };
   return map[error?.code] || 500;
+}
+
+function paymentClientMessage(status) {
+  if (status === "successful") {
+    return "Payment received. Your subscription is now active.";
+  }
+  if (status === "failed") {
+    return "Payment failed or was declined. Please try again.";
+  }
+  if (status === "timeout") {
+    return "The payment took too long to finish. Please try again.";
+  }
+  return "Waiting for you to approve the MTN prompt on your phone.";
+}
+
+function buildPaymentResponse(paymentId, data) {
+  return {
+    paymentId,
+    status: data.status,
+    mtnStatus: data.mtnStatus || null,
+    reason: data.reason || null,
+    amountZMW: data.amountZMW,
+    currency: data.currency || DEFAULT_CURRENCY,
+    planId: data.planId,
+    nextCheckInMs: data.status === "pending" ?
+      nextPollingDelayMs(Number(data.statusChecks) || 0) :
+      0,
+    message: paymentClientMessage(data.status),
+    lastCheckedAt: data.lastCheckedAt?.toDate?.()?.toISOString?.() || null,
+  };
+}
+
+async function markPaymentSuccessful(paymentRef, paymentData, statusResult) {
+  const plan = getPlanConfig(paymentData.planId);
+  await admin.firestore().runTransaction(async (tx) => {
+    const [paymentSnap, userSnap] = await Promise.all([
+      tx.get(paymentRef),
+      tx.get(admin.firestore().doc(`users/${paymentData.userId}`)),
+    ]);
+    if (!paymentSnap.exists) return;
+
+    const latestPayment = paymentSnap.data();
+    if (latestPayment.status === "successful") {
+      return;
+    }
+
+    const userData = userSnap.exists ? userSnap.data() : {};
+    const currentExpiry = toDate(userData.subscriptionExpiry);
+    const baseDate = currentExpiry && currentExpiry > new Date() ?
+      currentExpiry :
+      new Date();
+    const nextExpiry = new Date(baseDate);
+    nextExpiry.setDate(nextExpiry.getDate() + plan.durationDays);
+
+    tx.set(paymentRef, {
+      status: "successful",
+      mtnStatus: statusResult.mtnStatus,
+      reason: statusResult.reason || null,
+      completedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      lastCheckedAt: admin.firestore.FieldValue.serverTimestamp(),
+      statusChecks: Number(latestPayment.statusChecks || 0) + 1,
+      financialTransactionId:
+        statusResult.raw?.financialTransactionId || null,
+      rawStatusResponse: statusResult.raw || null,
+    }, {merge: true});
+
+    tx.set(admin.firestore().doc(`users/${paymentData.userId}`), {
+      isPremium: true,
+      subscriptionStatus: "active",
+      subscriptionPlan: plan.id,
+      subscriptionProvider: "mtn_momo",
+      subscriptionPhoneNumber: paymentData.phoneNumber,
+      subscriptionPaymentId: paymentRef.id,
+      subscriptionActivatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      subscriptionActivatedBy: "mtn_momo",
+      subscriptionExpiry: admin.firestore.Timestamp.fromDate(nextExpiry),
+    }, {merge: true});
+  });
+}
+
+async function markPaymentFinal(
+  paymentRef,
+  paymentData,
+  status,
+  reason,
+  raw,
+  mtnStatus = null,
+) {
+  await paymentRef.set({
+    status,
+    mtnStatus: mtnStatus || (status === "timeout" ? "TIMEOUT" : paymentData.mtnStatus || null),
+    reason: reason || null,
+    completedAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    lastCheckedAt: admin.firestore.FieldValue.serverTimestamp(),
+    statusChecks: Number(paymentData.statusChecks || 0) + 1,
+    rawStatusResponse: raw || null,
+  }, {merge: true});
+}
+
+async function refreshPaymentStatus(paymentId, {skipIfNotDue = false} = {}) {
+  const paymentRef = admin.firestore().doc(`payments/${paymentId}`);
+  const paymentSnap = await paymentRef.get();
+  if (!paymentSnap.exists) {
+    throw new HttpsError("not-found", "Payment record not found.");
+  }
+
+  const paymentData = paymentSnap.data();
+  if (paymentData.status !== "pending") {
+    return {paymentId, ...paymentData};
+  }
+
+  const nextCheckAt = toDate(paymentData.nextCheckAt);
+  if (skipIfNotDue && nextCheckAt && nextCheckAt > new Date()) {
+    return {paymentId, ...paymentData};
+  }
+
+  const createdAt = toDate(paymentData.createdAt) || new Date();
+  const ageMinutes = (Date.now() - createdAt.getTime()) / (60 * 1000);
+  const checksSoFar = Number(paymentData.statusChecks || 0);
+  if (
+    checksSoFar >= MOMO_MAX_STATUS_CHECKS ||
+    ageMinutes >= MOMO_MAX_PENDING_MINUTES
+  ) {
+    await markPaymentFinal(
+      paymentRef,
+      paymentData,
+      "timeout",
+      "The MTN approval window expired before the payment completed.",
+      paymentData.rawStatusResponse || null,
+      "TIMEOUT",
+    );
+    const updated = await paymentRef.get();
+    return {paymentId, ...updated.data()};
+  }
+
+  const statusResult = await getRequestToPayStatus(getMtnRuntimeConfig(), paymentId);
+  console.log("MTN payment status", {
+    paymentId,
+    status: statusResult.status,
+    mtnStatus: statusResult.mtnStatus,
+  });
+
+  if (statusResult.status === "successful") {
+    await markPaymentSuccessful(paymentRef, paymentData, statusResult);
+    const updated = await paymentRef.get();
+    return {paymentId, ...updated.data()};
+  }
+
+  if (statusResult.isFinal) {
+    await markPaymentFinal(
+      paymentRef,
+      paymentData,
+      statusResult.status,
+      statusResult.reason || "MTN reported that the payment did not complete.",
+      statusResult.raw,
+      statusResult.mtnStatus,
+    );
+    const updated = await paymentRef.get();
+    return {paymentId, ...updated.data()};
+  }
+
+  const nextDelayMs = nextPollingDelayMs(checksSoFar + 1);
+  await paymentRef.set({
+    mtnStatus: statusResult.mtnStatus,
+    reason: statusResult.reason || null,
+    rawStatusResponse: statusResult.raw || null,
+    lastCheckedAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    statusChecks: checksSoFar + 1,
+    nextCheckAt: admin.firestore.Timestamp.fromDate(
+      new Date(Date.now() + nextDelayMs),
+    ),
+  }, {merge: true});
+
+  const updated = await paymentRef.get();
+  return {paymentId, ...updated.data()};
 }
 
 exports.apiAiChat = onRequest(
@@ -177,6 +423,181 @@ exports.apiAiChat = onRequest(
       res.status(httpStatusForError(error)).json({
         error: error?.message || "Zed is unavailable right now.",
       });
+    }
+  },
+);
+
+exports.apiCreateMomoPayment = onRequest(
+  {region: "us-central1", timeoutSeconds: 60, secrets: MOMO_PAYMENT_SECRETS},
+  async (req, res) => {
+    setCorsHeaders(res);
+
+    if (req.method === "OPTIONS") {
+      res.status(204).send("");
+      return;
+    }
+    if (req.method !== "POST") {
+      res.status(405).json({error: "Use POST to start a payment."});
+      return;
+    }
+
+    try {
+      const decoded = await requireHttpAuth(req);
+      const userProfile = await getUserProfileOrThrow(decoded.uid);
+      const plan = getPlanConfig(req.body?.planId);
+      const config = getMtnRuntimeConfig();
+      const phoneNumber = normalizePhoneNumber(
+        req.body?.phoneNumber,
+        config.targetEnvironment,
+      );
+      const paymentId = crypto.randomUUID();
+      const externalId = `${decoded.uid}-${Date.now()}`;
+
+      await requestToPay(config, {
+        requestId: paymentId,
+        externalId,
+        phoneNumber,
+        plan,
+        payerMessage: `${plan.name} teacher subscription`,
+        payeeNote: `${userProfile.displayName || decoded.email || decoded.uid}`,
+      });
+
+      await admin.firestore().doc(`payments/${paymentId}`).set({
+        userId: decoded.uid,
+        displayName: userProfile.displayName || "",
+        email: userProfile.email || decoded.email || "",
+        userRole: userProfile.role || "learner",
+        planId: plan.id,
+        planName: plan.name,
+        amountZMW: plan.amountZMW,
+        currency: DEFAULT_CURRENCY,
+        provider: "mtn_momo",
+        phoneNumber,
+        externalId,
+        status: "pending",
+        mtnStatus: "PENDING",
+        reason: null,
+        environment: config.targetEnvironment,
+        statusChecks: 0,
+        nextCheckAt: admin.firestore.Timestamp.fromDate(
+          new Date(Date.now() + nextPollingDelayMs(0)),
+        ),
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        lastCheckedAt: null,
+        completedAt: null,
+      });
+
+      res.status(202).json({
+        paymentId,
+        status: "pending",
+        planId: plan.id,
+        amountZMW: plan.amountZMW,
+        currency: DEFAULT_CURRENCY,
+        phoneNumber,
+        nextCheckInMs: nextPollingDelayMs(0),
+        message: "Payment request sent. Approve it on your phone.",
+      });
+    } catch (error) {
+      console.error("apiCreateMomoPayment error", {
+        code: error?.code,
+        message: error?.message,
+      });
+      res.status(httpStatusForError(error)).json({
+        error: error?.message || "Could not start the MTN payment.",
+      });
+    }
+  },
+);
+
+exports.apiMomoPaymentStatus = onRequest(
+  {region: "us-central1", timeoutSeconds: 60, secrets: MOMO_PAYMENT_SECRETS},
+  async (req, res) => {
+    setCorsHeaders(res);
+
+    if (req.method === "OPTIONS") {
+      res.status(204).send("");
+      return;
+    }
+    if (req.method !== "GET") {
+      res.status(405).json({error: "Use GET to read payment status."});
+      return;
+    }
+
+    try {
+      const decoded = await requireHttpAuth(req);
+      const paymentId = String(req.query?.paymentId || "").trim();
+      if (!paymentId) {
+        throw new HttpsError(
+          "invalid-argument",
+          "paymentId is required.",
+        );
+      }
+
+      const paymentSnap = await admin.firestore().doc(`payments/${paymentId}`).get();
+      if (!paymentSnap.exists) {
+        throw new HttpsError("not-found", "Payment record not found.");
+      }
+
+      const paymentData = paymentSnap.data();
+      if (paymentData.userId !== decoded.uid) {
+        const requester = await getUserProfileOrThrow(decoded.uid);
+        if (requester.role !== "admin") {
+          throw new HttpsError(
+            "permission-denied",
+            "You can only view your own payment.",
+          );
+        }
+      }
+
+      const refreshed = await refreshPaymentStatus(paymentId, {skipIfNotDue: true});
+      res.status(200).json(buildPaymentResponse(paymentId, refreshed));
+    } catch (error) {
+      console.error("apiMomoPaymentStatus error", {
+        code: error?.code,
+        message: error?.message,
+      });
+      res.status(httpStatusForError(error)).json({
+        error: error?.message || "Could not read the payment status.",
+      });
+    }
+  },
+);
+
+exports.pollPendingMomoPayments = onSchedule(
+  {
+    schedule: "every 5 minutes",
+    region: "us-central1",
+    timeoutSeconds: 540,
+    secrets: MOMO_PAYMENT_SECRETS,
+  },
+  async () => {
+    const pendingSnap = await admin.firestore()
+      .collection("payments")
+      .where("status", "==", "pending")
+      .limit(25)
+      .get();
+
+    if (pendingSnap.empty) {
+      console.log("pollPendingMomoPayments: no pending payments");
+      return;
+    }
+
+    for (const doc of pendingSnap.docs) {
+      try {
+        const payment = doc.data();
+        const nextCheckAt = toDate(payment.nextCheckAt);
+        if (nextCheckAt && nextCheckAt > new Date()) {
+          continue;
+        }
+        await refreshPaymentStatus(doc.id);
+      } catch (error) {
+        console.error("pollPendingMomoPayments item error", {
+          paymentId: doc.id,
+          code: error?.code,
+          message: error?.message,
+        });
+      }
     }
   },
 );

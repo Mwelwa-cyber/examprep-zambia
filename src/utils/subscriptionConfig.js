@@ -73,17 +73,9 @@ export const PLANS = {
   },
 }
 
-// Edit with your real MTN/Airtel numbers before going live
 export const PAYMENT_DETAILS = {
   MTN: {
     name: 'MTN Mobile Money',
-    number: '0968 310 746',
-    instructions: 'Dial *303# → Send Money → Enter number → Enter amount → Confirm',
-  },
-  Airtel: {
-    name: 'Airtel Money',
-    number: '0977 740 465',
-    instructions: 'Dial *778# → Send Money → Enter number → Enter amount → Confirm',
   },
   contact: {
     whatsapp: '+260968310746',

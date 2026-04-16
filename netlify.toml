@@ -12,6 +12,18 @@
   force = true
 
 [[redirects]]
+  from = "/api/payments/momo/initiate"
+  to   = "https://us-central1-examsprepzambia.cloudfunctions.net/apiCreateMomoPayment"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/payments/momo/status"
+  to   = "https://us-central1-examsprepzambia.cloudfunctions.net/apiMomoPaymentStatus"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/*"
   to   = "/index.html"
   status = 200

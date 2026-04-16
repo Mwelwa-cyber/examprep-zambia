@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useFirestore } from '../../hooks/useFirestore'
+import { useSubscription } from '../../hooks/useSubscription'
+import UpgradeModal from '../subscription/UpgradeModal'
 
 function StatCard({ icon, label, value, sub, color, loading }) {
   const colors = {
@@ -38,9 +40,11 @@ function QuickAction({ to, icon, label, sub }) {
 export default function TeacherDashboard() {
   const { currentUser, userProfile } = useAuth()
   const { getMyQuizzes, getMyLessons, getMyPapers } = useFirestore()
+  const { isPremium, planName } = useSubscription()
 
   const [stats, setStats]   = useState({ quizzes: 0, lessons: 0, papers: 0, pending: 0 })
   const [loading, setLoading] = useState(true)
+  const [showUpgrade, setShowUpgrade] = useState(false)
 
   useEffect(() => {
     if (!currentUser) return
@@ -70,6 +74,26 @@ export default function TeacherDashboard() {
         </h1>
         <p className="text-gray-500 text-sm mt-0.5">Manage your content and track approval status</p>
       </div>
+
+      {!isPremium ? (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 className="font-black text-yellow-900 text-base">Activate Your Teacher Subscription</h2>
+            <p className="text-sm text-yellow-800 mt-1">Pay with MTN MoMo and unlock your paid teacher access automatically.</p>
+          </div>
+          <button
+            onClick={() => setShowUpgrade(true)}
+            className="bg-green-600 hover:bg-green-700 text-white font-black text-sm px-5 py-3 rounded-xl min-h-0"
+          >
+            Pay with MTN
+          </button>
+        </div>
+      ) : (
+        <div className="bg-green-50 border border-green-200 rounded-2xl p-5">
+          <h2 className="font-black text-green-900 text-base">Subscription Active</h2>
+          <p className="text-sm text-green-800 mt-1">{planName} plan is active on this teacher account.</p>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -114,6 +138,8 @@ export default function TeacherDashboard() {
           <QuickAction to="/teacher/content"       icon="📁" label="My Content"     sub="View, edit, and submit for approval" />
         </div>
       </div>
+
+      {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
     </div>
   )
 }

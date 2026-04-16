@@ -5,3 +5,8 @@ dist
 .firebase
 .env
 *.log
+.playwright-cli
+.postman
+postman
+qa-samples
+deploy-*.zip

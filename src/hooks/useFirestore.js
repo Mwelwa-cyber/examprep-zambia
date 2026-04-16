@@ -329,12 +329,24 @@ export function useFirestore() {
       subscriptionExpiry: Timestamp.fromDate(expiry),
       subscriptionActivatedBy: adminId,
     })
-    batch.update(doc(db, 'payments', paymentId), { status: 'confirmed', confirmedBy: adminId, confirmedAt: serverTimestamp() })
+    batch.update(doc(db, 'payments', paymentId), {
+      status: 'confirmed',
+      mtnStatus: 'MANUAL_OVERRIDE',
+      reason: '',
+      confirmedBy: adminId,
+      confirmedAt: serverTimestamp(),
+    })
     await batch.commit()
   }
 
   async function rejectPayment(paymentId, adminId) {
-    await updateDoc(doc(db, 'payments', paymentId), { status: 'rejected', confirmedBy: adminId, confirmedAt: serverTimestamp() })
+    await updateDoc(doc(db, 'payments', paymentId), {
+      status: 'rejected',
+      mtnStatus: 'MANUAL_REJECTED',
+      reason: 'Rejected by admin.',
+      confirmedBy: adminId,
+      confirmedAt: serverTimestamp(),
+    })
   }
 
   async function grantPremium(userId, plan, durationDays, adminId) {
