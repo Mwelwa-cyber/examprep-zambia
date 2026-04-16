@@ -9,6 +9,16 @@ const planBorder = {
   termly: 'border-blue-400 bg-blue-50',
   yearly: 'border-purple-400 bg-purple-50',
 }
+const SUBSCRIPTION_PENDING_MESSAGE =
+  'Subscription not yet activated. If you have already paid, please refresh or contact support.'
+
+function toFriendlyPaymentMessage(message, fallback = 'The payment did not complete this time.') {
+  const text = String(message || '').trim()
+  if (!text) return fallback
+  return /subscription key|api key|access denied|authenticate with mtn/i.test(text)
+    ? SUBSCRIPTION_PENDING_MESSAGE
+    : text
+}
 
 export default function UpgradeModal({ onClose }) {
   const { refreshProfile } = useAuth()
@@ -71,13 +81,13 @@ export default function UpgradeModal({ onClose }) {
       } else if (finalStatus.status === 'pending') {
         setStatusText(finalStatus.message || 'Still waiting for MTN confirmation.')
       } else {
-        setError(finalStatus.reason || 'Payment was not approved.')
+        setError(toFriendlyPaymentMessage(finalStatus.reason, 'Payment was not approved.'))
         setStep('failed')
       }
     } catch (err) {
       if (!mountedRef.current) return
       console.error(err)
-      setError(err.message || 'Could not start the MTN payment.')
+      setError(toFriendlyPaymentMessage(err.message, 'Could not start the MTN payment.'))
       setStep('failed')
     }
 

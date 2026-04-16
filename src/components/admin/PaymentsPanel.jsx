@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useFirestore } from '../../hooks/useFirestore'
-import { PLANS } from '../../utils/subscriptionConfig'
+import { PLANS, hasPremiumAccess } from '../../utils/subscriptionConfig'
 
 const statusColors = {
   pending: 'bg-yellow-100 text-yellow-800',
@@ -184,7 +184,7 @@ export default function PaymentsPanel() {
                       </select>
                     </td>
                     <td className="px-4 py-3">
-                      {u.isPremium ? <span className="bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full text-xs font-black">⭐ {u.subscriptionPlan}</span>
+                      {hasPremiumAccess(u) ? <span className="bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full text-xs font-black">⭐ {u.subscriptionPlan}</span>
                         : <span className="text-gray-400 text-xs">Free</span>}
                     </td>
                     <td className="px-4 py-3 text-gray-500">{u.grade ? `G${u.grade}` : '—'}</td>

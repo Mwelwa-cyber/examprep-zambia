@@ -28,6 +28,7 @@ const {
   nextPollingDelayMs,
   normalizePhoneNumber,
   requestToPay,
+  resolveCurrency,
 } = require("./momoService");
 
 const openAiApiKey = defineSecret("OPENAI_API_KEY");
@@ -67,6 +68,9 @@ const TEACHER_MARKING_SCHEME =
   "scheme. If the student's answer matches that expected answer or a clear " +
   "equivalent, mark it correct even when another wording might be more " +
   "scientifically complete. ";
+const SUBSCRIPTION_ACTIVATION_PENDING_MESSAGE =
+  "Subscription not yet activated. If you have already paid, please " +
+  "refresh or contact support.";
 
 function cleanString(value, maxLength) {
   if (value === null || value === undefined) return "";
@@ -192,6 +196,48 @@ function httpStatusForError(error) {
   return map[error?.code] || 500;
 }
 
+function shouldHidePaymentInfraError(message) {
+  return /subscription key|api key|access denied|authenticate with MTN/i
+    .test(String(message || ""));
+}
+
+function sanitizePaymentReason(reason) {
+  const cleaned = cleanString(reason, 220);
+  if (!cleaned) return null;
+  return shouldHidePaymentInfraError(cleaned) ?
+    SUBSCRIPTION_ACTIVATION_PENDING_MESSAGE :
+    cleaned;
+}
+
+function userFacingPaymentErrorMessage(error, fallbackMessage) {
+  return sanitizePaymentReason(error?.message) || fallbackMessage;
+}
+
+function buildActiveSubscriptionData({
+  plan,
+  paymentId = null,
+  phoneNumber = null,
+  activatedBy,
+  provider,
+  expiryDate,
+}) {
+  return {
+    plan: "premium",
+    premium: true,
+    paymentStatus: "active",
+    subscriptionStatus: "active",
+    premiumActivatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    isPremium: true,
+    subscriptionPlan: plan.id,
+    subscriptionProvider: provider,
+    subscriptionPhoneNumber: phoneNumber,
+    subscriptionPaymentId: paymentId,
+    subscriptionActivatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    subscriptionActivatedBy: activatedBy,
+    subscriptionExpiry: admin.firestore.Timestamp.fromDate(expiryDate),
+  };
+}
+
 function paymentClientMessage(status) {
   if (status === "successful") {
     return "Payment received. Your subscription is now active.";
@@ -210,7 +256,7 @@ function buildPaymentResponse(paymentId, data) {
     paymentId,
     status: data.status,
     mtnStatus: data.mtnStatus || null,
-    reason: data.reason || null,
+    reason: sanitizePaymentReason(data.reason),
     amountZMW: data.amountZMW,
     currency: data.currency || DEFAULT_CURRENCY,
     planId: data.planId,
@@ -247,7 +293,7 @@ async function markPaymentSuccessful(paymentRef, paymentData, statusResult) {
     tx.set(paymentRef, {
       status: "successful",
       mtnStatus: statusResult.mtnStatus,
-      reason: statusResult.reason || null,
+      reason: sanitizePaymentReason(statusResult.reason),
       completedAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       lastCheckedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -257,17 +303,18 @@ async function markPaymentSuccessful(paymentRef, paymentData, statusResult) {
       rawStatusResponse: statusResult.raw || null,
     }, {merge: true});
 
-    tx.set(admin.firestore().doc(`users/${paymentData.userId}`), {
-      isPremium: true,
-      subscriptionStatus: "active",
-      subscriptionPlan: plan.id,
-      subscriptionProvider: "mtn_momo",
-      subscriptionPhoneNumber: paymentData.phoneNumber,
-      subscriptionPaymentId: paymentRef.id,
-      subscriptionActivatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      subscriptionActivatedBy: "mtn_momo",
-      subscriptionExpiry: admin.firestore.Timestamp.fromDate(nextExpiry),
-    }, {merge: true});
+    tx.set(
+      admin.firestore().doc(`users/${paymentData.userId}`),
+      buildActiveSubscriptionData({
+        plan,
+        paymentId: paymentRef.id,
+        phoneNumber: paymentData.phoneNumber,
+        activatedBy: "mtn_momo",
+        provider: "mtn_momo",
+        expiryDate: nextExpiry,
+      }),
+      {merge: true},
+    );
   });
 }
 
@@ -282,7 +329,7 @@ async function markPaymentFinal(
   await paymentRef.set({
     status,
     mtnStatus: mtnStatus || (status === "timeout" ? "TIMEOUT" : paymentData.mtnStatus || null),
-    reason: reason || null,
+    reason: sanitizePaymentReason(reason),
     completedAt: admin.firestore.FieldValue.serverTimestamp(),
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     lastCheckedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -356,7 +403,7 @@ async function refreshPaymentStatus(paymentId, {skipIfNotDue = false} = {}) {
   const nextDelayMs = nextPollingDelayMs(checksSoFar + 1);
   await paymentRef.set({
     mtnStatus: statusResult.mtnStatus,
-    reason: statusResult.reason || null,
+    reason: sanitizePaymentReason(statusResult.reason),
     rawStatusResponse: statusResult.raw || null,
     lastCheckedAt: admin.firestore.FieldValue.serverTimestamp(),
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -446,6 +493,7 @@ exports.apiCreateMomoPayment = onRequest(
       const userProfile = await getUserProfileOrThrow(decoded.uid);
       const plan = getPlanConfig(req.body?.planId);
       const config = getMtnRuntimeConfig();
+      const currency = config.currency || resolveCurrency(config.targetEnvironment);
       const phoneNumber = normalizePhoneNumber(
         req.body?.phoneNumber,
         config.targetEnvironment,
@@ -458,7 +506,7 @@ exports.apiCreateMomoPayment = onRequest(
         externalId,
         phoneNumber,
         plan,
-        payerMessage: `${plan.name} teacher subscription`,
+        payerMessage: `${plan.name} premium subscription`,
         payeeNote: `${userProfile.displayName || decoded.email || decoded.uid}`,
       });
 
@@ -470,7 +518,7 @@ exports.apiCreateMomoPayment = onRequest(
         planId: plan.id,
         planName: plan.name,
         amountZMW: plan.amountZMW,
-        currency: DEFAULT_CURRENCY,
+        currency,
         provider: "mtn_momo",
         phoneNumber,
         externalId,
@@ -493,7 +541,7 @@ exports.apiCreateMomoPayment = onRequest(
         status: "pending",
         planId: plan.id,
         amountZMW: plan.amountZMW,
-        currency: DEFAULT_CURRENCY,
+        currency,
         phoneNumber,
         nextCheckInMs: nextPollingDelayMs(0),
         message: "Payment request sent. Approve it on your phone.",
@@ -504,7 +552,10 @@ exports.apiCreateMomoPayment = onRequest(
         message: error?.message,
       });
       res.status(httpStatusForError(error)).json({
-        error: error?.message || "Could not start the MTN payment.",
+        error: userFacingPaymentErrorMessage(
+          error,
+          "Could not start the MTN payment.",
+        ),
       });
     }
   },
@@ -558,7 +609,10 @@ exports.apiMomoPaymentStatus = onRequest(
         message: error?.message,
       });
       res.status(httpStatusForError(error)).json({
-        error: error?.message || "Could not read the payment status.",
+        error: userFacingPaymentErrorMessage(
+          error,
+          "Could not read the payment status.",
+        ),
       });
     }
   },

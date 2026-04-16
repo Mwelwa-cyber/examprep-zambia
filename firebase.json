@@ -15,6 +15,20 @@
     ],
     "rewrites": [
       {
+        "source": "/api/payments/momo/initiate",
+        "function": {
+          "functionId": "apiCreateMomoPayment",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/payments/momo/status",
+        "function": {
+          "functionId": "apiMomoPaymentStatus",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

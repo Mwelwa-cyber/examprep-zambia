@@ -3,6 +3,7 @@ import { ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebas
 import { useAuth } from '../../contexts/AuthContext'
 import { useFirestore } from '../../hooks/useFirestore'
 import { seedFirestore } from '../../utils/seedData'
+import { hasPremiumAccess } from '../../utils/subscriptionConfig'
 import { db, storage } from '../../firebase/config'
 import PaymentsPanel from '../admin/PaymentsPanel'
 
@@ -217,11 +218,11 @@ export default function AdminPanel() {
         <div className="space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { icon: '👥', label: 'Users',   val: users.length },
-              { icon: '📝', label: 'Quizzes', val: quizzes.length },
-              { icon: '📊', label: 'Results', val: results.length },
-              { icon: '⭐', label: 'Premium', val: users.filter(u => u.isPremium).length },
-            ].map(s => (
+            { icon: '👥', label: 'Users',   val: users.length },
+            { icon: '📝', label: 'Quizzes', val: quizzes.length },
+            { icon: '📊', label: 'Results', val: results.length },
+            { icon: '⭐', label: 'Premium', val: users.filter(hasPremiumAccess).length },
+          ].map(s => (
               <div key={s.label} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 text-center">
                 <div className="text-2xl mb-1">{s.icon}</div>
                 <div className="font-black text-xl text-gray-800">{loading ? '…' : s.val}</div>

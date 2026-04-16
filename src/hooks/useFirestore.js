@@ -16,6 +16,7 @@ function normalizeQuestionPayload(q, order) {
   return {
     text:          String(q.text ?? '').trim(),
     options,
+    passageId:     q.passageId || null,
     correctAnswer: isShortAnswer
       ? String(q.correctAnswer ?? '').trim()
       : Number.isInteger(q.correctAnswer)
@@ -325,9 +326,18 @@ export function useFirestore() {
     expiry.setDate(expiry.getDate() + durationDays)
     const batch = writeBatch(db)
     batch.update(doc(db, 'users', userId), {
-      isPremium: true, subscriptionPlan: plan,
+      plan: 'premium',
+      premium: true,
+      isPremium: true,
+      paymentStatus: 'active',
+      subscriptionStatus: 'active',
+      premiumActivatedAt: serverTimestamp(),
+      subscriptionPlan: plan,
       subscriptionExpiry: Timestamp.fromDate(expiry),
       subscriptionActivatedBy: adminId,
+      subscriptionActivatedAt: serverTimestamp(),
+      subscriptionProvider: 'manual_override',
+      subscriptionPaymentId: paymentId,
     })
     batch.update(doc(db, 'payments', paymentId), {
       status: 'confirmed',
@@ -353,16 +363,34 @@ export function useFirestore() {
     const expiry = new Date()
     expiry.setDate(expiry.getDate() + durationDays)
     await updateDoc(doc(db, 'users', userId), {
-      isPremium: true, subscriptionPlan: plan,
+      plan: 'premium',
+      premium: true,
+      isPremium: true,
+      paymentStatus: 'active',
+      subscriptionStatus: 'active',
+      premiumActivatedAt: serverTimestamp(),
+      subscriptionPlan: plan,
       subscriptionExpiry: durationDays === 0 ? null : Timestamp.fromDate(expiry),
       subscriptionActivatedBy: adminId,
+      subscriptionActivatedAt: serverTimestamp(),
+      subscriptionProvider: 'manual_grant',
     })
   }
 
   async function revokePremium(userId) {
     await updateDoc(doc(db, 'users', userId), {
-      isPremium: false, subscriptionPlan: 'free',
-      subscriptionExpiry: null, subscriptionActivatedBy: null,
+      plan: 'free',
+      premium: false,
+      isPremium: false,
+      paymentStatus: 'inactive',
+      subscriptionStatus: 'inactive',
+      premiumActivatedAt: null,
+      subscriptionPlan: 'free',
+      subscriptionExpiry: null,
+      subscriptionActivatedBy: null,
+      subscriptionActivatedAt: null,
+      subscriptionProvider: null,
+      subscriptionPaymentId: null,
     })
   }
 

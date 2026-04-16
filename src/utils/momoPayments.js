@@ -14,22 +14,38 @@ const ENDPOINTS = {
   },
 }
 
-function isLocalDevHost() {
-  if (typeof window === 'undefined') return false
-  return ['localhost', '127.0.0.1'].includes(window.location.hostname)
+function directFunctionUrl(functionName) {
+  const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID
+  if (!projectId) return null
+  return `https://us-central1-${projectId}.cloudfunctions.net/${functionName}`
 }
 
 function endpointUrl(key) {
   const entry = ENDPOINTS[key]
   if (!entry) throw new Error(`Unknown payment endpoint: ${key}`)
 
-  if (!isLocalDevHost()) return entry.path
+  return directFunctionUrl(entry.functionName) || entry.path
+}
 
-  const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID
-  if (!projectId) {
-    throw new Error('VITE_FIREBASE_PROJECT_ID is missing.')
+async function parseApiResponse(response) {
+  const contentType = response.headers.get('content-type') || ''
+  const rawText = await response.text()
+
+  if (!rawText) return {}
+
+  if (!/application\/json/i.test(contentType)) {
+    throw new Error(
+      response.ok
+        ? 'Payment service is not configured correctly. Please refresh or contact support.'
+        : 'Payment service returned an unexpected response.',
+    )
   }
-  return `https://us-central1-${projectId}.cloudfunctions.net/${entry.functionName}`
+
+  try {
+    return JSON.parse(rawText)
+  } catch {
+    throw new Error('Payment service returned invalid JSON. Please try again.')
+  }
 }
 
 async function authorizedFetch(url, options = {}) {
@@ -47,7 +63,7 @@ async function authorizedFetch(url, options = {}) {
     },
   })
 
-  const data = await response.json().catch(() => ({}))
+  const data = await parseApiResponse(response)
   if (!response.ok) {
     throw new Error(data.error || 'Payment request failed.')
   }

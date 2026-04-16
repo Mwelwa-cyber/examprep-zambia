@@ -9,7 +9,7 @@ import {
 } from 'firebase/auth'
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp, onSnapshot } from 'firebase/firestore'
 import { auth, db } from '../firebase/config'
-import { ROLES } from '../utils/subscriptionConfig'
+import { ROLES, hasPremiumAccess } from '../utils/subscriptionConfig'
 
 const AuthContext = createContext(null)
 
@@ -34,10 +34,15 @@ export function AuthProvider({ children }) {
       role: ROLES.LEARNER,
       grade: grade ?? null,
       school: school ?? '',
+      plan: 'free',
+      premium: false,
       isPremium: false,
+      paymentStatus: 'inactive',
+      subscriptionStatus: 'inactive',
       subscriptionPlan: 'free',
       subscriptionExpiry: null,
       subscriptionActivatedBy: null,
+      premiumActivatedAt: null,
       dailyAttempts: 0,
       lastAttemptDate: '',
       createdAt: serverTimestamp(),
@@ -87,12 +92,7 @@ export function AuthProvider({ children }) {
   const isLearner  = userProfile?.role === ROLES.LEARNER
   const isTeacher  = userProfile?.role === ROLES.TEACHER || userProfile?.role === ROLES.ADMIN
   const isAdmin    = userProfile?.role === ROLES.ADMIN
-  const isPremium  = (() => {
-    if (!userProfile?.isPremium) return false
-    if (!userProfile?.subscriptionExpiry) return true
-    const expiry = userProfile.subscriptionExpiry?.toDate?.() ?? new Date(userProfile.subscriptionExpiry)
-    return expiry > new Date()
-  })()
+  const isPremium  = hasPremiumAccess(userProfile)
   // Paid teacher: has teacher role AND active premium subscription
   const isPaidTeacher = (userProfile?.role === ROLES.TEACHER) && isPremium
   // Full content access: admin always, paid teachers, or premium learners.

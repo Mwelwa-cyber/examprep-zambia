@@ -26,7 +26,22 @@ const SUCCESS_STATUSES = new Set(["SUCCESSFUL"]);
 const FAILED_STATUSES = new Set(["FAILED", "REJECTED", "TIMEOUT"]);
 const TOKEN_REFRESH_BUFFER_MS = 60 * 1000;
 const DEFAULT_CURRENCY = "ZMW";
+const SANDBOX_CURRENCY = "EUR";
 const POLL_DELAYS_MS = [15000, 30000, 45000, 60000, 120000];
+const TARGET_ENVIRONMENT_CURRENCIES = {
+  sandbox: SANDBOX_CURRENCY,
+  mtnzambia: "ZMW",
+  mtnghana: "GHS",
+  mtnuganda: "UGX",
+  mtnivorycoast: "XOF",
+  mtncameroon: "XAF",
+  mtnbenin: "XOF",
+  mtncongo: "XAF",
+  mtnswaziland: "SZL",
+  mtnguineaconakry: "GNF",
+  mtnsouthafrica: "ZAR",
+  mtnliberia: "USD",
+};
 
 let accessTokenCache = {
   token: "",
@@ -69,6 +84,10 @@ function resolveBaseUrl(targetEnvironment) {
   // proxy.momoapi.mtn.com. If your live tenant uses a different host,
   // update this helper to match the endpoint from your MTN onboarding docs.
   return "https://proxy.momoapi.mtn.com";
+}
+
+function resolveCurrency(targetEnvironment) {
+  return TARGET_ENVIRONMENT_CURRENCIES[targetEnvironment] || DEFAULT_CURRENCY;
 }
 
 function normalizePhoneNumber(phoneNumber, targetEnvironment) {
@@ -167,6 +186,7 @@ function buildMtnConfig({
     subscriptionKey: String(subscriptionKey || "").trim(),
     targetEnvironment,
     baseUrl: resolveBaseUrl(targetEnvironment),
+    currency: resolveCurrency(targetEnvironment),
   };
 }
 
@@ -281,14 +301,14 @@ async function requestToPay(config, {
   const accessToken = await getAccessToken(config);
   const body = {
     amount: String(plan.amountZMW),
-    currency: DEFAULT_CURRENCY,
+    currency: config.currency,
     externalId,
     payer: {
       partyIdType: "MSISDN",
       partyId: phoneNumber,
     },
-    payerMessage: cleanMessage(payerMessage, 120) || "Teacher subscription",
-    payeeNote: cleanMessage(payeeNote, 120) || "ZedExams teacher subscription",
+    payerMessage: cleanMessage(payerMessage, 120) || "Premium subscription",
+    payeeNote: cleanMessage(payeeNote, 120) || "ZedExams premium subscription",
   };
 
   const {response, parsedBody} = await fetchMtn(
@@ -380,4 +400,5 @@ module.exports = {
   nextPollingDelayMs,
   normalizePhoneNumber,
   requestToPay,
+  resolveCurrency,
 };

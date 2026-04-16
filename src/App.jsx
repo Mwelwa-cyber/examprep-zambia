@@ -10,8 +10,8 @@ const Register = lazy(() => import('./components/auth/Register'))
 const StudentDashboard = lazy(() => import('./components/dashboard/StudentDashboard'))
 const GradeHub = lazy(() => import('./components/dashboard/GradeHub'))
 const QuizList = lazy(() => import('./components/quiz/QuizList'))
-const QuizRunner = lazy(() => import('./components/quiz/QuizRunner'))
-const QuizResults = lazy(() => import('./components/quiz/QuizResults'))
+const QuizRunner = lazy(() => import('./components/quiz/QuizRunnerV2'))
+const QuizResults = lazy(() => import('./components/quiz/QuizResultsV2'))
 const PapersLibrary = lazy(() => import('./components/papers/PapersLibrary'))
 const LessonsList = lazy(() => import('./components/lessons/LessonLibrary'))
 const LessonView = lazy(() => import('./components/lessons/LessonPlayer'))
@@ -25,7 +25,7 @@ const FloatingAIAssistant = lazy(() => import('./components/ai/FloatingAIAssista
 // Admin section
 const AdminLayout = lazy(() => import('./components/admin/AdminLayout'))
 const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard'))
-const CreateQuiz = lazy(() => import('./components/admin/CreateQuiz'))
+const CreateQuiz = lazy(() => import('./components/admin/CreateQuizV2'))
 const ManageContent = lazy(() => import('./components/admin/ManageContent'))
 const AdminResults = lazy(() => import('./components/admin/AdminResults'))
 const ContentApprovals = lazy(() => import('./components/admin/ContentApprovals'))
@@ -39,7 +39,7 @@ const TeacherContent = lazy(() => import('./components/teacher/TeacherContent'))
 const TeacherPaperUpload = lazy(() => import('./components/teacher/TeacherPaperUpload'))
 
 // Quiz editor (shared by admin + teacher)
-const EditQuiz = lazy(() => import('./components/quiz/EditQuiz'))
+const EditQuiz = lazy(() => import('./components/quiz/EditQuizV2'))
 
 function RootRedirect() {
   const { currentUser, userProfile, isAdmin, isTeacher } = useAuth()

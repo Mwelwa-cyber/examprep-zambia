@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "examsprepzambia"
-  }
+    "default": "examsprepzambia",
+    "zedexams.com": "examsprepzambia"
+  },
+  "targets": {},
+  "etags": {}
 }

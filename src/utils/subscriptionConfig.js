@@ -83,18 +83,37 @@ export const PAYMENT_DETAILS = {
   },
 }
 
+function toDateValue(value) {
+  if (!value) return null
+  if (typeof value?.toDate === 'function') return value.toDate()
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+export function hasPremiumAccess(userProfile) {
+  const hasAccessFlag =
+    userProfile?.premium === true ||
+    userProfile?.isPremium === true ||
+    userProfile?.paymentStatus === 'active' ||
+    userProfile?.subscriptionStatus === 'active' ||
+    userProfile?.plan === 'premium'
+
+  if (!hasAccessFlag) return false
+
+  const expiry = toDateValue(userProfile?.subscriptionExpiry)
+  if (!expiry) return true
+  return expiry > new Date()
+}
+
 export function getActivePlan(userProfile) {
-  if (!userProfile?.isPremium) return PLANS.free
-  if (userProfile.subscriptionExpiry) {
-    const expiry = userProfile.subscriptionExpiry?.toDate?.() ?? new Date(userProfile.subscriptionExpiry)
-    if (expiry < new Date()) return PLANS.free
-  }
+  if (!hasPremiumAccess(userProfile)) return PLANS.free
   return PLANS[userProfile.subscriptionPlan] ?? PLANS.monthly
 }
 
 export function daysUntilExpiry(userProfile) {
-  if (!userProfile?.isPremium || !userProfile?.subscriptionExpiry) return null
-  const expiry = userProfile.subscriptionExpiry?.toDate?.() ?? new Date(userProfile.subscriptionExpiry)
+  if (!hasPremiumAccess(userProfile) || !userProfile?.subscriptionExpiry) return null
+  const expiry = toDateValue(userProfile.subscriptionExpiry)
+  if (!expiry) return null
   const diff = Math.ceil((expiry - new Date()) / (1000 * 60 * 60 * 24))
   return diff > 0 ? diff : 0
 }

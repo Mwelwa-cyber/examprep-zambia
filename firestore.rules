@@ -119,12 +119,27 @@ service cloud.firestore {
       allow read: if isAuthed() && (isOwner(userId) || isTeacherOrAbove());
       allow create: if isAuthed() && isOwner(userId)
         && incoming().role == 'learner'
+        && incoming().get('plan', 'free') == 'free'
+        && incoming().get('premium', false) == false
         && incoming().isPremium == false
+        && incoming().get('paymentStatus', 'inactive') == 'inactive'
+        && incoming().get('subscriptionStatus', 'inactive') == 'inactive'
+        && incoming().get('subscriptionPlan', 'free') == 'free'
+        && incoming().get('subscriptionExpiry', null) == null
+        && incoming().get('subscriptionActivatedBy', null) == null
+        && incoming().get('subscriptionActivatedAt', null) == null
+        && incoming().get('premiumActivatedAt', null) == null
+        && incoming().get('subscriptionProvider', null) == null
+        && incoming().get('subscriptionPaymentId', null) == null
+        && incoming().get('subscriptionPhoneNumber', null) == null
         && (!('teacherApplicationStatus' in incoming()) || validTeacherStatus(incoming().teacherApplicationStatus));
       // Self-update: cannot change role or subscription fields
       allow update: if isAuthed() && isOwner(userId)
         && !changedKeys().hasAny([
-          'role', 'isPremium', 'subscriptionPlan', 'subscriptionExpiry', 'subscriptionActivatedBy',
+          'role', 'plan', 'premium', 'isPremium', 'paymentStatus', 'subscriptionStatus',
+          'premiumActivatedAt', 'subscriptionPlan', 'subscriptionExpiry', 'subscriptionActivatedBy',
+          'subscriptionActivatedAt', 'subscriptionProvider', 'subscriptionPaymentId',
+          'subscriptionPhoneNumber',
           'teacherApprovedBy', 'teacherApprovedAt', 'teacherRejectedBy', 'teacherRejectedAt',
           'teacherRejectionReason'
         ])
