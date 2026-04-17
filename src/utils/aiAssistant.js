@@ -9,7 +9,7 @@ const generateQuizCallable = httpsCallable(functions, 'generateQuizQuestions')
 const structureImportedQuizCallable = httpsCallable(functions, 'structureImportedQuiz')
 const AI_CHAT_TIMEOUT_MS = 12000
 const AI_EXPLAIN_TIMEOUT_MS = 8000
-const AI_QUIZ_TIMEOUT_MS = 4500
+const AI_QUIZ_TIMEOUT_MS = 20000
 const AI_IMPORT_TIMEOUT_MS = 18000
 
 function messageFromError(error) {
@@ -28,7 +28,9 @@ function messageFromError(error) {
 
 function isHardAIError(error) {
   const code = error?.code || ''
-  return ['resource-exhausted', 'permission-denied', 'unauthenticated', 'invalid-argument']
+  // permission-denied falls back to local template questions rather than
+  // blocking generation entirely (role mismatches shouldn't silence the feature)
+  return ['resource-exhausted', 'unauthenticated', 'invalid-argument']
     .some(item => code.includes(item))
 }
 

@@ -404,7 +404,7 @@ function PassageQuestionCard({
     <div className="theme-card theme-border theme-text space-y-4 rounded-2xl border p-4 shadow-sm">
       <div className="flex items-center justify-between gap-2">
         <span className="theme-accent-bg theme-accent-text rounded-full px-3 py-1 text-xs font-black">
-          Q{questionNumber} of {totalQuestions}
+          Q{questionNumber} of {totalPassageQuestions}
         </span>
         <div className="flex items-center gap-1.5">
           <button
