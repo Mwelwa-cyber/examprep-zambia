@@ -1,6 +1,24 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, lazy, Suspense } from 'react'
 import { QUESTION_LETTERS } from '../../utils/quizSections'
-import RichEditor from '../editor/RichEditor'
+
+const RichEditor = lazy(() => import('../editor/RichEditor'))
+
+function RichEditorField(props) {
+  return (
+    <Suspense fallback={
+      <textarea
+        value={typeof props.value === 'string' ? props.value : ''}
+        onChange={e => props.onChange(e.target.value)}
+        placeholder={props.placeholder}
+        rows={3}
+        className="w-full resize-none rounded-xl border-2 border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none"
+        style={{ minHeight: props.minHeight }}
+      />
+    }>
+      <RichEditor {...props} />
+    </Suspense>
+  )
+}
 
 const THEMES = {
   create: {
@@ -255,7 +273,7 @@ function StandaloneQuestionCard({
         theme={theme}
       />
 
-      <RichEditor
+      <RichEditorField
         value={question.text}
         onChange={v => set('text', v)}
         placeholder={question.imageUrl ? 'Describe what is shown in the image above, or ask your question...' : 'Write your question here...'}
@@ -324,7 +342,7 @@ function StandaloneQuestionCard({
           rows={2}
           className={joinClasses('w-full resize-none rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-800 placeholder-gray-400 outline-none', theme.focus)}
         />
-        <RichEditor
+        <RichEditorField
           value={question.explanation}
           onChange={v => set('explanation', v)}
           placeholder="Explanation (optional) — shown after answering in practice mode"
@@ -410,7 +428,7 @@ function PassageQuestionCard({
         </div>
       </div>
 
-      <RichEditor
+      <RichEditorField
         value={question.text}
         onChange={v => set('text', v)}
         placeholder="Write the question for this passage..."
@@ -473,7 +491,7 @@ function PassageQuestionCard({
         </div>
       </div>
 
-      <RichEditor
+      <RichEditorField
         value={question.explanation}
         onChange={v => set('explanation', v)}
         placeholder="Explanation (optional)"
@@ -582,7 +600,7 @@ function PassageSectionCard({
                 placeholder="Instructions (optional)"
                 className="w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-orange-500"
               />
-              <RichEditor
+              <RichEditorField
                 value={passage.passageText}
                 onChange={v => onPassageChange(sectionIndex, 'passageText', v)}
                 placeholder="Paste or type the passage / story here..."
