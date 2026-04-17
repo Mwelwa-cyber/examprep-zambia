@@ -5,8 +5,9 @@
  *   import './editor/editor.css'
  */
 
-/* ── Reset & tokens ──────────────────────────────────────────── */
-:root {
+/* ── Editor design tokens — scoped to .qe-page to avoid app conflicts ── */
+.qe-page, .overlay, .modal, .re-wrap, .editor-area,
+.toolbar, .tblstrip, .alist, .pcard, .savebar, .qe-toast {
   --ink:  #1a1523;
   --ink2: #2d2548;
   --vi:   #5b21b6;
@@ -27,17 +28,14 @@
   --sl5:  #6e6498;
   --sl6:  #3d3660;
   --white: #fff;
-  --bg:   #f0eef9;
   --r:    10px;
-  --font: 'Plus Jakarta Sans', sans-serif;
-  --serif:'Lora', serif;
   --sh:   0 1px 3px rgba(91,33,182,.09), 0 4px 16px rgba(91,33,182,.07);
 }
 
 /* ── Quiz editor page shell ──────────────────────────────────── */
 .qe-page {
-  font-family: var(--font);
-  background: var(--bg);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: #f0eef9;
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
@@ -106,7 +104,7 @@
   padding: 7px 11px;
   border: 1.5px solid var(--sl3);
   border-radius: 8px;
-  font: 14px var(--font);
+  font: 14px 'Plus Jakarta Sans', sans-serif;
   color: var(--ink);
   background: #fff;
   transition: .15s;
@@ -131,7 +129,7 @@
   border: none;
   background: none;
   cursor: pointer;
-  font: 600 11px var(--font);
+  font: 600 11px 'Plus Jakarta Sans', sans-serif;
   color: var(--sl4);
   text-transform: uppercase;
   letter-spacing: .4px;
@@ -147,7 +145,7 @@
   border: none;
   border-radius: 8px;
   padding: 8px 17px;
-  font: 600 13px var(--font);
+  font: 600 13px 'Plus Jakarta Sans', sans-serif;
   cursor: pointer;
   transition: .15s;
   display: inline-flex;
@@ -209,7 +207,7 @@
   cursor: pointer;
   color: var(--sl6);
   font-size: 12.5px;
-  font-family: var(--font);
+  font-family: 'Plus Jakarta Sans', sans-serif;
   transition: .1s;
   padding: 0 5px;
   white-space: nowrap;
@@ -282,7 +280,7 @@
   padding: 11px 14px;
   font-size: 14px;
   line-height: 1.8;
-  font-family: var(--font);
+  font-family: 'Plus Jakarta Sans', sans-serif;
   color: var(--ink);
   cursor: text;
 }
@@ -301,8 +299,8 @@
 .editor-area ol { padding-left: 20px; margin: 4px 0; }
 .editor-area ul li { list-style: disc; }
 .editor-area ol li { list-style: decimal; }
-.editor-area h1 { font-family: var(--serif); font-size: 18px; font-weight: 700; margin: 7px 0 4px; }
-.editor-area h2 { font: 700 15px var(--font); margin: 7px 0 3px; }
+.editor-area h1 { font-family: 'Lora', serif; font-size: 18px; font-weight: 700; margin: 7px 0 4px; }
+.editor-area h2 { font: 700 15px 'Plus Jakarta Sans', sans-serif; margin: 7px 0 3px; }
 .editor-area blockquote {
   border-left: 3px solid var(--vi4);
   padding-left: 12px;
@@ -371,7 +369,7 @@
   padding: 14px 20px 11px;
   border-bottom: 1px solid var(--sl3);
 }
-.mtitle { font-family: var(--serif); font-size: 17px; font-weight: 700; color: var(--ink2); }
+.mtitle { font-family: 'Lora', serif; font-size: 17px; font-weight: 700; color: var(--ink2); }
 .mx {
   width: 28px; height: 28px;
   border: none; background: var(--sl2); border-radius: 50%;
@@ -442,7 +440,7 @@
 .arow input[type="radio"] { width: 15px; height: 15px; accent-color: var(--vi2); cursor: pointer; flex-shrink: 0; }
 .addopt {
   border: 1.5px dashed var(--sl3); border-radius: 7px;
-  padding: 7px; font: 600 12px var(--font); color: var(--sl4);
+  padding: 7px; font: 600 12px 'Plus Jakarta Sans', sans-serif; color: var(--sl4);
   cursor: pointer; background: none; width: 100%; transition: .15s; margin-top: 3px;
 }
 .addopt:hover { border-color: var(--vi2); color: var(--vi2); background: var(--vi3); }
@@ -522,7 +520,7 @@
   transform: translateX(-50%);
   background: var(--ink2); color: #fff;
   padding: 9px 20px; border-radius: 30px;
-  font: 600 13px var(--font);
+  font: 600 13px 'Plus Jakarta Sans', sans-serif;
   z-index: 1000;
   box-shadow: 0 4px 20px rgba(0,0,0,.25);
   animation: qeToast .2s ease;
