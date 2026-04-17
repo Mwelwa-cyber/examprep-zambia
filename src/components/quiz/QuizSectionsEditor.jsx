@@ -2,6 +2,25 @@ import { useRef, useState } from 'react'
 import { QUESTION_LETTERS } from '../../utils/quizSections.js'
 import { RichTextContent, RichTextEditor } from './QuizRichText'
 
+const RichEditor = lazy(() => import('../../editor/components/RichEditor'))
+
+function RichEditorField(props) {
+  return (
+    <Suspense fallback={
+      <textarea
+        value={typeof props.value === 'string' ? props.value : ''}
+        onChange={e => props.onChange(e.target.value)}
+        placeholder={props.placeholder}
+        rows={3}
+        className="w-full resize-none rounded-xl border-2 border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none"
+        style={{ minHeight: props.minHeight }}
+      />
+    }>
+      <RichEditor {...props} />
+    </Suspense>
+  )
+}
+
 const THEMES = {
   create: {
     focus: 'focus:border-[var(--accent)]',

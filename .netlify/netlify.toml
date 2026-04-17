@@ -7,9 +7,10 @@ headers = []
 [functions."*"]
 
 [build]
-publish = "M:\\Claude\\zedexams.com\\dist"
+publish = "M:\\Claude\\zedexams.com\\.claude\\worktrees\\great-almeida-858cda\\dist"
 publishOrigin = "config"
 commandOrigin = "config"
+base = "M:\\Claude\\zedexams.com\\.claude\\worktrees\\great-almeida-858cda"
 command = "npm run build"
 
 [build.environment]
