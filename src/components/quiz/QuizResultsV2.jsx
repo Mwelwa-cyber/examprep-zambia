@@ -5,7 +5,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { buildQuizDisplaySections } from '../../utils/quizSections'
 import { getRoleLandingPath } from '../../utils/navigation'
 import { explainQuizAnswer } from '../../utils/aiAssistant'
-import RichContent, { getRichPlainText } from '../editor/RichContent'
+import RichContent, { getRichPlainText } from '../../editor/RichContent'
 
 function ScoreCircle({ percentage }) {
   const radius = 54

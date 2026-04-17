@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(head -100 /m/Claude/Examprep-zambia/src/hooks/*.jsx)"
+      "Bash(head -100 /m/Claude/Examprep-zambia/src/hooks/*.jsx)",
+      "Read(//c/Users/mahen/Downloads/**)",
+      "Bash(unzip -o \"Quiz Craft.zip\" -d \"/tmp/quiz-craft-update\")"
     ]
   }
 }

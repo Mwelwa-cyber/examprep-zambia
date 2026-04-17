@@ -8,7 +8,7 @@ import UpgradeModal from '../subscription/UpgradeModal'
 import QuizTip from './QuizTip'
 import { getPakoTip } from '../../config/curriculum'
 import { checkAnswerWithAI } from '../../utils/geminiChecker'
-import RichContent, { getRichPlainText } from '../editor/RichContent'
+import RichContent, { getRichPlainText } from '../../editor/RichContent'
 
 function fmt(seconds) {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`

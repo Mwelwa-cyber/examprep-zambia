@@ -1,7 +1,7 @@
 import { useRef, useState, lazy, Suspense } from 'react'
 import { QUESTION_LETTERS } from '../../utils/quizSections'
 
-const RichEditor = lazy(() => import('../editor/RichEditor'))
+const RichEditor = lazy(() => import('../../editor/components/RichEditor'))
 
 function RichEditorField(props) {
   return (
