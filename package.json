@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "test:importer": "node src/components/quiz/documentQuizParserCore.test.js",
     "deploy": "npm run deploy:netlify",
     "deploy:netlify": "npm run build && npx -y netlify-cli deploy --prod --dir=dist --site=5a7c0fa9-62b2-4137-a109-8a7478bf6148",
     "deploy:netlify:preview": "npm run build && npx -y netlify-cli deploy --dir=dist --site=5a7c0fa9-62b2-4137-a109-8a7478bf6148",

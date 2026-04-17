@@ -1,8 +1,10 @@
+import { useMemo } from 'react'
 import {
   collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, setDoc,
   query, where, orderBy, limit, serverTimestamp, increment, writeBatch, Timestamp,
 } from 'firebase/firestore'
 import { db } from '../firebase/config'
+import { normalizeRichTextPayload } from '../utils/quizRichText.js'
 
 function normalizeQuestionPayload(q, order) {
   const type = q.type || 'mcq'
@@ -14,7 +16,7 @@ function normalizeQuestionPayload(q, order) {
       : []
 
   return {
-    text:          String(q.text ?? '').trim(),
+    sharedInstruction: normalizeRichTextPayload(q.sharedInstruction),
     options,
     passageId:     q.passageId || null,
     correctAnswer: isShortAnswer
@@ -22,7 +24,8 @@ function normalizeQuestionPayload(q, order) {
       : Number.isInteger(q.correctAnswer)
         ? q.correctAnswer
         : Number(q.correctAnswer) || 0,
-    explanation:   String(q.explanation ?? '').trim(),
+    text:          normalizeRichTextPayload(q.text),
+    explanation:   normalizeRichTextPayload(q.explanation),
     topic:         String(q.topic ?? '').trim(),
     marks:         Number(q.marks) || 1,
     type,
@@ -557,7 +560,7 @@ export function useFirestore() {
     }
   }
 
-  return {
+  return useMemo(() => ({
     getQuizzes, getAllQuizzes, getQuizzesByTeacher, getQuizById, createQuiz, updateQuiz, deleteQuiz,
     getQuestions, saveQuestions,
     saveResult, getResultById, getUserResults, getResultsForQuiz, getAllResults, getWeaknessAnalysis,
@@ -571,5 +574,5 @@ export function useFirestore() {
     getPendingApprovals, submitForApproval, withdrawFromApproval, approveContent, rejectContent,
     getAllPapers, updatePaper,
     deleteQuestion, updateQuizWithQuestions,
-  }
+  }), [])
 }

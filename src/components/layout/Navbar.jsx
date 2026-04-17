@@ -29,10 +29,10 @@ export default function Navbar() {
     .split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
 
   const badgeColors = {
-    green:  'bg-green-100 text-green-700 border-green-200',
-    blue:   'bg-blue-100 text-blue-700 border-blue-200',
+    green:  'theme-accent-bg theme-accent-text theme-border',
+    blue:   'theme-accent-bg theme-accent-text theme-border',
     yellow: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-    gray:   'bg-gray-100 text-gray-600 border-gray-200',
+    gray:   'theme-bg-subtle theme-text-muted theme-border',
   }
   const badgeClass = badgeColors[accessBadge.color] ?? badgeColors.gray
 
@@ -52,7 +52,7 @@ export default function Navbar() {
               className={({ isActive }) =>
                 `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold transition-colors ${
                   isActive
-                    ? 'bg-green-50 text-green-700'
+                    ? 'theme-accent-bg theme-accent-text'
                     : 'theme-text-muted hover:theme-bg-subtle hover:theme-text'
                 }`
               }>
@@ -64,7 +64,7 @@ export default function Navbar() {
             <NavLink to="/teacher"
               className={({ isActive }) =>
                 `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold transition-colors ${
-                  isActive ? 'bg-green-50 text-green-700' : 'theme-text-muted hover:theme-bg-subtle'
+                  isActive ? 'theme-accent-bg theme-accent-text' : 'theme-text-muted hover:theme-bg-subtle hover:theme-text'
                 }`
               }>
               <span>🎓</span><span>Teacher</span>
@@ -74,7 +74,7 @@ export default function Navbar() {
             <NavLink to="/admin"
               className={({ isActive }) =>
                 `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold transition-colors ${
-                  isActive ? 'bg-green-50 text-green-700' : 'theme-text-muted hover:theme-bg-subtle'
+                  isActive ? 'theme-accent-bg theme-accent-text' : 'theme-text-muted hover:theme-bg-subtle hover:theme-text'
                 }`
               }>
               <span>⚙️</span><span>Admin</span>
@@ -93,7 +93,7 @@ export default function Navbar() {
           <ThemeSelector compact />
 
           <div className="flex items-center gap-2 pl-2 border-l theme-border">
-            <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center text-white font-black text-xs flex-shrink-0">
+            <div className="theme-accent-fill theme-on-accent flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-black">
               {initials}
             </div>
             <div className="text-right hidden lg:block">
@@ -112,7 +112,7 @@ export default function Navbar() {
         {/* Mobile right — avatar + hamburger */}
         <div className="flex md:hidden items-center gap-2">
           <ThemeSelector compact />
-          <div className="w-7 h-7 bg-green-600 rounded-full flex items-center justify-center text-white font-black text-xs flex-shrink-0">
+          <div className="theme-accent-fill theme-on-accent flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-xs font-black">
             {initials}
           </div>
           <button onClick={() => setOpen(o => !o)}
@@ -129,7 +129,7 @@ export default function Navbar() {
           <div className="max-w-5xl mx-auto px-4 py-3">
             {/* User info */}
             <div className="flex items-center gap-3 py-3 mb-2 border-b theme-border">
-              <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center text-white font-black">
+              <div className="theme-accent-fill theme-on-accent flex h-10 w-10 items-center justify-center rounded-full font-black">
                 {initials}
               </div>
               <div>
@@ -150,7 +150,7 @@ export default function Navbar() {
                 <NavLink key={l.to} to={l.to} onClick={() => setOpen(false)}
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors ${
-                      isActive ? 'bg-green-50 text-green-700' : 'theme-text hover:theme-bg-subtle'
+                      isActive ? 'theme-accent-bg theme-accent-text' : 'theme-text hover:theme-bg-subtle'
                     }`
                   }>
                   <span className="text-base w-6 text-center">{l.icon}</span>
@@ -161,7 +161,7 @@ export default function Navbar() {
                 <NavLink to="/teacher" onClick={() => setOpen(false)}
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors ${
-                      isActive ? 'bg-green-50 text-green-700' : 'theme-text hover:theme-bg-subtle'
+                      isActive ? 'theme-accent-bg theme-accent-text' : 'theme-text hover:theme-bg-subtle'
                     }`
                   }>
                   <span className="text-base w-6 text-center">🎓</span>Teacher
@@ -171,7 +171,7 @@ export default function Navbar() {
                 <NavLink to="/admin" onClick={() => setOpen(false)}
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors ${
-                      isActive ? 'bg-green-50 text-green-700' : 'theme-text hover:theme-bg-subtle'
+                      isActive ? 'theme-accent-bg theme-accent-text' : 'theme-text hover:theme-bg-subtle'
                     }`
                   }>
                   <span className="text-base w-6 text-center">⚙️</span>Admin Panel

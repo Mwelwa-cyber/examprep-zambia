@@ -1,3 +1,5 @@
+import { ensureRichTextHtml, richTextHasContent } from './quizRichText.js'
+
 let localIdCounter = 0
 
 function nextLocalId(prefix) {
@@ -15,9 +17,10 @@ export function getQuestionKey(question = {}) {
 }
 
 export function emptyQuestion(overrides = {}) {
-  return {
+  const nextQuestion = {
     localId: nextLocalId('question'),
     _id: null,
+    sharedInstruction: '',
     text: '',
     options: ['', '', '', ''],
     correctAnswer: 0,
@@ -37,6 +40,13 @@ export function emptyQuestion(overrides = {}) {
     sourcePage: null,
     passageId: null,
     ...overrides,
+  }
+
+  return {
+    ...nextQuestion,
+    sharedInstruction: ensureRichTextHtml(nextQuestion.sharedInstruction),
+    text: ensureRichTextHtml(nextQuestion.text),
+    explanation: ensureRichTextHtml(nextQuestion.explanation),
   }
 }
 
@@ -68,26 +78,31 @@ export function createPassageSection(passageOverrides = {}) {
   const questionOverrides = Array.isArray(passageOverrides.questions)
     ? passageOverrides.questions
     : [emptyPassageQuestion()]
+  const nextPassage = {
+    id: passageId,
+    title: '',
+    instructions: '',
+    passageText: '',
+    imageUrl: '',
+    imageUploading: false,
+    imageUploadStep: '',
+    collapsed: false,
+    ...passageOverrides,
+  }
 
   return {
     id: passageId,
     kind: 'passage',
     passage: {
+      ...nextPassage,
       id: passageId,
-      title: '',
-      instructions: '',
-      passageText: '',
-      imageUrl: '',
-      imageUploading: false,
-      imageUploadStep: '',
-      collapsed: false,
+      instructions: ensureRichTextHtml(nextPassage.instructions),
+      passageText: ensureRichTextHtml(nextPassage.passageText),
       questions: questionOverrides.map(question =>
         emptyPassageQuestion({
           ...question,
           passageId,
         })),
-      ...passageOverrides,
-      id: passageId,
     },
   }
 }
@@ -98,8 +113,9 @@ export function isQuestionBlank(question = {}) {
     ? question.correctAnswer.trim()
     : question.correctAnswer
 
-  return !String(question.text ?? '').trim() &&
-    !String(question.explanation ?? '').trim() &&
+  return !richTextHasContent(question.sharedInstruction) &&
+    !richTextHasContent(question.text) &&
+    !richTextHasContent(question.explanation) &&
     !String(question.topic ?? '').trim() &&
     !String(question.diagramText ?? '').trim() &&
     !String(question.imageUrl ?? '').trim() &&
@@ -145,8 +161,8 @@ export function serializeQuizSections(sections = []) {
       passages.push({
         id: passageId,
         title: String(passage.title ?? '').trim(),
-        instructions: String(passage.instructions ?? '').trim(),
-        passageText: String(passage.passageText ?? '').trim(),
+        instructions: ensureRichTextHtml(passage.instructions),
+        passageText: ensureRichTextHtml(passage.passageText),
         imageUrl: passage.imageUrl || null,
         order: startOrder,
       })
@@ -154,6 +170,9 @@ export function serializeQuizSections(sections = []) {
       ;(passage.questions || []).forEach(question => {
         questions.push({
           ...question,
+          sharedInstruction: ensureRichTextHtml(question.sharedInstruction),
+          text: ensureRichTextHtml(question.text),
+          explanation: ensureRichTextHtml(question.explanation),
           passageId,
           type: 'mcq',
           detectedType: 'mcq',
@@ -166,6 +185,9 @@ export function serializeQuizSections(sections = []) {
 
     questions.push({
       ...(section.question || emptyQuestion()),
+      sharedInstruction: ensureRichTextHtml(section.question?.sharedInstruction),
+      text: ensureRichTextHtml(section.question?.text),
+      explanation: ensureRichTextHtml(section.question?.explanation),
       passageId: null,
       order: questionOrder,
     })
@@ -187,6 +209,7 @@ function hydrateStandaloneQuestion(question = {}) {
   return emptyQuestion({
     localId: question.id || question._id || question.localId || nextLocalId('question'),
     _id: question.id || question._id || null,
+    sharedInstruction: question.sharedInstruction ?? '',
     text: question.text ?? '',
     options: isTextAnswer
       ? []
@@ -218,6 +241,7 @@ function hydratePassageQuestion(question = {}, passageId) {
   return emptyPassageQuestion({
     localId: question.id || question._id || question.localId || nextLocalId('question'),
     _id: question.id || question._id || null,
+    sharedInstruction: question.sharedInstruction ?? '',
     text: question.text ?? '',
     options: Array.isArray(question.options) && question.options.length
       ? question.options

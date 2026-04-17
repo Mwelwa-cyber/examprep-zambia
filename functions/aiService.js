@@ -15,6 +15,9 @@ const LIMITS = {
   grade: 20,
   topic: 120,
   quizCount: 10,
+  importFileName: 180,
+  importDocumentText: 26000,
+  importLocalDraft: 12000,
 };
 
 function cleanString(value, maxLength = 600) {
@@ -280,6 +283,73 @@ function buildQuizMessages(payload) {
   };
 }
 
+function buildImportStructureMessages(payload) {
+  const fileName = cleanString(payload.fileName, LIMITS.importFileName);
+  const documentText = cleanString(
+    payload.documentText,
+    LIMITS.importDocumentText,
+  );
+  const localDraft = cleanString(
+    payload.localDraft,
+    LIMITS.importLocalDraft,
+  );
+
+  return [
+    {
+      role: "system",
+      content: [
+        "You are the smart quiz import formatter for ZedExams.",
+        "Convert messy school exam text into structured quiz sections.",
+        "Preserve order. Distinguish instructions from passage text.",
+        "When a story, passage, advert, notice, table, or shared text applies",
+        "to multiple questions, return one passage section and place the",
+        "related questions inside it.",
+        "Never swallow Story 2 or Story 3 into the explanation of the",
+        "previous question.",
+        "For paragraph-order, matching, and punctuation items, rebuild the",
+        "full question text and all options cleanly.",
+        "For paragraph-order sections with one shared instruction and",
+        "number-only items, keep them as standalone multiple-choice",
+        "questions rather than passage sections.",
+        "Use sourceQuestionNumber for every numbered question.",
+        "Only set correctAnswer when it is explicitly available from the text",
+        "or answer key. Otherwise return an empty string.",
+        "Return only valid JSON.",
+      ].join(" "),
+    },
+    {
+      role: "user",
+      content: [
+        fileName ? `File name: ${fileName}` : "",
+        "Raw extracted document text:",
+        documentText,
+        localDraft ? "Approximate local draft (use only as a hint when helpful):" : "",
+        localDraft || "",
+        "Return JSON in this shape:",
+        "{\"sections\":[",
+        "{\"kind\":\"passage\",\"title\":\"\",\"instructions\":\"\",",
+        "\"passageText\":\"\",\"questions\":[",
+        "{\"sourceQuestionNumber\":46,\"text\":\"\",\"options\":[\"\",\"\",\"\",\"\"],",
+        "\"correctAnswer\":\"A\",\"explanation\":\"\",\"type\":\"mcq\"}",
+        "]}",
+        ",{\"kind\":\"standalone\",\"question\":",
+        "{\"sourceQuestionNumber\":39,\"text\":\"\",\"options\":[\"\",\"\",\"\",\"\"],",
+        "\"correctAnswer\":\"C\",\"explanation\":\"\",\"type\":\"mcq\"}}",
+        "],\"warnings\":[\"optional note\"]}",
+        "Rules:",
+        "- Passage questions must stay grouped under the correct passage.",
+        "- Shared instructions like 'choose the paragraph with the sentences",
+        "in the best order' should stay as instructions for standalone",
+        "multiple-choice questions, not as passage text.",
+        "- Put shared instructions in instructions, not inside passageText.",
+        "- passageText should contain only the reading text or source text.",
+        "- Keep options as plain text without A/B/C/D labels when possible.",
+        "- Do not invent new questions or answers.",
+      ].filter(Boolean).join("\n"),
+    },
+  ];
+}
+
 function normalizeCorrectAnswer(value, options) {
   const numeric = Number(value);
   if (Number.isInteger(numeric) && numeric >= 0 && numeric < options.length) {
@@ -334,11 +404,104 @@ function parseGeneratedQuiz(raw, fallbackTopic) {
   return questions;
 }
 
+function normalizeImportedQuestion(question = {}) {
+  const options = Array.isArray(question.options) ?
+    question.options
+      .map((option) => cleanString(option, 220))
+      .filter(Boolean)
+      .slice(0, 4) :
+    [];
+  const numericSource = Number.parseInt(
+    cleanString(question.sourceQuestionNumber, 8),
+    10,
+  );
+  const type = cleanString(question.type, 20).toLowerCase();
+
+  return {
+    sourceQuestionNumber: Number.isFinite(numericSource) ? numericSource : null,
+    text: cleanString(question.text || question.question, LIMITS.question),
+    options,
+    correctAnswer: Number.isInteger(question.correctAnswer) ?
+      question.correctAnswer :
+      cleanString(question.correctAnswer, 40),
+    explanation: cleanString(question.explanation, 500),
+    type: ["mcq", "truefalse", "short_answer", "diagram"].includes(type) ?
+      type :
+      (options.length >= 2 ? "mcq" : "short_answer"),
+  };
+}
+
+function parseStructuredImport(raw) {
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new HttpsError(
+      "internal",
+      "The smart import response could not be read. Please try again.",
+    );
+  }
+
+  const warnings = Array.isArray(parsed.warnings) ?
+    parsed.warnings
+      .map((item) => cleanString(item, 180))
+      .filter(Boolean)
+      .slice(0, 8) :
+    [];
+
+  const sections = (Array.isArray(parsed.sections) ? parsed.sections : [])
+    .map((section) => {
+      const kind = cleanString(section?.kind, 20).toLowerCase();
+      if (kind === "passage") {
+        const questions = (Array.isArray(section.questions) ?
+          section.questions :
+          [])
+          .map((question) => normalizeImportedQuestion(question))
+          .filter((question) => question.text || question.options.length);
+
+        const title = cleanString(section.title, 160);
+        const instructions = cleanString(section.instructions, 1200);
+        const passageText = cleanString(section.passageText, 6000);
+
+        if (!questions.length || (!title && !instructions && !passageText)) {
+          return null;
+        }
+
+        return {
+          kind: "passage",
+          title,
+          instructions,
+          passageText,
+          questions,
+        };
+      }
+
+      const question = normalizeImportedQuestion(section.question || section);
+      if (!question.text && !question.options.length) return null;
+
+      return {
+        kind: "standalone",
+        question,
+      };
+    })
+    .filter(Boolean);
+
+  if (!sections.length) {
+    throw new HttpsError(
+      "internal",
+      "No usable quiz sections were returned from smart import.",
+    );
+  }
+
+  return {sections, warnings};
+}
+
 module.exports = {
   LIMITS,
   assertDailyLimit,
   buildChatMessages,
   buildExplainMessages,
+  buildImportStructureMessages,
   buildQuizMessages,
   callOpenAI,
   cleanContext,
@@ -347,5 +510,6 @@ module.exports = {
   getApiKey,
   getUserRole,
   isStaffRole,
+  parseStructuredImport,
   parseGeneratedQuiz,
 };

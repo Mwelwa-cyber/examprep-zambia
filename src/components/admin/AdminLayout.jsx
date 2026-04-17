@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import Logo from '../ui/Logo'
+import ThemeSelector from '../ui/ThemeSelector'
 
 const NAV = [
   { to: '/admin',             icon: '📊', label: 'Dashboard',      end: true },
@@ -29,32 +30,35 @@ export default function AdminLayout({ children }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="theme-bg theme-text min-h-screen flex">
       {/* ── Desktop Sidebar ─────────────────────────────── */}
-      <aside className="hidden md:flex flex-col w-60 bg-white border-r border-gray-100 shadow-sm flex-shrink-0">
+      <aside className="theme-card theme-border theme-shadow hidden w-60 flex-shrink-0 flex-col border-r md:flex">
         {/* Logo */}
-        <div className="px-4 py-5 border-b border-gray-100">
+        <div className="theme-border px-4 py-5 border-b">
           <Link to="/admin" className="inline-flex">
             <Logo variant="full" size="md" />
           </Link>
-          <p className="text-xs font-bold text-green-600 mt-1.5 pl-1">Admin Panel</p>
+          <div className="mt-2 flex items-center justify-between gap-2 pl-1">
+            <p className="theme-accent-text text-xs font-bold">Admin Panel</p>
+            <ThemeSelector compact />
+          </div>
         </div>
 
         {/* Nav Links */}
         <nav className="flex-1 p-3 space-y-1">
           <Link
             to="/dashboard"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-gray-700 bg-gray-50 hover:bg-green-50 hover:text-green-700 transition-colors"
+            className="theme-bg-subtle theme-text hover:theme-accent-bg hover:theme-accent-text flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-colors"
           >
             <span className="text-base">🏠</span>
             Learner Dashboard
           </Link>
-          <div className="my-2 border-t border-gray-100" />
+          <div className="theme-border my-2 border-t" />
           {NAV.map(item => (
             <NavLink key={item.to} to={item.to} end={item.end}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors ${
-                  isActive ? 'bg-green-50 text-green-700 shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
+                  isActive ? 'theme-accent-bg theme-accent-text shadow-sm' : 'theme-text-muted hover:theme-bg-subtle hover:theme-text'
                 }`
               }>
               <span className="text-base">{item.icon}</span>
@@ -64,14 +68,14 @@ export default function AdminLayout({ children }) {
         </nav>
 
         {/* User info + Logout */}
-        <div className="p-3 border-t border-gray-100">
+        <div className="theme-border p-3 border-t">
           <div className="flex items-center gap-2 px-3 py-2 mb-1">
-            <div className="w-7 h-7 bg-green-100 rounded-full flex items-center justify-center text-green-700 font-black text-xs flex-shrink-0">
+            <div className="theme-accent-fill theme-on-accent flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-xs font-black">
               {(userProfile?.displayName || 'A')[0].toUpperCase()}
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-black text-gray-800 truncate">{userProfile?.displayName || 'Admin'}</p>
-              <p className="text-xs text-gray-400 truncate">{userProfile?.email}</p>
+              <p className="theme-text truncate text-xs font-black">{userProfile?.displayName || 'Admin'}</p>
+              <p className="theme-text-muted truncate text-xs">{userProfile?.email}</p>
             </div>
           </div>
           <button onClick={handleLogout}
@@ -82,17 +86,20 @@ export default function AdminLayout({ children }) {
       </aside>
 
       {/* ── Mobile Header ───────────────────────────────── */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-100 shadow-sm">
+      <div className="theme-card theme-border theme-shadow fixed left-0 right-0 top-0 z-40 border-b md:hidden">
         <div className="flex items-center justify-between px-4 h-20">
           <Link to="/admin" className="flex items-center gap-2.5">
             <Logo variant="icon" size="md" />
-            <span className="font-black text-gray-800 text-sm">Admin Panel</span>
+            <span className="theme-text text-sm font-black">Admin Panel</span>
           </Link>
-          <button onClick={() => setMobileOpen(o => !o)}
-            aria-label={mobileOpen ? 'Close admin navigation' : 'Open admin navigation'}
-            className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 min-h-0">
-            {mobileOpen ? '✕' : '☰'}
-          </button>
+          <div className="flex items-center gap-2">
+            <ThemeSelector compact />
+            <button onClick={() => setMobileOpen(o => !o)}
+              aria-label={mobileOpen ? 'Close admin navigation' : 'Open admin navigation'}
+              className="theme-text-muted hover:theme-bg-subtle min-h-0 rounded-lg p-2 transition-colors">
+              {mobileOpen ? '✕' : '☰'}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -100,22 +107,22 @@ export default function AdminLayout({ children }) {
       {mobileOpen && (
         <div className="md:hidden fixed inset-0 z-30" onClick={() => setMobileOpen(false)}>
           <div className="absolute inset-0 bg-black/30" />
-          <nav className="absolute top-20 left-0 right-0 bg-white shadow-xl border-t border-gray-100 p-3 space-y-1"
+          <nav className="theme-card theme-border absolute left-0 right-0 top-20 space-y-1 border-t p-3 shadow-xl"
             onClick={e => e.stopPropagation()}>
             <Link
               to="/dashboard"
               onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-gray-700 bg-gray-50 hover:bg-green-50 hover:text-green-700 transition-colors"
+              className="theme-bg-subtle theme-text hover:theme-accent-bg hover:theme-accent-text flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-colors"
             >
               <span>🏠</span>Learner Dashboard
             </Link>
-            <div className="my-2 border-t border-gray-100" />
+            <div className="theme-border my-2 border-t" />
             {NAV.map(item => (
               <NavLink key={item.to} to={item.to} end={item.end}
                 onClick={() => setMobileOpen(false)}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-colors ${
-                    isActive ? 'bg-green-50 text-green-700' : 'text-gray-600 hover:bg-gray-50'
+                    isActive ? 'theme-accent-bg theme-accent-text' : 'theme-text-muted hover:theme-bg-subtle hover:theme-text'
                   }`
                 }>
                 <span>{item.icon}</span>{item.label}

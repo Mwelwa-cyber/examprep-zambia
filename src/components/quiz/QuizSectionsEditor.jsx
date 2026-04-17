@@ -1,39 +1,40 @@
 import { useRef, useState } from 'react'
-import { QUESTION_LETTERS } from '../../utils/quizSections'
+import { QUESTION_LETTERS } from '../../utils/quizSections.js'
+import { RichTextContent, RichTextEditor } from './QuizRichText'
 
 const THEMES = {
   create: {
-    focus: 'focus:border-green-500',
-    accentText: 'text-green-700',
-    accentSoftText: 'text-green-600',
-    badge: 'bg-green-100 text-green-700',
-    cardBorder: 'border-green-200',
-    cardSoft: 'bg-green-50',
-    button: 'border-green-300 text-green-600 hover:border-green-400 hover:bg-green-50',
-    primaryButton: 'bg-green-600 hover:bg-green-700 text-white',
-    uploadBorder: 'border-green-200 hover:border-green-400 hover:bg-green-50',
-    uploadFrame: 'border-green-200 bg-green-50',
-    radioBorder: 'border-green-400 bg-green-50',
-    ring: 'ring-green-100',
+    focus: 'focus:border-[var(--accent)]',
+    accentText: 'theme-accent-text',
+    accentSoftText: 'theme-text-muted',
+    badge: 'theme-accent-bg theme-accent-text',
+    cardBorder: 'theme-border',
+    cardSoft: 'theme-bg-subtle',
+    button: 'theme-border theme-accent-text hover:border-[var(--accent)] hover:theme-accent-bg',
+    primaryButton: 'theme-accent-fill theme-on-accent hover:opacity-90',
+    uploadBorder: 'theme-border hover:border-[var(--accent)] hover:theme-accent-bg',
+    uploadFrame: 'theme-accent-bg theme-border',
+    radioBorder: 'border-[var(--accent)] theme-accent-bg',
+    ring: 'ring-[var(--border)]',
   },
   edit: {
-    focus: 'focus:border-blue-500',
-    accentText: 'text-blue-700',
-    accentSoftText: 'text-blue-600',
-    badge: 'bg-blue-100 text-blue-700',
-    cardBorder: 'border-blue-200',
-    cardSoft: 'bg-blue-50',
-    button: 'border-blue-300 text-blue-600 hover:border-blue-400 hover:bg-blue-50',
-    primaryButton: 'bg-blue-600 hover:bg-blue-700 text-white',
-    uploadBorder: 'border-blue-200 hover:border-blue-400 hover:bg-blue-50',
-    uploadFrame: 'border-blue-200 bg-blue-50',
-    radioBorder: 'border-blue-400 bg-blue-50',
-    ring: 'ring-blue-100',
+    focus: 'focus:border-[var(--accent)]',
+    accentText: 'theme-accent-text',
+    accentSoftText: 'theme-text-muted',
+    badge: 'theme-accent-bg theme-accent-text',
+    cardBorder: 'theme-border',
+    cardSoft: 'theme-bg-subtle',
+    button: 'theme-border theme-accent-text hover:border-[var(--accent)] hover:theme-accent-bg',
+    primaryButton: 'theme-accent-fill theme-on-accent hover:opacity-90',
+    uploadBorder: 'theme-border hover:border-[var(--accent)] hover:theme-accent-bg',
+    uploadFrame: 'theme-accent-bg theme-border',
+    radioBorder: 'border-[var(--accent)] theme-accent-bg',
+    ring: 'ring-[var(--border)]',
   },
 }
 
-const FIELD_BASE = 'w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition-colors'
-const SMALL_FIELD_BASE = 'w-full rounded-lg border border-gray-200 bg-white px-2.5 py-2 text-xs text-gray-900 placeholder-gray-400 outline-none transition-colors'
+const FIELD_BASE = 'theme-input w-full rounded-xl border-2 px-3 py-2.5 text-sm placeholder:text-gray-400 outline-none transition-colors'
+const SMALL_FIELD_BASE = 'theme-input w-full rounded-lg border px-2.5 py-2 text-xs placeholder:text-gray-400 outline-none transition-colors'
 
 function joinClasses(...parts) {
   return parts.filter(Boolean).join(' ')
@@ -45,6 +46,16 @@ function fieldClass(theme) {
 
 function smallFieldClass(theme) {
   return joinClasses(SMALL_FIELD_BASE, theme.focus)
+}
+
+function FieldHeader({ title, note, badge }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <p className="theme-text text-xs font-black uppercase tracking-wide">{title}</p>
+      {badge && <span className="theme-accent-bg theme-accent-text rounded-full px-2 py-0.5 text-[10px] font-black">{badge}</span>}
+      {note && <span className="theme-text-muted text-xs font-bold">{note}</span>}
+    </div>
+  )
 }
 
 function ImageUpload({
@@ -75,10 +86,10 @@ function ImageUpload({
             {isCompressing ? 'Compressing image...' : 'Uploading...'}
           </p>
         </div>
-        <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
-          <span className={isCompressing ? 'font-bold' : 'font-bold text-green-600'}>{isCompressing ? 'Compress' : '✓ Compress'}</span>
+        <div className="theme-text-muted flex items-center justify-center gap-2 text-xs">
+          <span className={joinClasses('font-bold', isCompressing ? '' : theme.accentText)}>{isCompressing ? 'Compress' : '✓ Compress'}</span>
           <span>→</span>
-          <span className={isCompressing ? 'text-gray-400' : 'font-bold'}>{isCompressing ? 'Upload' : 'Uploading'}</span>
+          <span className={isCompressing ? 'opacity-60' : 'font-bold'}>{isCompressing ? 'Upload' : 'Uploading'}</span>
         </div>
       </div>
     )
@@ -86,13 +97,13 @@ function ImageUpload({
 
   if (imageUrl) {
     return (
-      <div className={joinClasses('group relative overflow-hidden rounded-xl border-2 bg-gray-50', theme.cardBorder)}>
+      <div className={joinClasses('group theme-bg-subtle relative overflow-hidden rounded-xl border-2', theme.cardBorder)}>
         <img src={imageUrl} alt={label} className="max-h-56 w-full object-contain py-2" />
         <div className="absolute right-2 top-2 flex gap-1.5 opacity-90 transition-opacity group-hover:opacity-100">
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="min-h-0 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 shadow hover:bg-gray-50"
+            className="theme-card theme-border theme-text hover:theme-card-hover min-h-0 rounded-lg border px-3 py-1.5 text-xs font-bold shadow"
           >
             Replace
           </button>
@@ -104,7 +115,7 @@ function ImageUpload({
             Remove
           </button>
         </div>
-        <p className="pb-1 text-center text-xs text-gray-400">{hint}</p>
+        <p className="theme-text-muted pb-1 text-center text-xs">{hint}</p>
         <input
           ref={inputRef}
           type="file"
@@ -127,8 +138,8 @@ function ImageUpload({
         )}
       >
         <div className="mb-1.5 inline-block text-3xl transition-transform group-hover:scale-110">🖼️</div>
-        <p className="text-sm font-bold text-gray-600">{label}</p>
-        <p className="mt-0.5 text-xs text-gray-400">{hint}</p>
+        <p className="theme-text text-sm font-bold">{label}</p>
+        <p className="theme-text-muted mt-0.5 text-xs">{hint}</p>
       </button>
       <input
         ref={inputRef}
@@ -171,8 +182,8 @@ function StandaloneQuestionCard({
   return (
     <div
       className={joinClasses(
-        'space-y-4 rounded-2xl border-2 bg-white p-5 shadow-sm transition-colors',
-        isNew ? joinClasses(theme.cardBorder, 'ring-2', theme.ring) : 'border-gray-100',
+        'theme-card theme-text space-y-4 rounded-2xl border-2 p-5 shadow-sm transition-colors',
+        isNew ? joinClasses(theme.cardBorder, 'ring-2', theme.ring) : 'theme-border',
       )}
     >
       <div className="flex items-center justify-between gap-2">
@@ -180,7 +191,7 @@ function StandaloneQuestionCard({
           <span className={joinClasses('rounded-full px-3 py-1 text-xs font-black', theme.badge)}>
             Q{questionNumber} of {totalQuestions}
           </span>
-          {isNew && <span className="text-xs font-bold text-gray-400">New question</span>}
+          {isNew && <span className="theme-text-muted text-xs font-bold">New question</span>}
         </div>
         <div className="flex items-center gap-1.5">
           <select
@@ -199,7 +210,7 @@ function StandaloneQuestionCard({
                 onChange(sectionIndex, 'correctAnswer', 0)
               }
             }}
-            className={joinClasses('rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-900 outline-none', theme.focus)}
+            className={joinClasses('theme-input rounded-lg border px-2 py-1 text-xs outline-none', theme.focus)}
           >
             <option value="mcq">MCQ (4 options)</option>
             <option value="truefalse">True / False</option>
@@ -210,7 +221,7 @@ function StandaloneQuestionCard({
             type="button"
             onClick={() => onMove(sectionIndex, -1)}
             disabled={sectionIndex === 0}
-            className="min-h-0 bg-transparent p-1 text-sm text-gray-400 shadow-none hover:text-gray-600 disabled:opacity-30"
+            className="theme-text-muted min-h-0 bg-transparent p-1 text-sm shadow-none hover:theme-text disabled:opacity-30"
           >
             ↑
           </button>
@@ -218,7 +229,7 @@ function StandaloneQuestionCard({
             type="button"
             onClick={() => onMove(sectionIndex, 1)}
             disabled={sectionIndex === totalSections - 1}
-            className="min-h-0 bg-transparent p-1 text-sm text-gray-400 shadow-none hover:text-gray-600 disabled:opacity-30"
+            className="theme-text-muted min-h-0 bg-transparent p-1 text-sm shadow-none hover:theme-text disabled:opacity-30"
           >
             ↓
           </button>
@@ -254,37 +265,50 @@ function StandaloneQuestionCard({
         theme={theme}
       />
 
-      <textarea
-        value={question.text}
-        onChange={event => set('text', event.target.value)}
-        placeholder={question.imageUrl ? 'Describe what is shown in the image above, or ask your question...' : 'Write your question here...'}
-        rows={3}
-        className={joinClasses(fieldClass(theme), 'resize-none leading-relaxed')}
-      />
+      <div className="space-y-2">
+        <FieldHeader title="Instructions" badge="Optional" />
+        <RichTextEditor
+          value={question.sharedInstruction}
+          onChange={nextValue => set('sharedInstruction', nextValue)}
+          placeholder="Add shared instructions for this question..."
+          minHeightClass="min-h-[6rem]"
+          compact
+        />
+      </div>
+
+      <div className="space-y-2">
+        <FieldHeader title="Question Text" badge="Required" />
+        <RichTextEditor
+          value={question.text}
+          onChange={nextValue => set('text', nextValue)}
+          placeholder={question.imageUrl ? 'Describe what is shown in the image above, or ask your question...' : 'Write your question here...'}
+          minHeightClass="min-h-[9rem]"
+        />
+      </div>
 
       {isTextAnswer ? (
         <div className="space-y-2">
-          <p className="text-xs font-bold text-gray-500">Short answer - expected answer recommended for accurate AI checking</p>
-          <div className="flex items-center gap-2 rounded-xl border-2 border-green-300 bg-green-50 p-3">
-            <span className="text-lg text-green-600">✅</span>
+          <p className="theme-text-muted text-xs font-bold">Short answer - expected answer recommended for accurate AI checking</p>
+          <div className="theme-accent-bg flex items-center gap-2 rounded-xl border-2 border-[var(--accent)] p-3">
+            <span className={joinClasses('text-lg', theme.accentText)}>✅</span>
             <input
               value={typeof question.correctAnswer === 'string' ? question.correctAnswer : ''}
               onChange={event => set('correctAnswer', event.target.value)}
               placeholder="Expected answer (recommended)"
-              className="flex-1 border-none bg-transparent text-sm font-semibold text-gray-900 outline-none"
+              className="theme-text flex-1 border-none bg-transparent text-sm font-semibold outline-none"
             />
           </div>
-          <p className="text-xs text-gray-400">If left blank, AI will judge from the question, subject, and grade.</p>
+          <p className="theme-text-muted text-xs">If left blank, AI will judge from the question, subject, and grade.</p>
         </div>
       ) : (
         <div className="space-y-2">
-          <p className="text-xs font-bold text-gray-500">Answer choices - click the radio to mark the correct one</p>
+          <p className="theme-text-muted text-xs font-bold">Answer choices - click the radio to mark the correct one</p>
           {question.options.map((option, optionIndex) => (
             <label
               key={`${question.localId}-${optionIndex}`}
               className={joinClasses(
                 'flex cursor-pointer items-center gap-3 rounded-xl border-2 p-3 transition-colors',
-                question.correctAnswer === optionIndex ? 'border-green-400 bg-green-50' : 'border-gray-100 hover:border-gray-200',
+                question.correctAnswer === optionIndex ? theme.radioBorder : 'theme-border hover:border-[var(--accent)]',
               )}
             >
               <input
@@ -292,11 +316,11 @@ function StandaloneQuestionCard({
                 name={`standalone-correct-${question.localId}`}
                 checked={question.correctAnswer === optionIndex}
                 onChange={() => set('correctAnswer', optionIndex)}
-                className="flex-shrink-0 accent-green-600"
+                className="accent-[var(--accent)] flex-shrink-0"
               />
               <span className={joinClasses(
                 'flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-black',
-                question.correctAnswer === optionIndex ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-600',
+                question.correctAnswer === optionIndex ? 'theme-accent-fill theme-on-accent' : 'theme-bg-subtle theme-text-muted',
               )}>
                 {isTrueFalse ? (optionIndex === 0 ? 'T' : 'F') : QUESTION_LETTERS[optionIndex]}
               </span>
@@ -305,9 +329,9 @@ function StandaloneQuestionCard({
                 onChange={event => setOption(optionIndex, event.target.value)}
                 placeholder={isTrueFalse ? (optionIndex === 0 ? 'True' : 'False') : `Option ${QUESTION_LETTERS[optionIndex]}`}
                 disabled={isTrueFalse}
-                className="flex-1 border-none bg-transparent text-sm text-gray-900 outline-none disabled:text-gray-700"
+                className="theme-text flex-1 border-none bg-transparent text-sm outline-none disabled:opacity-80"
               />
-              {question.correctAnswer === optionIndex && <span className="flex-shrink-0 text-xs font-black text-green-500">✓ Correct</span>}
+              {question.correctAnswer === optionIndex && <span className={joinClasses('flex-shrink-0 text-xs font-black', theme.accentText)}>✓ Correct</span>}
             </label>
           ))}
         </div>
@@ -319,14 +343,18 @@ function StandaloneQuestionCard({
           onChange={event => set('diagramText', event.target.value)}
           placeholder="Diagram description (optional)"
           rows={2}
-          className={joinClasses('w-full resize-none rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-800 placeholder-gray-400 outline-none', theme.focus)}
+          className={joinClasses('theme-input w-full resize-none rounded-xl border px-3 py-2 text-xs placeholder:text-gray-400 outline-none', theme.focus)}
         />
-        <input
-          value={question.explanation}
-          onChange={event => set('explanation', event.target.value)}
-          placeholder="Explanation (optional) - shown after answering in practice mode"
-          className={fieldClass(theme)}
-        />
+        <div className="space-y-2">
+          <FieldHeader title="Explanation" badge="Shown after attempt" />
+          <RichTextEditor
+            value={question.explanation}
+            onChange={nextValue => set('explanation', nextValue)}
+            placeholder="Explain the answer, steps, or reasoning..."
+            minHeightClass="min-h-[7rem]"
+            compact
+          />
+        </div>
         <div className="flex gap-2">
           <input
             value={question.topic}
@@ -334,15 +362,15 @@ function StandaloneQuestionCard({
             placeholder="Topic (e.g. Fractions)"
             className={joinClasses('flex-1', smallFieldClass(theme))}
           />
-          <div className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-2">
-            <span className="text-xs font-bold text-gray-500">Marks:</span>
+          <div className="theme-border flex items-center gap-1.5 rounded-lg border px-2.5 py-2">
+            <span className="theme-text-muted text-xs font-bold">Marks:</span>
             <input
               type="number"
               min={1}
               max={10}
               value={question.marks}
               onChange={event => set('marks', Number(event.target.value) || 1)}
-              className="w-10 bg-transparent text-center text-xs font-black text-gray-900 outline-none"
+              className="theme-text w-10 bg-transparent text-center text-xs font-black outline-none"
             />
           </div>
         </div>
@@ -356,6 +384,7 @@ function PassageQuestionCard({
   questionIndex,
   questionNumber,
   totalPassageQuestions,
+  totalQuestions,
   sectionIndex,
   onChange,
   onRemove,
@@ -372,9 +401,9 @@ function PassageQuestionCard({
   }
 
   return (
-    <div className="space-y-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+    <div className="theme-card theme-border theme-text space-y-4 rounded-2xl border p-4 shadow-sm">
       <div className="flex items-center justify-between gap-2">
-        <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-black text-orange-700">
+        <span className="theme-accent-bg theme-accent-text rounded-full px-3 py-1 text-xs font-black">
           Q{questionNumber} of {totalQuestions}
         </span>
         <div className="flex items-center gap-1.5">
@@ -382,7 +411,7 @@ function PassageQuestionCard({
             type="button"
             onClick={() => onMove(sectionIndex, questionIndex, -1)}
             disabled={questionIndex === 0}
-            className="min-h-0 bg-transparent p-1 text-sm text-gray-400 shadow-none hover:text-gray-600 disabled:opacity-30"
+            className="theme-text-muted min-h-0 bg-transparent p-1 text-sm shadow-none hover:theme-text disabled:opacity-30"
           >
             ↑
           </button>
@@ -390,7 +419,7 @@ function PassageQuestionCard({
             type="button"
             onClick={() => onMove(sectionIndex, questionIndex, 1)}
             disabled={questionIndex === totalPassageQuestions - 1}
-            className="min-h-0 bg-transparent p-1 text-sm text-gray-400 shadow-none hover:text-gray-600 disabled:opacity-30"
+            className="theme-text-muted min-h-0 bg-transparent p-1 text-sm shadow-none hover:theme-text disabled:opacity-30"
           >
             ↓
           </button>
@@ -404,21 +433,25 @@ function PassageQuestionCard({
         </div>
       </div>
 
-      <input
-        value={question.text}
-        onChange={event => set('text', event.target.value)}
-        placeholder="Write the question for this passage..."
-        className={joinClasses(SMALL_FIELD_BASE, 'border-2 px-3 py-2.5 text-sm focus:border-orange-500')}
-      />
+      <div className="space-y-2">
+        <FieldHeader title="Question Text" badge="Required" />
+        <RichTextEditor
+          value={question.text}
+          onChange={nextValue => set('text', nextValue)}
+          placeholder="Write the question for this passage..."
+          minHeightClass="min-h-[8rem]"
+          compact
+        />
+      </div>
 
       <div className="space-y-2">
-        <p className="text-xs font-bold text-gray-500">Answer choices</p>
+        <p className="theme-text-muted text-xs font-bold">Answer choices</p>
         {QUESTION_LETTERS.map((letter, optionIndex) => (
           <label
             key={`${question.localId}-${letter}`}
             className={joinClasses(
               'flex cursor-pointer items-center gap-3 rounded-xl border-2 p-3 transition-colors',
-              question.correctAnswer === optionIndex ? 'border-orange-400 bg-orange-50' : 'border-gray-100 hover:border-gray-200',
+              question.correctAnswer === optionIndex ? 'border-[var(--accent)] theme-accent-bg' : 'theme-border hover:border-[var(--accent)]',
             )}
           >
             <input
@@ -426,11 +459,11 @@ function PassageQuestionCard({
               name={`passage-correct-${question.localId}`}
               checked={question.correctAnswer === optionIndex}
               onChange={() => set('correctAnswer', optionIndex)}
-              className="flex-shrink-0 accent-orange-600"
+              className="accent-[var(--accent)] flex-shrink-0"
             />
             <span className={joinClasses(
               'flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-black',
-              question.correctAnswer === optionIndex ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600',
+              question.correctAnswer === optionIndex ? 'theme-accent-fill theme-on-accent' : 'theme-bg-subtle theme-text-muted',
             )}>
               {letter}
             </span>
@@ -438,7 +471,7 @@ function PassageQuestionCard({
               value={question.options[optionIndex] || ''}
               onChange={event => setOption(optionIndex, event.target.value)}
               placeholder={`Option ${letter}`}
-              className="flex-1 border-none bg-transparent text-sm text-gray-900 outline-none"
+              className="theme-text flex-1 border-none bg-transparent text-sm outline-none"
             />
           </label>
         ))}
@@ -449,27 +482,31 @@ function PassageQuestionCard({
           value={question.topic}
           onChange={event => set('topic', event.target.value)}
           placeholder="Topic (optional)"
-          className="rounded-lg border border-gray-200 bg-white px-2.5 py-2 text-xs text-gray-900 placeholder-gray-400 outline-none focus:border-orange-500"
+          className="theme-input rounded-lg border px-2.5 py-2 text-xs placeholder:text-gray-400 outline-none focus:border-[var(--accent)]"
         />
-        <div className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-2">
-          <span className="text-xs font-bold text-gray-500">Marks:</span>
+        <div className="theme-border flex items-center gap-1.5 rounded-lg border px-2.5 py-2">
+          <span className="theme-text-muted text-xs font-bold">Marks:</span>
           <input
             type="number"
             min={1}
             max={10}
             value={question.marks}
             onChange={event => set('marks', Number(event.target.value) || 1)}
-            className="w-10 bg-transparent text-center text-xs font-black text-gray-900 outline-none"
+            className="theme-text w-10 bg-transparent text-center text-xs font-black outline-none"
           />
         </div>
       </div>
 
-      <input
-        value={question.explanation}
-        onChange={event => set('explanation', event.target.value)}
-        placeholder="Explanation (optional)"
-        className="rounded-lg border border-gray-200 bg-white px-2.5 py-2 text-xs text-gray-900 placeholder-gray-400 outline-none focus:border-orange-500"
-      />
+      <div className="space-y-2">
+        <FieldHeader title="Explanation" badge="Shown after attempt" />
+        <RichTextEditor
+          value={question.explanation}
+          onChange={nextValue => set('explanation', nextValue)}
+          placeholder="Add the explanation for this passage question..."
+          minHeightClass="min-h-[6rem]"
+          compact
+        />
+      </div>
     </div>
   )
 }
@@ -480,6 +517,7 @@ function PassageSectionCard({
   totalSections,
   totalQuestions,
   questionNumbers,
+  theme,
   onPassageChange,
   onPassageToggle,
   onPassageRemove,
@@ -495,19 +533,19 @@ function PassageSectionCard({
   const isCollapsed = Boolean(passage.collapsed)
 
   return (
-    <div className="space-y-4 rounded-2xl border-2 border-orange-200 bg-orange-50/70 p-5 shadow-sm">
+    <div className="theme-accent-bg theme-text theme-border space-y-4 rounded-2xl border-2 p-5 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-black text-orange-700">
+            <span className="theme-card theme-border theme-accent-text rounded-full border px-3 py-1 text-xs font-black">
               Comprehension Passage
             </span>
-            <span className="text-xs font-bold text-orange-600">
+            <span className="theme-accent-text text-xs font-bold">
               {passage.questions.length} question{passage.questions.length === 1 ? '' : 's'}
             </span>
           </div>
           {!isCollapsed && (
-            <p className="mt-2 text-sm font-bold leading-relaxed text-orange-800">
+            <p className="theme-text mt-2 text-sm font-bold leading-relaxed">
               Add the passage once, then attach all related questions below it.
             </p>
           )}
@@ -516,7 +554,7 @@ function PassageSectionCard({
           <button
             type="button"
             onClick={() => onPassageToggle(sectionIndex)}
-            className="min-h-0 rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-orange-700 shadow-sm hover:bg-orange-100"
+            className="theme-card theme-border theme-accent-text hover:theme-card-hover min-h-0 rounded-lg border px-3 py-1.5 text-xs font-bold shadow-sm"
           >
             {isCollapsed ? 'Expand' : 'Collapse'}
           </button>
@@ -524,7 +562,7 @@ function PassageSectionCard({
             type="button"
             onClick={() => onPassageMove(sectionIndex, -1)}
             disabled={sectionIndex === 0}
-            className="min-h-0 bg-transparent p-1 text-sm text-orange-400 shadow-none hover:text-orange-600 disabled:opacity-30"
+            className="theme-text-muted min-h-0 bg-transparent p-1 text-sm shadow-none hover:theme-text disabled:opacity-30"
           >
             ↑
           </button>
@@ -532,7 +570,7 @@ function PassageSectionCard({
             type="button"
             onClick={() => onPassageMove(sectionIndex, 1)}
             disabled={sectionIndex === totalSections - 1}
-            className="min-h-0 bg-transparent p-1 text-sm text-orange-400 shadow-none hover:text-orange-600 disabled:opacity-30"
+            className="theme-text-muted min-h-0 bg-transparent p-1 text-sm shadow-none hover:theme-text disabled:opacity-30"
           >
             ↓
           </button>
@@ -547,36 +585,44 @@ function PassageSectionCard({
       </div>
 
       {isCollapsed ? (
-        <div className="rounded-xl border border-orange-200 bg-white/80 px-4 py-3">
-          <p className="text-sm font-black text-gray-800">{passage.title || 'Untitled passage'}</p>
-          <p className="mt-1 line-clamp-3 text-sm leading-relaxed text-gray-600">
-            {passage.passageText || 'No passage text yet.'}
-          </p>
+        <div className="theme-card theme-border rounded-xl border px-4 py-3">
+          <p className="theme-text text-sm font-black">{passage.title || 'Untitled passage'}</p>
+          {passage.passageText ? (
+            <RichTextContent value={passage.passageText} className="theme-text-muted mt-2 line-clamp-3 text-sm leading-relaxed" />
+          ) : (
+            <p className="theme-text-muted mt-1 text-sm leading-relaxed">No passage text yet.</p>
+          )}
         </div>
       ) : (
         <>
           <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-            <div className="space-y-3 rounded-2xl border border-orange-100 bg-white p-4">
-              <h3 className="text-sm font-black text-gray-800">Passage</h3>
+            <div className="theme-card theme-border space-y-3 rounded-2xl border p-4">
+              <h3 className="theme-text text-sm font-black">Passage</h3>
               <input
                 value={passage.title}
                 onChange={event => onPassageChange(sectionIndex, 'title', event.target.value)}
                 placeholder="Title (optional)"
-                className="w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-orange-500"
+                className="theme-input w-full rounded-xl border-2 px-3 py-2.5 text-sm placeholder:text-gray-400 outline-none focus:border-[var(--accent)]"
               />
-              <input
-                value={passage.instructions}
-                onChange={event => onPassageChange(sectionIndex, 'instructions', event.target.value)}
-                placeholder="Instructions (optional)"
-                className="w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-orange-500"
-              />
-              <textarea
-                value={passage.passageText}
-                onChange={event => onPassageChange(sectionIndex, 'passageText', event.target.value)}
-                placeholder="Paste or type the passage / story here..."
-                rows={8}
-                className="w-full resize-none rounded-xl border-2 border-gray-200 bg-white px-3 py-2.5 text-sm leading-relaxed text-gray-900 placeholder-gray-400 outline-none focus:border-orange-500"
-              />
+              <div className="space-y-2">
+                <FieldHeader title="Instructions" badge="Optional" />
+                <RichTextEditor
+                  value={passage.instructions}
+                  onChange={nextValue => onPassageChange(sectionIndex, 'instructions', nextValue)}
+                  placeholder="Add optional instructions for this passage..."
+                  minHeightClass="min-h-[6rem]"
+                  compact
+                />
+              </div>
+              <div className="space-y-2">
+                <FieldHeader title="Passage / Story" badge="Required" />
+                <RichTextEditor
+                  value={passage.passageText}
+                  onChange={nextValue => onPassageChange(sectionIndex, 'passageText', nextValue)}
+                  placeholder="Paste or type the passage / story here..."
+                  minHeightClass="min-h-[16rem]"
+                />
+              </div>
               <ImageUpload
                 label="Upload Passage Image"
                 hint="Optional · JPG, PNG, WEBP · max 5 MB"
@@ -585,27 +631,21 @@ function PassageSectionCard({
                 uploadStep={passage.imageUploadStep}
                 onFileSelect={file => onPassageImageUpload(sectionIndex, file)}
                 onRemove={() => onPassageImageRemove(sectionIndex)}
-                theme={{
-                  ...THEMES.create,
-                  uploadBorder: 'border-orange-200 hover:border-orange-400 hover:bg-orange-50',
-                  uploadFrame: 'border-orange-200 bg-orange-50',
-                  cardBorder: 'border-orange-200',
-                  accentText: 'text-orange-700',
-                }}
+                theme={theme}
               />
             </div>
 
             <div className="space-y-3">
-              <div className="rounded-2xl border border-orange-100 bg-white p-4">
+              <div className="theme-card theme-border rounded-2xl border p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <h3 className="text-sm font-black text-gray-800">Questions Under Passage</h3>
-                    <p className="mt-1 text-xs font-bold text-gray-500">Each question stays linked to this passage.</p>
+                    <h3 className="theme-text text-sm font-black">Questions Under Passage</h3>
+                    <p className="theme-text-muted mt-1 text-xs font-bold">Each question stays linked to this passage.</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => onPassageAddQuestion(sectionIndex)}
-                    className="min-h-0 rounded-xl bg-orange-500 px-4 py-2 text-sm font-black text-white hover:bg-orange-600"
+                    className="theme-accent-fill theme-on-accent min-h-0 rounded-xl px-4 py-2 text-sm font-black hover:opacity-90"
                   >
                     + Add Question to Passage
                   </button>
@@ -613,9 +653,9 @@ function PassageSectionCard({
               </div>
 
               {passage.questions.length === 0 ? (
-                <div className="rounded-2xl border-2 border-dashed border-orange-200 bg-white px-4 py-8 text-center">
-                  <p className="font-bold text-gray-600">No linked questions yet</p>
-                  <p className="mt-1 text-sm text-gray-400">Add at least one question before saving this quiz.</p>
+                <div className="theme-card theme-border rounded-2xl border-2 border-dashed px-4 py-8 text-center">
+                  <p className="theme-text font-bold">No linked questions yet</p>
+                  <p className="theme-text-muted mt-1 text-sm">Add at least one question before saving this quiz.</p>
                 </div>
               ) : (
                 passage.questions.map((question, questionIndex) => (
@@ -625,6 +665,7 @@ function PassageSectionCard({
                     questionIndex={questionIndex}
                     questionNumber={questionNumbers[question.localId] || questionIndex + 1}
                     totalPassageQuestions={passage.questions.length}
+                    totalQuestions={totalQuestions}
                     sectionIndex={sectionIndex}
                     onChange={onPassageQuestionChange}
                     onRemove={onPassageQuestionRemove}
@@ -662,24 +703,24 @@ function AddQuestionMenu({ onAddStandalone, onAddPassage, variant }) {
         + Add Question
       </button>
       {open && (
-        <div className="grid gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm md:grid-cols-2">
+        <div className="theme-card theme-border grid gap-3 rounded-2xl border p-4 shadow-sm md:grid-cols-2">
           <button
             type="button"
             onClick={() => choose(onAddStandalone)}
-            className="min-h-0 rounded-2xl border-2 border-gray-100 bg-gray-50 p-4 text-left transition-colors hover:border-gray-200 hover:bg-white"
+            className="theme-bg-subtle theme-border hover:theme-card min-h-0 rounded-2xl border-2 p-4 text-left transition-colors"
           >
-            <p className="text-sm font-black text-gray-800">Multiple Choice</p>
-            <p className="mt-1 text-xs font-bold leading-relaxed text-gray-500">
+            <p className="theme-text text-sm font-black">Multiple Choice</p>
+            <p className="theme-text-muted mt-1 text-xs font-bold leading-relaxed">
               Add a normal standalone question. You can still switch it to true/false, short answer, or diagram later.
             </p>
           </button>
           <button
             type="button"
             onClick={() => choose(onAddPassage)}
-            className="min-h-0 rounded-2xl border-2 border-orange-200 bg-orange-50 p-4 text-left transition-colors hover:border-orange-300 hover:bg-orange-100/70"
+            className="theme-accent-bg theme-border hover:theme-card min-h-0 rounded-2xl border-2 p-4 text-left transition-colors"
           >
-            <p className="text-sm font-black text-orange-800">Comprehension Passage</p>
-            <p className="mt-1 text-xs font-bold leading-relaxed text-orange-700">
+            <p className="theme-accent-text text-sm font-black">Comprehension Passage</p>
+            <p className="theme-text-muted mt-1 text-xs font-bold leading-relaxed">
               Add one passage or story, then attach multiple linked questions under it.
             </p>
           </button>
@@ -719,10 +760,10 @@ export default function QuizSectionsEditor({
   return (
     <div className="space-y-4">
       {sections.length === 0 ? (
-        <div className="rounded-2xl border-2 border-dashed border-gray-200 bg-white py-12 text-center">
+        <div className="theme-card theme-border rounded-2xl border-2 border-dashed py-12 text-center">
           <div className="mb-2 text-4xl">📭</div>
-          <p className="font-bold text-gray-600">{emptyStateTitle}</p>
-          <p className="mt-1 text-sm text-gray-400">{emptyStateDescription}</p>
+          <p className="theme-text font-bold">{emptyStateTitle}</p>
+          <p className="theme-text-muted mt-1 text-sm">{emptyStateDescription}</p>
         </div>
       ) : (
         sections.map((section, sectionIndex) => {
@@ -735,6 +776,7 @@ export default function QuizSectionsEditor({
                 totalSections={sections.length}
                 totalQuestions={totalQuestions}
                 questionNumbers={questionNumbers}
+                theme={theme}
                 onPassageChange={onPassageChange}
                 onPassageToggle={onPassageToggle}
                 onPassageRemove={onPassageRemove}

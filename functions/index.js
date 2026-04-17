@@ -12,6 +12,7 @@ const {
   assertDailyLimit,
   buildChatMessages,
   buildExplainMessages,
+  buildImportStructureMessages,
   buildQuizMessages,
   callOpenAI,
   cleanString: cleanAiString,
@@ -19,6 +20,7 @@ const {
   getUserRole,
   isStaffRole,
   parseGeneratedQuiz,
+  parseStructuredImport,
 } = require("./aiService");
 const {
   buildMtnConfig,
@@ -734,6 +736,57 @@ exports.generateQuizQuestions = onCall(
     return {
       questions: parseGeneratedQuiz(raw, topic),
     };
+  },
+);
+
+exports.structureImportedQuiz = onCall(
+  {secrets: [openAiApiKey], region: "us-central1", timeoutSeconds: 60},
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Please sign in first.");
+    }
+
+    const role = await getUserRole(request.auth.uid);
+    if (!isStaffRole(role)) {
+      throw new HttpsError(
+        "permission-denied",
+        "Only teachers and admins can use smart quiz import.",
+      );
+    }
+
+    const fileName = cleanAiString(
+      request.data?.fileName,
+      LIMITS.importFileName,
+    );
+    const documentText = cleanAiString(
+      request.data?.documentText,
+      LIMITS.importDocumentText,
+    );
+    const localDraft = cleanAiString(
+      request.data?.localDraft,
+      LIMITS.importLocalDraft,
+    );
+
+    if (!documentText || documentText.length < 120) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Not enough document text was available for smart import.",
+      );
+    }
+
+    await assertDailyLimit(request.auth.uid, role, "smartImport");
+    const raw = await callOpenAI(getApiKey(openAiApiKey), {
+      messages: buildImportStructureMessages({
+        fileName,
+        documentText,
+        localDraft,
+      }),
+      maxTokens: 3200,
+      temperature: 0.2,
+      json: true,
+    });
+
+    return parseStructuredImport(raw);
   },
 );
 

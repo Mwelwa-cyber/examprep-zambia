@@ -11,8 +11,10 @@ import {
   getQuestionKey,
   hasOnlyEmptyStarterSection,
   serializeQuizSections,
-} from '../../utils/quizSections'
+} from '../../utils/quizSections.js'
+import { richTextHasContent } from '../../utils/quizRichText.js'
 import QuizSectionsEditor from '../quiz/QuizSectionsEditor'
+import QuizEditorPreviewPanel from '../quiz/QuizEditorPreviewPanel'
 import {
   QUIZ_DOCUMENT_ACCEPT,
   importQuizDocument,
@@ -36,25 +38,31 @@ const CREATION_MODES = [
     id: 'manual',
     title: 'Create Manually',
     body: 'Write questions and answers yourself.',
-    accent: 'border-blue-200 bg-blue-50 text-blue-900',
+    accent: 'theme-border theme-accent-bg theme-accent-text',
   },
   {
     id: 'import',
     title: 'Import Quiz (Word/PDF)',
     body: 'Upload .doc, .docx, or .pdf and convert it into editable questions.',
-    accent: 'border-emerald-200 bg-emerald-50 text-emerald-900',
+    accent: 'theme-border theme-accent-bg theme-accent-text',
   },
   {
     id: 'ai',
     title: 'Generate with Zed AI',
     body: 'Create starter questions from a topic, then edit before saving.',
-    accent: 'border-sky-200 bg-sky-50 text-sky-900',
+    accent: 'theme-border theme-accent-bg theme-accent-text',
   },
 ]
 
-const FIELD = 'w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition-colors focus:border-green-500'
-const SELECT = 'rounded-xl border-2 border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none transition-colors focus:border-green-500'
+const FIELD = 'theme-input w-full rounded-xl border-2 px-3 py-2.5 text-sm placeholder:text-gray-400 outline-none transition-colors focus:border-[var(--accent)]'
+const SELECT = 'theme-input rounded-xl border-2 px-3 py-2.5 text-sm outline-none transition-colors focus:border-[var(--accent)]'
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+
+function withCurrentOption(options, currentValue) {
+  const normalized = String(currentValue ?? '').trim()
+  if (!normalized || options.includes(normalized)) return options
+  return [...options, normalized]
+}
 
 function safeStorageName(value, fallback = 'asset') {
   const cleaned = String(value || '')
@@ -109,6 +117,7 @@ function buildStandaloneSection(question = {}) {
 
   return createStandaloneSection({
     ...question,
+    sharedInstruction: question.sharedInstruction ?? '',
     text: question.text ?? '',
     options: isTextAnswer
       ? []
@@ -159,15 +168,15 @@ function ImportQuizPanel({ importing, importSummary, onImport }) {
   const [inputKey, setInputKey] = useState(0)
 
   return (
-    <div className="space-y-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-5">
+    <div className="theme-accent-bg theme-border space-y-4 rounded-2xl border p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="font-black text-emerald-950">Import Quiz (Word/PDF)</h2>
-          <p className="mt-1 max-w-3xl text-sm font-bold leading-relaxed text-emerald-800">
-            Upload a .doc, .docx, or .pdf file. ZedExams will extract questions, options, short answers, and image-based questions into editable cards.
+          <h2 className="theme-text font-black">Import Quiz (Word/PDF)</h2>
+          <p className="theme-text mt-1 max-w-3xl text-sm font-bold leading-relaxed">
+            Upload a .doc, .docx, or .pdf file. ZedExams will extract questions, options, short answers, and image-based questions into editable cards, then use smart cleanup on tricky formatting when available.
           </p>
         </div>
-        <label className="cursor-pointer rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white">
+        <label className="theme-accent-fill theme-on-accent cursor-pointer rounded-xl px-4 py-2.5 text-sm font-black">
           {importing ? 'Importing...' : 'Choose File'}
           <input
             key={inputKey}
@@ -184,29 +193,31 @@ function ImportQuizPanel({ importing, importSummary, onImport }) {
         </label>
       </div>
       <div className="grid gap-3 md:grid-cols-3">
-        <div className="rounded-xl border border-white/70 bg-white/80 p-3">
-          <p className="text-xs font-black uppercase tracking-wide text-emerald-700">Editable import</p>
-          <p className="mt-1 text-xs font-bold leading-relaxed text-emerald-800">The document is converted into editable quiz cards, not embedded as a static file.</p>
+        <div className="theme-card theme-border rounded-xl border p-3">
+          <p className="theme-accent-text text-xs font-black uppercase tracking-wide">Editable import</p>
+          <p className="theme-text mt-1 text-xs font-bold leading-relaxed">The document is converted into editable quiz cards, not embedded as a static file.</p>
         </div>
-        <div className="rounded-xl border border-white/70 bg-white/80 p-3">
-          <p className="text-xs font-black uppercase tracking-wide text-emerald-700">Images</p>
-          <p className="mt-1 text-xs font-bold leading-relaxed text-emerald-800">DOCX images and PDF snapshots attach to matching questions and upload when you save.</p>
+        <div className="theme-card theme-border rounded-xl border p-3">
+          <p className="theme-accent-text text-xs font-black uppercase tracking-wide">Images</p>
+          <p className="theme-text mt-1 text-xs font-bold leading-relaxed">DOCX images and PDF snapshots attach to matching questions and upload when you save.</p>
         </div>
-        <div className="rounded-xl border border-white/70 bg-white/80 p-3">
-          <p className="text-xs font-black uppercase tracking-wide text-emerald-700">Needs review</p>
-          <p className="mt-1 text-xs font-bold leading-relaxed text-emerald-800">Unclear answers, diagrams, and imperfect extraction are marked before publishing.</p>
+        <div className="theme-card theme-border rounded-xl border p-3">
+          <p className="theme-accent-text text-xs font-black uppercase tracking-wide">Needs review</p>
+          <p className="theme-text mt-1 text-xs font-bold leading-relaxed">Unclear answers, diagrams, and imperfect extraction are marked before publishing.</p>
         </div>
       </div>
       {importSummary && (
         <div className={`rounded-xl border px-4 py-3 ${
           importSummary.importStatus === 'needs_review'
             ? 'border-amber-200 bg-amber-50 text-amber-900'
-            : 'border-emerald-200 bg-white text-emerald-900'
+            : 'theme-card theme-border theme-text'
         }`}>
           <p className="text-sm font-black">
             Imported {importSummary.questions} question{importSummary.questions === 1 ? '' : 's'} from {importSummary.fileName}
           </p>
           <p className="mt-1 text-xs font-bold leading-relaxed">
+            {importSummary.smartApplied ? 'Smart cleanup applied · ' : ''}
+            {importSummary.passages ? `${importSummary.passages} passage${importSummary.passages === 1 ? '' : 's'} detected · ` : ''}
             {importSummary.images} image-based question{importSummary.images === 1 ? '' : 's'} · {importSummary.needsReview} need review · Status: {importSummary.importStatus}
           </p>
           {importSummary.warnings?.length ? (
@@ -224,8 +235,8 @@ function ImportQuizPanel({ importing, importSummary, onImport }) {
 
 function CreationModeSelector({ activeMode, onSelect }) {
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-      <p className="text-xs font-black uppercase tracking-wide text-gray-500">Choose how to create this quiz</p>
+    <div className="theme-card theme-border rounded-2xl border p-4 shadow-sm">
+      <p className="theme-text-muted text-xs font-black uppercase tracking-wide">Choose how to create this quiz</p>
       <div className="mt-3 grid gap-3 lg:grid-cols-3">
         {CREATION_MODES.map(mode => {
           const active = activeMode === mode.id
@@ -235,11 +246,11 @@ function CreationModeSelector({ activeMode, onSelect }) {
               type="button"
               onClick={() => onSelect(mode.id)}
               className={`min-h-0 rounded-xl border-2 p-4 text-left shadow-none transition-all ${
-                active ? mode.accent : 'border-gray-100 bg-gray-50 text-gray-700 hover:border-gray-200'
+                active ? mode.accent : 'theme-border theme-bg-subtle theme-text hover:border-[var(--accent)]'
               }`}
             >
               <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-black ${
-                active ? 'bg-white/80' : 'bg-white text-gray-500'
+                active ? 'bg-white/80' : 'theme-card theme-text-muted'
               }`}>
                 {active ? 'Selected' : 'Option'}
               </span>
@@ -293,6 +304,9 @@ export default function CreateQuizV2() {
   const passageCount = serializedPreview.passages.length
   const imagesCount = countImages(sections)
   const anyUploading = hasUploadingAssets(sections) || importingDocument
+  const gradeOptions = withCurrentOption(GRADES, form.grade)
+  const subjectOptions = withCurrentOption(SUBJECTS, form.subject)
+  const termOptions = withCurrentOption(TERMS, form.term)
 
   useEffect(() => () => revokeImportedQuizAssets(importedAssets), [importedAssets])
 
@@ -502,16 +516,23 @@ export default function CreateQuizV2() {
         sourceContentType: imported.quiz.sourceContentType,
         importWarnings: imported.warnings,
       }))
-      setSections(imported.questions.map(question => buildStandaloneSection(question)))
+      setSections(imported.sections?.length
+        ? imported.sections
+        : imported.questions.map(question => buildStandaloneSection(question)))
       setImportSummary({
         ...imported.summary,
         fileName: file.name,
         importStatus: imported.importStatus,
+        smartApplied: imported.smartApplied,
         warnings: imported.warnings,
       })
       show(imported.importStatus === 'needs_review'
-        ? 'Document imported. Review marked questions before publishing.'
-        : 'Document imported into editable quiz questions.')
+        ? imported.smartApplied
+          ? 'Document imported with smart cleanup. Review flagged questions before publishing.'
+          : 'Document imported. Review passages and marked questions before publishing.'
+        : imported.smartApplied
+          ? 'Document imported with smart cleanup into editable quiz sections.'
+          : 'Document imported into editable quiz sections.')
       setTimeout(() => window.scrollTo({ top: document.body.scrollHeight / 3, behavior: 'smooth' }), 80)
     } catch (error) {
       console.error(error)
@@ -693,7 +714,7 @@ export default function CreateQuizV2() {
       show(`${label} image is still uploading. Please wait.`, true)
       return false
     }
-    if (!question.text.trim()) {
+    if (!richTextHasContent(question.text)) {
       show(`${label} is missing question text.`, true)
       return false
     }
@@ -721,7 +742,7 @@ export default function CreateQuizV2() {
           show('A passage image is still uploading. Please wait.', true)
           return false
         }
-        if (!passage.passageText.trim()) {
+        if (!richTextHasContent(passage.passageText)) {
           show('Each comprehension passage needs passage text before saving.', true)
           return false
         }
@@ -783,10 +804,10 @@ export default function CreateQuizV2() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="theme-text space-y-5">
       {toast && (
         <div className={`fixed right-4 top-4 z-50 max-w-xs rounded-2xl px-5 py-3 text-sm font-bold text-white shadow-lg ${
-          toast.isErr ? 'bg-red-600' : 'bg-green-700'
+          toast.isErr ? 'bg-red-600' : 'theme-accent-fill theme-on-accent'
         }`}>
           {toast.message}
         </div>
@@ -796,13 +817,13 @@ export default function CreateQuizV2() {
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="min-h-0 bg-transparent p-1 text-gray-400 shadow-none hover:text-gray-600"
+          className="theme-text-muted min-h-0 bg-transparent p-1 shadow-none hover:theme-text"
         >
           ←
         </button>
         <div>
-          <h1 className="text-2xl font-black text-gray-800">✏️ Create Quiz</h1>
-          <p className="text-sm text-gray-500">Build quizzes with standalone questions or comprehension passages.</p>
+          <h1 className="theme-text text-2xl font-black">✏️ Create Quiz</h1>
+          <p className="theme-text-muted text-sm">Build quizzes with standalone questions or comprehension passages.</p>
         </div>
       </div>
 
@@ -816,8 +837,8 @@ export default function CreateQuizV2() {
         />
       )}
 
-      <div className="space-y-3 rounded-2xl border border-gray-100 bg-white p-5">
-        <h2 className="font-black text-gray-700">Quiz Details</h2>
+      <div className="theme-card theme-border space-y-3 rounded-2xl border p-5">
+        <h2 className="theme-text font-black">Quiz Details</h2>
         <input
           value={form.title}
           onChange={event => setF('title', event.target.value)}
@@ -826,16 +847,16 @@ export default function CreateQuizV2() {
         />
         <div className="grid gap-3 sm:grid-cols-4">
           <select value={form.grade} onChange={event => setF('grade', event.target.value)} className={SELECT}>
-            {GRADES.map(grade => <option key={grade} value={grade}>Grade {grade}</option>)}
+            {gradeOptions.map(grade => <option key={grade} value={grade}>Grade {grade}</option>)}
           </select>
           <select value={form.subject} onChange={event => setF('subject', event.target.value)} className={SELECT}>
-            {SUBJECTS.map(subject => <option key={subject} value={subject}>{subject}</option>)}
+            {subjectOptions.map(subject => <option key={subject} value={subject}>{subject}</option>)}
           </select>
           <select value={form.term} onChange={event => setF('term', event.target.value)} className={SELECT}>
-            {TERMS.map(term => <option key={term} value={term}>Term {term}</option>)}
+            {termOptions.map(term => <option key={term} value={term}>Term {term}</option>)}
           </select>
-          <div className="flex items-center gap-2 rounded-xl border-2 border-gray-200 px-3 py-2.5">
-            <span className="whitespace-nowrap text-xs font-bold text-gray-500">⏱️ Mins</span>
+          <div className="theme-border flex items-center gap-2 rounded-xl border-2 px-3 py-2.5">
+            <span className="theme-text-muted whitespace-nowrap text-xs font-bold">⏱️ Mins</span>
             <input
               type="number"
               min={5}
@@ -846,14 +867,14 @@ export default function CreateQuizV2() {
             />
           </div>
         </div>
-        <div className="flex flex-wrap gap-2 pt-1 text-xs text-gray-500">
-          <span className="rounded-full bg-gray-100 px-2 py-1 font-bold">{questionCount} questions</span>
-          <span className="rounded-full bg-gray-100 px-2 py-1 font-bold">{totalMarks} marks total</span>
-          {passageCount > 0 && <span className="rounded-full bg-orange-100 px-2 py-1 font-bold text-orange-700">{passageCount} passage{passageCount === 1 ? '' : 's'}</span>}
-          {imagesCount > 0 && <span className="rounded-full bg-blue-100 px-2 py-1 font-bold text-blue-700">🖼️ {imagesCount} image{imagesCount === 1 ? '' : 's'}</span>}
+        <div className="theme-text-muted flex flex-wrap gap-2 pt-1 text-xs">
+          <span className="theme-bg-subtle rounded-full px-2 py-1 font-bold">{questionCount} questions</span>
+          <span className="theme-bg-subtle rounded-full px-2 py-1 font-bold">{totalMarks} marks total</span>
+          {passageCount > 0 && <span className="theme-accent-bg theme-accent-text rounded-full px-2 py-1 font-bold">{passageCount} passage{passageCount === 1 ? '' : 's'}</span>}
+          {imagesCount > 0 && <span className="theme-accent-bg theme-accent-text rounded-full px-2 py-1 font-bold">🖼️ {imagesCount} image{imagesCount === 1 ? '' : 's'}</span>}
           {form.mode === 'imported_document' && (
             <span className={`rounded-full px-2 py-1 font-bold ${
-              form.importStatus === 'needs_review' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
+              form.importStatus === 'needs_review' ? 'bg-amber-100 text-amber-700' : 'theme-accent-bg theme-accent-text'
             }`}>
               Imported document · {form.importStatus || 'success'}
             </span>
@@ -862,26 +883,26 @@ export default function CreateQuizV2() {
       </div>
 
       {creationMode === 'ai' && (
-        <div className="space-y-3 rounded-2xl border border-sky-100 bg-sky-50 p-5">
+        <div className="theme-accent-bg theme-border space-y-3 rounded-2xl border p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="font-black text-sky-900">✦ AI Quiz Generator</h2>
-              <p className="mt-0.5 text-sm text-sky-700">Generate draft multiple-choice questions, then edit them below before saving.</p>
+              <h2 className="theme-text font-black">✦ AI Quiz Generator</h2>
+              <p className="theme-text mt-0.5 text-sm">Generate draft multiple-choice questions, then edit them below before saving.</p>
             </div>
-            <span className="hidden rounded-full border border-sky-100 bg-white/80 px-3 py-1 text-xs font-black text-sky-700 sm:inline-flex">Teacher tool</span>
+            <span className="theme-card theme-border theme-accent-text hidden rounded-full border px-3 py-1 text-xs font-black sm:inline-flex">Teacher tool</span>
           </div>
           <div className="grid gap-3 lg:grid-cols-5">
             <select value={form.grade} onChange={event => setF('grade', event.target.value)} className={SELECT}>
-              {GRADES.map(grade => <option key={grade} value={grade}>Grade {grade}</option>)}
+              {gradeOptions.map(grade => <option key={grade} value={grade}>Grade {grade}</option>)}
             </select>
             <select value={form.subject} onChange={event => setF('subject', event.target.value)} className={SELECT}>
-              {SUBJECTS.map(subject => <option key={subject} value={subject}>{subject}</option>)}
+              {subjectOptions.map(subject => <option key={subject} value={subject}>{subject}</option>)}
             </select>
             <input
               value={aiForm.topic}
               onChange={event => setAi('topic', event.target.value)}
               placeholder="Topic, e.g. Fractions"
-              className="col-span-2 rounded-xl border-2 border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-sky-500 lg:col-span-1"
+              className="theme-input col-span-2 rounded-xl border-2 px-3 py-2.5 text-sm placeholder:text-gray-400 outline-none focus:border-[var(--accent)] lg:col-span-1"
             />
             <input
               type="number"
@@ -889,14 +910,14 @@ export default function CreateQuizV2() {
               max={10}
               value={aiForm.count}
               onChange={event => setAi('count', Number(event.target.value) || 1)}
-              className="rounded-xl border-2 border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-sky-500"
+              className="theme-input rounded-xl border-2 px-3 py-2.5 text-sm outline-none focus:border-[var(--accent)]"
               aria-label="Number of questions"
             />
             <select value={aiForm.type} onChange={event => setAi('type', event.target.value)} className={SELECT}>
               <option value="mcq">Multiple choice</option>
             </select>
           </div>
-          <button type="button" onClick={handleGenerateQuestions} disabled={aiGenerating || saving} className="w-full rounded-xl bg-sky-600 px-5 py-3 font-black text-white transition-colors hover:bg-sky-700 disabled:opacity-60 sm:w-auto">
+          <button type="button" onClick={handleGenerateQuestions} disabled={aiGenerating || saving} className="theme-accent-fill theme-on-accent w-full rounded-xl px-5 py-3 font-black transition-colors hover:opacity-90 disabled:opacity-60 sm:w-auto">
             {aiGenerating ? '✦ Generating...' : '✦ Generate Questions'}
           </button>
         </div>
@@ -926,21 +947,23 @@ export default function CreateQuizV2() {
         onAddPassage={addPassageSectionHandler}
       />
 
-      <div className="flex items-start gap-2 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-600">
+      <QuizEditorPreviewPanel form={form} serializedSections={serializedPreview} />
+
+      <div className="theme-accent-bg theme-border theme-accent-text flex items-start gap-2 rounded-2xl border px-4 py-3 text-xs">
         <span className="flex-shrink-0 text-base">ℹ️</span>
         <span>Question and passage images upload to Firebase Storage as soon as you select them. Comprehension passages are stored separately on the quiz and linked to their questions when you save.</span>
       </div>
 
       <div className="flex gap-3 pb-6">
-        <button type="button" onClick={() => handleSave({})} disabled={saving || anyUploading} className="flex-1 rounded-2xl border-2 border-green-600 py-3.5 font-black text-green-600 transition-colors hover:bg-green-50 disabled:opacity-50">
+        <button type="button" onClick={() => handleSave({})} disabled={saving || anyUploading} className="theme-border theme-accent-text hover:theme-accent-bg flex-1 rounded-2xl border-2 py-3.5 font-black transition-colors disabled:opacity-50">
           {saving ? 'Saving...' : anyUploading ? 'Uploading...' : '💾 Save Draft'}
         </button>
         {isAdmin ? (
-          <button type="button" onClick={() => handleSave({ publish: true })} disabled={saving || anyUploading} className="flex-1 rounded-2xl bg-green-600 py-3.5 font-black text-white transition-colors hover:bg-green-700 disabled:opacity-50">
+          <button type="button" onClick={() => handleSave({ publish: true })} disabled={saving || anyUploading} className="theme-accent-fill theme-on-accent flex-1 rounded-2xl py-3.5 font-black transition-colors hover:opacity-90 disabled:opacity-50">
             {saving ? 'Publishing...' : anyUploading ? 'Uploading...' : '🚀 Publish Quiz'}
           </button>
         ) : (
-          <button type="button" onClick={() => handleSave({ submit: true })} disabled={saving || anyUploading} className="flex-1 rounded-2xl bg-blue-600 py-3.5 font-black text-white transition-colors hover:bg-blue-700 disabled:opacity-50">
+          <button type="button" onClick={() => handleSave({ submit: true })} disabled={saving || anyUploading} className="theme-accent-fill theme-on-accent flex-1 rounded-2xl py-3.5 font-black transition-colors hover:opacity-90 disabled:opacity-50">
             {saving ? 'Submitting...' : anyUploading ? 'Uploading...' : '📤 Submit for Approval'}
           </button>
         )}

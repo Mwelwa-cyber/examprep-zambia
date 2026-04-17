@@ -10,8 +10,10 @@ import {
   getQuestionKey,
   hydrateQuizSections,
   serializeQuizSections,
-} from '../../utils/quizSections'
+} from '../../utils/quizSections.js'
+import { richTextHasContent } from '../../utils/quizRichText.js'
 import QuizSectionsEditor from './QuizSectionsEditor'
+import QuizEditorPreviewPanel from './QuizEditorPreviewPanel'
 
 const SUBJECTS = [
   'Mathematics',
@@ -27,14 +29,20 @@ const TERMS = ['1', '2', '3']
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
 const STATUS_META = {
-  draft: { label: 'Draft', dot: 'bg-gray-400', pill: 'bg-gray-100 text-gray-600' },
+  draft: { label: 'Draft', dot: 'bg-[var(--text-muted)]', pill: 'theme-bg-subtle theme-text-muted theme-border border' },
   pending: { label: 'Pending', dot: 'bg-yellow-400', pill: 'bg-yellow-100 text-yellow-700' },
   published: { label: 'Published', dot: 'bg-green-500', pill: 'bg-green-100 text-green-700' },
   rejected: { label: 'Rejected', dot: 'bg-red-500', pill: 'bg-red-100 text-red-600' },
 }
 
-const FIELD = 'w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition-colors focus:border-blue-500'
-const SELECT = 'rounded-xl border-2 border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500'
+const FIELD = 'theme-input w-full rounded-xl border-2 px-3 py-2.5 text-sm placeholder:text-gray-400 outline-none transition-colors focus:border-[var(--accent)]'
+const SELECT = 'theme-input rounded-xl border-2 px-3 py-2.5 text-sm outline-none transition-colors focus:border-[var(--accent)]'
+
+function withCurrentOption(options, currentValue) {
+  const normalized = String(currentValue ?? '').trim()
+  if (!normalized || options.includes(normalized)) return options
+  return [...options, normalized]
+}
 
 function compressImage(file, maxWidth = 1200, quality = 0.85) {
   return new Promise((resolve, reject) => {
@@ -135,6 +143,9 @@ export default function EditQuizV2() {
   const statusMeta = STATUS_META[quizStatus] ?? STATUS_META.draft
   const backPath = isAdmin ? '/admin/content' : '/teacher/content'
   const canEdit = isAdmin || quizOwner === currentUser?.uid
+  const gradeOptions = withCurrentOption(GRADES, form.grade)
+  const subjectOptions = withCurrentOption(SUBJECTS, form.subject)
+  const termOptions = withCurrentOption(TERMS, form.term)
 
   function show(message, isErr = false) {
     setToast({ message, isErr })
@@ -147,17 +158,20 @@ export default function EditQuizV2() {
   }
 
   useEffect(() => {
-    if (!quizId) return
+    if (!quizId || !currentUser?.uid) return
+    let cancelled = false
 
     async function load() {
       setLoading(true)
+      setNotFound(false)
       const [quiz, questions] = await Promise.all([getQuizById(quizId), getQuestions(quizId)])
+      if (cancelled) return
       if (!quiz) {
         setNotFound(true)
         setLoading(false)
         return
       }
-      if (!isAdmin && quiz.createdBy !== currentUser?.uid) {
+      if (!isAdmin && quiz.createdBy !== currentUser.uid) {
         setNotFound(true)
         setLoading(false)
         return
@@ -187,7 +201,10 @@ export default function EditQuizV2() {
     }
 
     load()
-  }, [quizId, getQuizById, getQuestions, currentUser, isAdmin])
+    return () => {
+      cancelled = true
+    }
+  }, [quizId, getQuizById, getQuestions, currentUser?.uid, isAdmin])
 
   function updateSection(sectionIndex, updater) {
     setSections(currentSections => currentSections.map((section, index) => (
@@ -451,7 +468,7 @@ export default function EditQuizV2() {
       show(`${label} image is still uploading. Please wait.`, true)
       return false
     }
-    if (!question.text.trim()) {
+    if (!richTextHasContent(question.text)) {
       show(`${label} is missing question text.`, true)
       return false
     }
@@ -479,7 +496,7 @@ export default function EditQuizV2() {
           show('A passage image is still uploading. Please wait.', true)
           return false
         }
-        if (!passage.passageText.trim()) {
+        if (!richTextHasContent(passage.passageText)) {
           show('Each comprehension passage needs passage text before saving.', true)
           return false
         }
@@ -571,7 +588,7 @@ export default function EditQuizV2() {
     return (
       <div className="space-y-4">
         {[1, 2, 3].map(item => (
-          <div key={item} className="h-24 animate-pulse rounded-2xl border border-gray-100 bg-white p-5" />
+          <div key={item} className="theme-card theme-border theme-bg-subtle h-24 animate-pulse rounded-2xl border p-5" />
         ))}
       </div>
     )
@@ -579,13 +596,13 @@ export default function EditQuizV2() {
 
   if (notFound || !canEdit) {
     return (
-      <div className="py-20 text-center">
+      <div className="theme-text py-20 text-center">
         <div className="mb-3 text-5xl">🔒</div>
-        <h2 className="mb-2 text-xl font-black text-gray-700">{notFound ? 'Quiz not found' : 'Access denied'}</h2>
-        <p className="mb-5 text-sm text-gray-500">
+        <h2 className="mb-2 text-xl font-black">{notFound ? 'Quiz not found' : 'Access denied'}</h2>
+        <p className="theme-text-muted mb-5 text-sm">
           {notFound ? 'This quiz does not exist or has been deleted.' : 'You can only edit quizzes you created.'}
         </p>
-        <button type="button" onClick={() => navigate(backPath)} className="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-bold text-white transition-colors hover:bg-blue-700">
+        <button type="button" onClick={() => navigate(backPath)} className="theme-accent-fill theme-on-accent rounded-xl px-6 py-2.5 text-sm font-bold transition-colors hover:opacity-90">
           ← Back to Content
         </button>
       </div>
@@ -593,10 +610,10 @@ export default function EditQuizV2() {
   }
 
   return (
-    <div className="space-y-5 pb-10">
+    <div className="theme-text space-y-5 pb-10">
       {toast && (
         <div className={`fixed right-4 top-4 z-50 max-w-xs rounded-2xl px-5 py-3 text-sm font-bold text-white shadow-lg ${
-          toast.isErr ? 'bg-red-600' : 'bg-gray-900'
+          toast.isErr ? 'bg-red-600' : 'theme-accent-fill theme-on-accent'
         }`}>
           {toast.message}
         </div>
@@ -604,17 +621,17 @@ export default function EditQuizV2() {
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-start gap-3">
-          <button type="button" onClick={() => navigate(backPath)} className="mt-1 min-h-0 bg-transparent p-1 text-gray-400 shadow-none hover:text-gray-600">←</button>
+          <button type="button" onClick={() => navigate(backPath)} className="theme-text-muted mt-1 min-h-0 bg-transparent p-1 shadow-none hover:theme-text">←</button>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-black text-gray-800">✏️ Edit Quiz</h1>
+              <h1 className="text-2xl font-black">✏️ Edit Quiz</h1>
               <span className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${statusMeta.pill}`}>
                 <span className={`h-1.5 w-1.5 rounded-full ${statusMeta.dot}`} />
                 {statusMeta.label}
               </span>
               {dirty && <span className="rounded-full bg-orange-100 px-2.5 py-1 text-xs font-bold text-orange-600">● Unsaved changes</span>}
             </div>
-            <p className="mt-0.5 text-sm text-gray-500">{form.title || 'Untitled quiz'} · {questionCount} questions</p>
+            <p className="theme-text-muted mt-0.5 text-sm">{form.title || 'Untitled quiz'} · {questionCount} questions</p>
           </div>
         </div>
         {isAdmin && (
@@ -626,37 +643,37 @@ export default function EditQuizV2() {
         )}
       </div>
 
-      <div className="space-y-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-        <h2 className="flex items-center gap-2 font-black text-gray-700">📋 Quiz Details</h2>
+      <div className="theme-card theme-border space-y-4 rounded-2xl border p-5 shadow-sm">
+        <h2 className="flex items-center gap-2 font-black">📋 Quiz Details</h2>
         <div className="space-y-3">
           <input value={form.title} onChange={event => setF('title', event.target.value)} placeholder="Quiz title (e.g. Grade 6 Science - Human Body)" className={FIELD} />
           <input value={form.topic || ''} onChange={event => setF('topic', event.target.value)} placeholder="Topic (optional, e.g. Photosynthesis)" className={FIELD} />
           <div className="grid gap-3 sm:grid-cols-4">
-            <select value={form.grade} onChange={event => setF('grade', event.target.value)} className={SELECT}>{GRADES.map(grade => <option key={grade} value={grade}>Grade {grade}</option>)}</select>
-            <select value={form.subject} onChange={event => setF('subject', event.target.value)} className={SELECT}>{SUBJECTS.map(subject => <option key={subject} value={subject}>{subject}</option>)}</select>
-            <select value={form.term} onChange={event => setF('term', event.target.value)} className={SELECT}>{TERMS.map(term => <option key={term} value={term}>Term {term}</option>)}</select>
-            <div className="flex items-center gap-2 rounded-xl border-2 border-gray-200 px-3 py-2.5">
-              <span className="whitespace-nowrap text-xs font-bold text-gray-500">⏱️ Mins</span>
+            <select value={form.grade} onChange={event => setF('grade', event.target.value)} className={SELECT}>{gradeOptions.map(grade => <option key={grade} value={grade}>Grade {grade}</option>)}</select>
+            <select value={form.subject} onChange={event => setF('subject', event.target.value)} className={SELECT}>{subjectOptions.map(subject => <option key={subject} value={subject}>{subject}</option>)}</select>
+            <select value={form.term} onChange={event => setF('term', event.target.value)} className={SELECT}>{termOptions.map(term => <option key={term} value={term}>Term {term}</option>)}</select>
+            <div className="theme-border flex items-center gap-2 rounded-xl border-2 px-3 py-2.5">
+              <span className="theme-text-muted whitespace-nowrap text-xs font-bold">⏱️ Mins</span>
               <input type="number" min={5} max={180} value={form.duration} onChange={event => setF('duration', Number(event.target.value) || 30)} className="flex-1 bg-transparent text-sm font-black outline-none" />
             </div>
           </div>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap gap-2">
-            <StatPill label="questions" value={questionCount} color="bg-blue-100 text-blue-700" />
-            <StatPill label="marks" value={totalMarks} color="bg-purple-100 text-purple-700" />
+            <StatPill label="questions" value={questionCount} color="theme-accent-bg theme-accent-text" />
+            <StatPill label="marks" value={totalMarks} color="theme-bg-subtle theme-text" />
             <StatPill label="mins" value={form.duration} color="bg-orange-100 text-orange-700" />
             {passageCount > 0 && <StatPill label="passages" value={passageCount} color="bg-orange-100 text-orange-700" />}
-            {newCount > 0 && <StatPill label="new" value={newCount} color="bg-green-100 text-green-700" />}
+            {newCount > 0 && <StatPill label="new" value={newCount} color="theme-accent-bg theme-accent-text" />}
             {deletedIds.length > 0 && <StatPill label="queued for deletion" value={deletedIds.length} color="bg-red-100 text-red-600" />}
-            {imagesCount > 0 && <StatPill label="images" value={imagesCount} color="bg-sky-100 text-sky-700" />}
+            {imagesCount > 0 && <StatPill label="images" value={imagesCount} color="theme-accent-bg theme-accent-text" />}
           </div>
           <label className="flex cursor-pointer select-none items-center gap-2" title="Demo quizzes are visible to free users">
-            <span className="text-xs font-black text-gray-600">Mark as Demo</span>
-            <button type="button" onClick={() => setF('isDemo', !form.isDemo)} className={`relative h-5 w-10 min-h-0 rounded-full p-0 shadow-none transition-colors ${form.isDemo ? 'bg-green-500' : 'bg-gray-300'}`}>
+            <span className="theme-text-muted text-xs font-black">Mark as Demo</span>
+            <button type="button" onClick={() => setF('isDemo', !form.isDemo)} className={`relative h-5 w-10 min-h-0 rounded-full p-0 shadow-none transition-colors ${form.isDemo ? 'theme-accent-fill' : 'theme-border theme-bg-subtle border'}`}>
               <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${form.isDemo ? 'left-5' : 'left-0.5'}`} />
             </button>
-            {form.isDemo && <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-black text-green-700">Demo</span>}
+            {form.isDemo && <span className="theme-accent-bg theme-accent-text rounded-full px-2 py-0.5 text-xs font-black">Demo</span>}
           </label>
         </div>
       </div>
@@ -696,6 +713,8 @@ export default function EditQuizV2() {
         onAddPassage={addPassageSectionHandler}
       />
 
+      <QuizEditorPreviewPanel form={form} serializedSections={serializedPreview} />
+
       {deletedIds.length > 0 && (
         <div className="flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <span className="flex-shrink-0 text-base">🗑️</span>
@@ -703,15 +722,15 @@ export default function EditQuizV2() {
         </div>
       )}
 
-      <div className="space-y-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-        <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Save Options</p>
+      <div className="theme-card theme-border space-y-3 rounded-2xl border p-4 shadow-sm">
+        <p className="theme-text-muted text-xs font-bold uppercase tracking-wide">Save Options</p>
         <div className="grid gap-3 sm:grid-cols-3">
-          <button type="button" onClick={() => handleSave('draft')} disabled={saving || anyUploading} className="flex min-h-0 items-center justify-center gap-2 rounded-2xl border-2 border-gray-300 py-3 font-black text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-40">
+          <button type="button" onClick={() => handleSave('draft')} disabled={saving || anyUploading} className="theme-border theme-accent-text hover:theme-accent-bg flex min-h-0 items-center justify-center gap-2 rounded-2xl border-2 py-3 font-black transition-colors disabled:opacity-40">
             <span>💾</span>
             <span>{saving ? 'Saving...' : anyUploading ? 'Uploading...' : 'Save Draft'}</span>
           </button>
           {!isAdmin && (
-            <button type="button" onClick={() => handleSave('pending')} disabled={saving || anyUploading} className="flex min-h-0 items-center justify-center gap-2 rounded-2xl border-2 border-blue-500 py-3 font-black text-blue-700 transition-colors hover:bg-blue-50 disabled:opacity-40">
+            <button type="button" onClick={() => handleSave('pending')} disabled={saving || anyUploading} className="theme-accent-fill theme-on-accent flex min-h-0 items-center justify-center gap-2 rounded-2xl py-3 font-black transition-colors hover:opacity-90 disabled:opacity-40">
               <span>📤</span>
               <span>{saving ? 'Submitting...' : 'Submit for Approval'}</span>
             </button>
@@ -722,14 +741,14 @@ export default function EditQuizV2() {
                 <span>⏳</span>
                 <span>{saving ? 'Saving...' : 'Save as Pending'}</span>
               </button>
-              <button type="button" onClick={() => handleSave('published')} disabled={saving || anyUploading} className="flex min-h-0 items-center justify-center gap-2 rounded-2xl bg-green-600 py-3 font-black text-white shadow-sm transition-colors hover:bg-green-700 disabled:opacity-40">
+              <button type="button" onClick={() => handleSave('published')} disabled={saving || anyUploading} className="theme-accent-fill theme-on-accent flex min-h-0 items-center justify-center gap-2 rounded-2xl py-3 font-black shadow-sm transition-colors hover:opacity-90 disabled:opacity-40">
                 <span>🚀</span>
                 <span>{saving ? 'Publishing...' : 'Save & Publish'}</span>
               </button>
             </>
           )}
         </div>
-        <p className="text-center text-xs text-gray-400">{dirty ? '⚠️ You have unsaved changes.' : '✓ All changes saved.'}</p>
+        <p className="theme-text-muted text-center text-xs">{dirty ? '⚠️ You have unsaved changes.' : '✓ All changes saved.'}</p>
       </div>
     </div>
   )

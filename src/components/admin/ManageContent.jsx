@@ -48,6 +48,7 @@ function StatusPill({ status }) {
 
 // ── Quiz row ───────────────────────────────────────────────────────────────
 function QuizRow({ quiz, onTogglePublish, onDelete, deleting }) {
+  const quizId = quiz.id || quiz._id || ''
   const status = quiz.status ?? (quiz.isPublished ? 'published' : 'draft')
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-start gap-3 hover:shadow-sm transition-shadow">
@@ -75,7 +76,8 @@ function QuizRow({ quiz, onTogglePublish, onDelete, deleting }) {
         )}
       </div>
       <div className="flex flex-col sm:flex-row gap-1.5 flex-shrink-0 mt-0.5">
-        <Link to={`/admin/quizzes/${quiz.id}/edit`}
+        <Link to={quizId ? `/admin/quizzes/${quizId}/edit` : '/admin/content'}
+          aria-disabled={!quizId}
           className="text-xs font-black px-3 py-1.5 rounded-full border-2 border-blue-300 text-blue-700 hover:bg-blue-50 transition-colors">
           ✏️ Edit
         </Link>
@@ -98,6 +100,7 @@ function QuizRow({ quiz, onTogglePublish, onDelete, deleting }) {
 
 // ── Lesson row ─────────────────────────────────────────────────────────────
 function LessonRow({ lesson, onTogglePublish, onDelete, deleting }) {
+  const lessonId = lesson.id || lesson._id || ''
   const status = lesson.status ?? (lesson.isPublished ? 'published' : 'draft')
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-start gap-3 hover:shadow-sm transition-shadow">
@@ -113,7 +116,8 @@ function LessonRow({ lesson, onTogglePublish, onDelete, deleting }) {
         </div>
       </div>
       <div className="flex flex-col sm:flex-row gap-1.5 flex-shrink-0 mt-0.5">
-        <Link to={`/admin/lessons/${lesson.id}/edit`}
+        <Link to={lessonId ? `/admin/lessons/${lessonId}/edit` : '/admin/content'}
+          aria-disabled={!lessonId}
           className="text-xs font-black px-3 py-1.5 rounded-full border-2 border-blue-300 text-blue-700 hover:bg-blue-50 transition-colors">
           ✏️ Edit
         </Link>

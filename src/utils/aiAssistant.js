@@ -6,9 +6,11 @@ const functions = getFunctions(app, 'us-central1')
 const aiChatCallable = httpsCallable(functions, 'aiChat')
 const explainAnswerCallable = httpsCallable(functions, 'explainAnswer')
 const generateQuizCallable = httpsCallable(functions, 'generateQuizQuestions')
+const structureImportedQuizCallable = httpsCallable(functions, 'structureImportedQuiz')
 const AI_CHAT_TIMEOUT_MS = 12000
 const AI_EXPLAIN_TIMEOUT_MS = 8000
 const AI_QUIZ_TIMEOUT_MS = 4500
+const AI_IMPORT_TIMEOUT_MS = 18000
 
 function messageFromError(error) {
   const code = error?.code || ''
@@ -239,6 +241,22 @@ export async function generateAIQuizQuestions(payload) {
     if (!isHardAIError(error)) {
       return makeLocalQuizQuestions(payload)
     }
+    throw new Error(messageFromError(error))
+  }
+}
+
+export async function structureImportedQuiz(payload) {
+  try {
+    const response = await withTimeout(
+      structureImportedQuizCallable(payload),
+      AI_IMPORT_TIMEOUT_MS,
+      'Smart import is taking too long. Using the standard import instead.',
+    )
+    return {
+      sections: Array.isArray(response.data?.sections) ? response.data.sections : [],
+      warnings: Array.isArray(response.data?.warnings) ? response.data.warnings : [],
+    }
+  } catch (error) {
     throw new Error(messageFromError(error))
   }
 }

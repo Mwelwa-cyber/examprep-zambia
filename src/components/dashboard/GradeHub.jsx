@@ -11,7 +11,7 @@
  *   Badges Strip
  *   Mobile Bottom Navigation
  */
-import { useState, useEffect }  from 'react'
+import { useState, useEffect, useRef }  from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth }              from '../../contexts/AuthContext'
 import { useFirestore }         from '../../hooks/useFirestore'
@@ -27,6 +27,34 @@ import OnboardingOverlay        from '../ui/OnboardingOverlay'
 import { useSubscription }      from '../../hooks/useSubscription'
 
 // ── Sub-components ─────────────────────────────────────────────────────────
+
+const NOTIFICATION_STORAGE_PREFIX = 'zedexams:notifications:seen:v1'
+
+function getNotificationStorageKey(userId) {
+  return `${NOTIFICATION_STORAGE_PREFIX}:${userId || 'guest'}`
+}
+
+function readSeenNotificationIds(userId) {
+  if (typeof window === 'undefined') return []
+
+  try {
+    const raw = window.localStorage.getItem(getNotificationStorageKey(userId))
+    const parsed = JSON.parse(raw || '[]')
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function writeSeenNotificationIds(userId, ids) {
+  if (typeof window === 'undefined') return
+
+  try {
+    window.localStorage.setItem(getNotificationStorageKey(userId), JSON.stringify(ids))
+  } catch {
+    // Ignore storage failures so notifications still render.
+  }
+}
 
 function FloatingStar({ style }) {
   return (
@@ -198,6 +226,62 @@ function SkeletonCard() {
   return <div className="theme-bg-subtle rounded-2xl animate-pulse h-24" />
 }
 
+function NotificationPanel({ notifications, unreadCount, onClose }) {
+  return (
+    <div className="absolute right-0 top-11 z-50 w-[min(92vw,22rem)] theme-card rounded-2xl border theme-border p-3 shadow-xl animate-scale-in">
+      <div className="flex items-center justify-between gap-3 border-b theme-border px-1 pb-2">
+        <div>
+          <p className="theme-text text-sm font-black">Notifications</p>
+          <p className="theme-text-muted text-xs font-bold">
+            {notifications.length === 0
+              ? 'You are all caught up'
+              : unreadCount > 0
+                ? `${unreadCount} new update${unreadCount === 1 ? '' : 's'}`
+                : 'You are all caught up'}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="theme-text-muted min-h-0 bg-transparent px-2 py-1 text-xs font-black shadow-none hover:theme-text"
+        >
+          Close
+        </button>
+      </div>
+
+      {notifications.length === 0 ? (
+        <div className="px-1 py-6 text-center">
+          <p className="text-2xl">🎉</p>
+          <p className="theme-text mt-2 text-sm font-black">No new notifications</p>
+          <p className="theme-text-muted mt-1 text-xs">Keep learning and your next update will appear here.</p>
+        </div>
+      ) : (
+        <div className="max-h-80 space-y-2 overflow-y-auto pt-3">
+          {notifications.map(note => (
+            <Link
+              key={note.id}
+              to={note.to}
+              onClick={onClose}
+              className="theme-bg-subtle block rounded-2xl border theme-border px-3 py-3 transition-colors hover:theme-card-hover"
+            >
+              <div className="flex items-start gap-3">
+                <div className="theme-card flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border theme-border text-lg">
+                  {note.icon}
+                </div>
+                <div className="min-w-0">
+                  <p className="theme-text text-sm font-black leading-snug">{note.title}</p>
+                  <p className="theme-text-muted mt-1 text-xs font-bold leading-relaxed">{note.body}</p>
+                  <p className="theme-accent-text mt-1 text-xs font-black">{note.cta}</p>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main Component ─────────────────────────────────────────────────────────
 
 export default function GradeHub() {
@@ -216,6 +300,10 @@ export default function GradeHub() {
   const [stats, setStats]                 = useState({ quizzes: 0, streak: 0 })
   const [loading, setLoading]             = useState(true)
   const [menuOpen, setMenuOpen]           = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [seenNotificationIds, setSeenNotificationIds] = useState([])
+  const notificationsRef = useRef(null)
+  const notificationUserId = currentUser?.uid || userProfile?.id || 'guest'
 
   useEffect(() => {
     if (!currentUser) return
@@ -228,6 +316,10 @@ export default function GradeHub() {
     })
   }, [currentUser, userProfile])
 
+  useEffect(() => {
+    setSeenNotificationIds(readSeenNotificationIds(notificationUserId))
+  }, [notificationUserId])
+
   function handleGradeSelect(grade) {
     setSelectedGrade(prev => prev === grade ? null : grade)
   }
@@ -235,6 +327,125 @@ export default function GradeHub() {
   const { accessBadge, isDemoOnly } = useSubscription()
   const firstName = userProfile?.displayName?.split(' ')[0] ?? 'Learner'
   const pakoMood  = stats.streak >= 3 ? 'excited' : stats.quizzes > 0 ? 'happy' : 'normal'
+  const latestResult = recentResults[0] || null
+  const notifications = [
+    earnedBadges.length > 0
+      ? {
+          id: `badges:${earnedBadges.map(badge => badge.id || badge.name).join('|')}`,
+          icon: '🏆',
+          title: `You have earned ${earnedBadges.length} badge${earnedBadges.length === 1 ? '' : 's'}`,
+          body: earnedBadges.length === 1
+            ? `${earnedBadges[0].name} is waiting in your badge shelf.`
+            : 'Open your badge shelf to see the latest achievements you have unlocked.',
+          cta: 'View badges →',
+          to: '/my-badges',
+        }
+      : null,
+    stats.streak >= 2
+      ? {
+          id: `streak:${stats.streak}`,
+          icon: '🔥',
+          title: `${stats.streak}-day learning streak`,
+          body: 'Keep practising daily to protect your streak and unlock more badges.',
+          cta: 'Keep the streak alive →',
+          to: '/quizzes',
+        }
+      : null,
+    latestResult
+      ? {
+          id: `latest-result:${latestResult.id || latestResult.quizId || latestResult.completedAt?.seconds || latestResult.completedAt || latestResult.quizTitle || 'latest'}`,
+          icon: latestResult.percentage >= 70 ? '✅' : '📘',
+          title: latestResult.percentage >= 70 ? 'Nice work on your latest quiz' : 'Your latest result is ready',
+          body: `${latestResult.quizTitle || 'Your quiz'} · ${latestResult.percentage}%`,
+          cta: 'Review your results →',
+          to: '/my-results',
+        }
+      : {
+          id: 'first-quiz',
+          icon: '✏️',
+          title: 'Take your first quiz',
+          body: 'Your recent activity will appear here after your first attempt.',
+          cta: 'Start a quiz →',
+          to: '/quizzes',
+        },
+    isDemoOnly
+      ? {
+          id: `demo-access:${accessBadge.label}`,
+          icon: accessBadge.icon,
+          title: 'Demo access is active',
+          body: 'You can keep practising free content, and premium content unlocks when your access level changes.',
+          cta: 'See your account →',
+          to: '/profile',
+        }
+      : null,
+  ].filter(Boolean)
+  const activeNotificationIds = notifications.map(note => note.id)
+  const activeNotificationIdsKey = activeNotificationIds.join('||')
+  const unreadNotifications = notifications.filter(note => !seenNotificationIds.includes(note.id))
+
+  useEffect(() => {
+    setSeenNotificationIds(previousSeenIds => {
+      const nextSeenIds = previousSeenIds.filter(id => activeNotificationIds.includes(id))
+      const changed = nextSeenIds.length !== previousSeenIds.length || nextSeenIds.some((id, index) => id !== previousSeenIds[index])
+      if (!changed) {
+        return previousSeenIds
+      }
+      writeSeenNotificationIds(notificationUserId, nextSeenIds)
+      return nextSeenIds
+    })
+  }, [activeNotificationIdsKey, notificationUserId])
+
+  function markNotificationsSeen(ids) {
+    if (!ids.length) return
+
+    setSeenNotificationIds(previousSeenIds => {
+      const unseenIds = ids.filter(id => !previousSeenIds.includes(id))
+      if (!unseenIds.length) {
+        return previousSeenIds
+      }
+      const nextSeenIds = [...previousSeenIds, ...unseenIds]
+      writeSeenNotificationIds(notificationUserId, nextSeenIds)
+      return nextSeenIds
+    })
+  }
+
+  function closeNotifications(markSeen = false) {
+    if (markSeen) {
+      markNotificationsSeen(activeNotificationIds)
+    }
+    setNotificationsOpen(false)
+  }
+
+  function handleNotificationsToggle() {
+    setMenuOpen(false)
+    if (notificationsOpen) {
+      closeNotifications(true)
+      return
+    }
+    setNotificationsOpen(true)
+  }
+
+  useEffect(() => {
+    function handlePointerDown(event) {
+      if (!notificationsRef.current?.contains(event.target)) {
+        closeNotifications(true)
+      }
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        closeNotifications(true)
+      }
+    }
+
+    if (!notificationsOpen) return undefined
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [notificationsOpen, activeNotificationIdsKey])
 
   return (
     <div className="min-h-screen theme-bg flex flex-col">
@@ -248,23 +459,37 @@ export default function GradeHub() {
             <DataSaverToggle />
             <ThemeSelector compact quizStyle />
 
-            <Link
-              to="/my-badges"
-              aria-label="View notifications and badges"
-              className="relative w-9 h-9 flex items-center justify-center theme-text-muted hover:theme-text min-h-0 bg-transparent shadow-none rounded-lg hover:theme-bg-subtle"
-            >
-              🔔
-              {earnedBadges.length > 0 && (
-                <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center font-black leading-none">
-                  {earnedBadges.length > 9 ? '9+' : earnedBadges.length}
-                </span>
+            <div ref={notificationsRef} className="relative">
+              <button
+                type="button"
+                onClick={handleNotificationsToggle}
+                aria-label="View notifications"
+                aria-expanded={notificationsOpen}
+                className="relative flex h-9 w-9 items-center justify-center rounded-lg theme-text-muted hover:theme-bg-subtle hover:theme-text min-h-0 bg-transparent shadow-none"
+              >
+                🔔
+                {unreadNotifications.length > 0 && (
+                  <span className="absolute right-0 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black leading-none text-white">
+                    {unreadNotifications.length > 9 ? '9+' : unreadNotifications.length}
+                  </span>
+                )}
+              </button>
+              {notificationsOpen && (
+                <NotificationPanel
+                  notifications={notifications}
+                  unreadCount={unreadNotifications.length}
+                  onClose={() => closeNotifications(true)}
+                />
               )}
-            </Link>
+            </div>
 
             {/* User avatar */}
             <div className="relative">
               <button
-                onClick={() => setMenuOpen(o => !o)}
+                onClick={() => {
+                  closeNotifications(notificationsOpen)
+                  setMenuOpen(o => !o)
+                }}
                 className="w-8 h-8 theme-accent-fill theme-on-accent rounded-full flex items-center justify-center font-black text-sm min-h-0 shadow-none hover:opacity-90"
               >
                 {(userProfile?.displayName?.[0] ?? '?').toUpperCase()}

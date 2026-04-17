@@ -1,5 +1,10 @@
 import { unzipSync, strFromU8 } from 'fflate'
 import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.mjs?url'
+import { createPassageSection, createStandaloneSection } from '../../utils/quizSections.js'
+import {
+  metadataFromText as buildImportMetadata,
+  processImportedQuestionBlocks,
+} from './documentQuizParserCore.js'
 
 let pdfjsLoader = null
 
@@ -76,6 +81,9 @@ const SECTION_HEADING_RE = /^(?:spelling bee\b|elimination round\b|category\b|wo
 //
 const PARA_ORDER_INSTRUCTION_RE = /each question has four paragraphs|sentences in the best order|choose the paragraph which has the sentences/i
 const PARA_ORDER_DO_Q_RE = /\bnow\s+do\s+questions?\s+(\d{1,3})/i
+const PARA_ORDER_QUESTION_ONLY_RE = /^\d{1,3}$/
+const QUESTION_RANGE_HEADING_RE = /^(?:questions?\s+\d{1,3}\s*[–-]\s*\d{1,3}|now\s+do\s+questions?\s+\d{1,3}\s*[–-]\s*\d{1,3}|look\s+at\s+questions?\s+\d{1,3}(?:\s*[–-]\s*\d{1,3})?)$/i
+const STANDALONE_INSTRUCTION_RE = /^(?:instruction\s*:|choose\s+(?:the|which)\b|select\s+(?:the|which)\b|write\s+(?:the|a|an)\b|complete\s+(?:the|each)\b|fill\s+in\b|look\s+at\s+questions?\b|for\s+questions?\b)/i
 
 // ─── Comprehension / Passage Patterns ─────────────────────────────────────────
 
@@ -84,13 +92,13 @@ const PARA_ORDER_DO_Q_RE = /\bnow\s+do\s+questions?\s+(\d{1,3})/i
  * Must reference "passage", "story", "text", "extract", etc. or say
  * "questions that follow" to avoid matching generic standalone-section instructions.
  */
-const COMP_INSTRUCTION_RE = /\b(?:read\s+(?:the\s+)?(?:following|passage|story|text|extract|information|paragraph|article|poem|stories)|answer\s+the\s+(?:following\s+)?questions?\s+(?:that\s+follow|from\s+(?:the\s+)?(?:passage|story|text|extract)|based\s+on\s+(?:the\s+)?(?:passage|story|text)|using\s+(?:the\s+)?(?:passage|story|text))|use\s+(?:the\s+)?(?:passage|text|story|information|extract)(?:\s+(?:above|below|to\s+answer))?|choose\s+(?:the\s+)?(?:correct|best|right)\s+(?:answer|option|word)\s+from\s+(?:the\s+)?(?:passage|text|story|extract)|based\s+on\s+(?:the\s+)?(?:passage|story|text|extract)|refer\s+to\s+(?:the\s+)?(?:passage|story|text|extract)|questions?\s+that\s+follow|from\s+(?:the\s+)?(?:passage|story|text|extract)\s+(?:above|below)?)\b/i
+const COMP_INSTRUCTION_RE = /\b(?:read\s+(?:the\s+)?(?:following|passage|story|text|extract|information|paragraph|article|poem|stories)|read\s+each\s+stor(?:y|ies)|answer\s+the\s+(?:following\s+)?questions?\s+(?:(?:that|which)\s+follow|from\s+(?:the\s+)?(?:passage|story|text|extract)|based\s+on\s+(?:the\s+)?(?:passage|story|text)|using\s+(?:the\s+)?(?:passage|story|text))|use\s+(?:the\s+)?(?:passage|text|story|information|extract)(?:\s+(?:above|below|to\s+answer))?|choose\s+(?:the\s+)?(?:correct|best|right)\s+(?:answer|option|word)\s+from\s+(?:the\s+)?(?:passage|text|story|extract)|based\s+on\s+(?:the\s+)?(?:passage|story|text|extract)|refer\s+to\s+(?:the\s+)?(?:passage|story|text|extract)|questions?\s+(?:that|which)\s+follow|stories?\s+with\s+questions?\s+on\s+each|look\s+at\s+the\s+questions?\s+(?:that|which)\s+follow|from\s+(?:the\s+)?(?:passage|story|text|extract)\s+(?:above|below)?)\b/i
 
 /**
  * Detects lines that label a numbered story / passage block.
  * Examples: "Story 1", "Story 2:", "Passage A", "Passage B:", "Text 1: The Fox"
  */
-const PASSAGE_LABEL_RE = /^(?:story|passage|text|extract|article|reading|comprehension)\s*(?:\d+|[IVX]+|[A-Z])?\s*(?:[:.,-]\s*.*)?$/i
+const PASSAGE_LABEL_RE = /^(?:story|passage|text|extract|article|reading(?:\s+comprehension)?|comprehension)\s*(?:\d+|[IVX]+|[A-Z])?\s*(?:[:.,-]\s*.*)?$/i
 
 function makeImportId(prefix = 'import') {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
@@ -99,6 +107,7 @@ function makeImportId(prefix = 'import') {
 function cleanText(value) {
   return String(value || '')
     .replace(/\u00a0/g, ' ')
+    .replace(/([a-z0-9])([.?!:;])([A-Z])/g, '$1$2 $3')
     .replace(/[ \t]+/g, ' ')
     .replace(/\s+\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
@@ -110,6 +119,67 @@ function splitLines(text) {
     .split(/\r?\n/)
     .map(line => cleanText(line))
     .filter(Boolean)
+}
+
+function normalizeParaOrderInstruction(text) {
+  return cleanText(text)
+    .replace(/^instruction\s*:\s*/i, '')
+    .trim()
+}
+
+function deriveParaOrderQuestionText(instruction) {
+  const normalized = normalizeParaOrderInstruction(instruction)
+  const sentences = normalized
+    .split(/(?<=[.?!])\s+/)
+    .map(sentence => cleanText(sentence))
+    .filter(Boolean)
+
+  const bestSentence = sentences.find(sentence => /\bchoose\b/i.test(sentence))
+    || sentences[sentences.length - 1]
+    || normalized
+
+  return cleanText(
+    bestSentence
+      .replace(/^you must\s+/i, '')
+      .replace(/^for each question,?\s*/i, ''),
+  ) || 'Choose the paragraph with the sentences in the best order.'
+}
+
+function parseParaOrderOptionLine(line) {
+  const text = cleanText(line)
+  const punctuated = text.match(/^([A-D])[\).:\-]\s*(.+)$/)
+  const glued = text.match(/^([A-D])([A-Z].+)$/)
+  const label = (punctuated?.[1] || glued?.[1] || '').toUpperCase()
+  if (!label) return null
+
+  const optionText = cleanText(punctuated?.[2] || glued?.[2] || '')
+  if (!optionText) return null
+
+  return { label, text: optionText }
+}
+
+function parseRawParaOrderOptionLine(line) {
+  const text = cleanText(String(line || '').replace(/\n+/g, ' '))
+  const match = text.match(/^([A-D])(?:[\).:\-]\s*|)(.+)$/)
+  const label = (match?.[1] || '').toUpperCase()
+  const optionText = cleanText(match?.[2] || '')
+  if (!label || !optionText) return null
+  return { label, text: optionText }
+}
+
+function optionOnlyQuestionMatch(line) {
+  const text = cleanText(line)
+  const match = text.match(/^(\d{1,3})\s*[\).:\-]\s*(.+)$/)
+  if (!match) return null
+
+  const optionText = cleanText(match[2])
+  const options = extractOptionSegments(optionText)
+  if (!options.length || options[0].labelStart > 2) return null
+
+  return {
+    number: match[1],
+    options: options.map(option => option.text),
+  }
 }
 
 /**
@@ -137,6 +207,20 @@ function isComprehensionInstruction(line) {
 
 function isPassageLabel(line) {
   return PASSAGE_LABEL_RE.test(line)
+}
+
+function isQuestionRangeHeading(line) {
+  return QUESTION_RANGE_HEADING_RE.test(cleanText(line))
+}
+
+function isStandaloneInstruction(line) {
+  const text = cleanText(line)
+  if (!text) return false
+  if (questionMatch(text)) return false
+  if (extractOptionSegments(text).length) return false
+  if (ANSWER_KEY_HEADING_RE.test(text)) return false
+  if (isComprehensionInstruction(text)) return false
+  return STANDALONE_INSTRUCTION_RE.test(text)
 }
 
 function questionMatch(line) {
@@ -184,10 +268,16 @@ function extractOptionSegments(line) {
     .filter(item => item.index >= 0 && item.index <= 3 && item.text)
 }
 
-function splitInlineOptionsFromQuestion(rawText) {
+function splitInlineOptionsFromQuestion(rawText, fallbackQuestionText = '') {
   const text = cleanText(rawText)
   const options = extractOptionSegments(text)
-  if (!options.length || options[0].labelStart <= 2) return { text, options: [] }
+  if (!options.length) return { text, options: [] }
+
+  if (options[0].labelStart <= 2) {
+    const fallback = cleanText(fallbackQuestionText)
+    if (!fallback) return { text, options: [] }
+    return { text: fallback, options }
+  }
 
   const questionText = cleanText(text.slice(0, options[0].labelStart))
   if (questionText.length < 8 || options.length < 2) return { text, options: [] }
@@ -549,7 +639,10 @@ function metadataFromText(text, fileName) {
   // Support grades 1-12 (was previously restricted to 4-6, missing Grade 7+)
   const gradeMatch = text.match(/\bgrade\s*(\d{1,2})\b/i)
   const grade = gradeMatch ? gradeMatch[1] : ''
-  const subject = SUBJECTS.find(s => new RegExp(`\\b${s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(text)) || ''
+  const headerText = [title, ...firstLines].join(' ')
+  const subject = SUBJECTS.find(s => new RegExp(`\\b${s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(headerText))
+    || SUBJECTS.find(s => new RegExp(`\\b${s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(text))
+    || ''
   return {
     title: cleanText(title).slice(0, 90) || titleFromFileName(fileName),
     grade,
@@ -602,6 +695,7 @@ function questionFromCurrent(current, answerKey = new Map()) {
 
   const reviewNotes = [...current.reviewNotes]
   const text = cleanText(current.textParts.join(' '))
+  const sharedInstruction = cleanText(current.sharedInstruction)
   const options = current.options.map(cleanText).filter(Boolean)
   const imageHint = IMAGE_HINT_RE.test(`${text} ${current.diagramText}`)
   const assets = current.assets.length ? current.assets : imageHint && current.pageAsset ? [current.pageAsset] : []
@@ -639,6 +733,7 @@ function questionFromCurrent(current, answerKey = new Map()) {
 
   return {
     text,
+    sharedInstruction,
     options: type === 'short_answer' || type === 'diagram'
       ? []
       : isTrueFalse
@@ -707,61 +802,62 @@ function questionFromCurrent(current, answerKey = new Map()) {
  * format, which the main parser handles normally as MCQ questions.
  */
 function preprocessParaOrdering(blocks) {
-  const allText = blocks.map(b => b.text).join('\n')
-  if (!PARA_ORDER_INSTRUCTION_RE.test(allText)) return blocks
+  const output = []
+  let collecting = false
+  let instruction = ''
+  let buffered = []
 
-  const result = []
-  let inSection = false
-  let paraLines = [] // { line: string, block: object }
-  const instruction = 'Choose the paragraph with sentences in the correct order.'
-
-  function flushParaLines() {
-    if (!paraLines.length) return
-    result.push(...buildParaOrderBlocks(paraLines, instruction))
-    paraLines = []
+  function flushBuffered() {
+    if (!collecting) return
+    if (instruction && buffered.length) {
+      output.push(...buildParaOrderBlocks(buffered, instruction))
+    }
+    collecting = false
+    instruction = ''
+    buffered = []
   }
 
-  for (const block of blocks) {
-    const lines = splitLines(block.text)
-
-    if (!inSection) {
-      // Look for the section instruction in this block
-      const instrIdx = lines.findIndex(l => PARA_ORDER_INSTRUCTION_RE.test(l))
-      if (instrIdx >= 0) {
-        inSection = true
-        // Pass the instruction block through unchanged (it becomes preamble text)
-        result.push({ ...block, text: lines[instrIdx] })
-        // Lines after the instruction in the same block feed into paraLines
-        for (let i = instrIdx + 1; i < lines.length; i++) {
-          paraLines.push({ line: lines[i], block })
-        }
-      } else {
-        result.push(block)
-      }
-      continue
+  blocks.forEach(block => {
+    const text = cleanText(block.text)
+    if (!text) {
+      if (collecting) buffered.push({ line: '', block })
+      else output.push(block)
+      return
     }
 
-    // In section — process line by line so we can detect the exit condition
-    for (const line of lines) {
-      if (!inSection) {
-        // We exited mid-block; pass remaining lines through individually
-        result.push({ text: line, assets: [], source: block.source })
-        continue
-      }
-      // Section exit: reading comprehension or a major new section begins
-      if (/reading comprehension|section [A-Z]\b/i.test(line) &&
-          !PARA_ORDER_INSTRUCTION_RE.test(line)) {
-        flushParaLines()
-        inSection = false
-        result.push({ text: line, assets: [], source: block.source })
-        continue
-      }
-      paraLines.push({ line, block })
-    }
-  }
+    const explicitInstruction = text.replace(/^instruction\s*:\s*/i, '')
+    const startsParaOrdering = PARA_ORDER_INSTRUCTION_RE.test(explicitInstruction)
+    const endsParaOrdering = collecting && (
+      isComprehensionInstruction(text) ||
+      isPassageLabel(text) ||
+      /^reading comprehension\b/i.test(text) ||
+      ANSWER_KEY_HEADING_RE.test(text) ||
+      /^(?:part|section|unit)\s+[A-Z0-9]/i.test(text)
+    )
 
-  flushParaLines()
-  return result
+    if (startsParaOrdering) {
+      flushBuffered()
+      collecting = true
+      instruction = explicitInstruction
+      return
+    }
+
+    if (endsParaOrdering) {
+      flushBuffered()
+      output.push(block)
+      return
+    }
+
+    if (collecting) {
+      buffered.push({ line: text, block })
+      return
+    }
+
+    output.push(block)
+  })
+
+  flushBuffered()
+  return output
 }
 
 /**
@@ -773,16 +869,17 @@ function preprocessParaOrdering(blocks) {
  */
 function buildParaOrderBlocks(lineObjects, instruction) {
   const output = []
+  const questionText = deriveParaOrderQuestionText(instruction)
 
   let qNum = null
-  let currentOpt = null
+  let currentOpt = ''
   let optTexts = { A: [], B: [], C: [], D: [] }
   let firstBlock = null
   const OPT_ORDER = ['A', 'B', 'C', 'D']
 
   function flushQuestion() {
     if (!qNum) return
-    const lines = [`${qNum}. ${instruction}`]
+    const lines = [`${qNum}. ${questionText}`]
     for (const letter of OPT_ORDER) {
       const sentences = optTexts[letter] || []
       if (sentences.length) lines.push(`${letter}. ${sentences.join(' ')}`)
@@ -792,9 +889,10 @@ function buildParaOrderBlocks(lineObjects, instruction) {
       assets: firstBlock?.assets || [],
       source: firstBlock?.source || 'docx',
       numberedList: false,
+      sharedInstruction: instruction,
     })
     qNum = null
-    currentOpt = null
+    currentOpt = ''
     optTexts = { A: [], B: [], C: [], D: [] }
     firstBlock = null
   }
@@ -802,24 +900,48 @@ function buildParaOrderBlocks(lineObjects, instruction) {
   function startQuestion(num, block) {
     flushQuestion()
     qNum = String(num)
-    currentOpt = 'A'
+    currentOpt = ''
     firstBlock = block
   }
 
   for (const { line, block } of lineObjects) {
+    const text = cleanText(line)
+    if (!text) continue
+
+    if (/^example$/i.test(text) || /^the answer is\b/i.test(text)) continue
+
     // ── Signal 1: "Now do questions N" — locates the first question ──────────
-    const doQMatch = line.match(PARA_ORDER_DO_Q_RE)
+    const doQMatch = text.match(PARA_ORDER_DO_Q_RE)
     if (doQMatch) {
-      startQuestion(doQMatch[1], block)
-      // The line may end with "NA" (e.g. "…39~4339A"); there is nothing
-      // meaningful after the question marker so we skip the rest of the line.
+      const inlineStart = text.match(/(\d{1,3})\s*A(?:[\).:\-]\s*|\s+)?(.*)$/)
+      if (inlineStart) {
+        startQuestion(inlineStart[1], block)
+        currentOpt = 'A'
+        const optionText = cleanText(inlineStart[2])
+        if (optionText) optTexts.A.push(optionText)
+      }
+      continue
+    }
+
+    const questionOnlyMatch = text.match(PARA_ORDER_QUESTION_ONLY_RE)
+    if (questionOnlyMatch) {
+      startQuestion(questionOnlyMatch[0], block)
+      continue
+    }
+
+    const inlineQuestionOption = text.match(/^(\d{1,3})\s*([A-D])(?:[\).:\-]\s*|\s+)?(.*)$/)
+    if (inlineQuestionOption) {
+      startQuestion(inlineQuestionOption[1], block)
+      currentOpt = inlineQuestionOption[2]
+      const optionText = cleanText(inlineQuestionOption[3])
+      if (optionText) optTexts[currentOpt].push(optionText)
       continue
     }
 
     // ── Signal 3: line ends with [punct][digits]A → Q boundary ──────────────
     // e.g. "...many lives.40A" or "...coming back.43A"
     // We require punctuation before the number to avoid false positives.
-    const nextQMatch = line.match(/^(.*[.!?'"\u2019\u201d])\s*(\d{1,3})A\s*$/)
+    const nextQMatch = text.match(/^(.*[.!?'"\u2019\u201d])\s*(\d{1,3})A\s*$/)
     if (nextQMatch && qNum) {
       const textBefore = nextQMatch[1].trim()
       const newQNum = nextQMatch[2]
@@ -830,27 +952,93 @@ function buildParaOrderBlocks(lineObjects, instruction) {
 
     if (!qNum) continue // still in preamble / example — skip
 
-    // ── Signal 2: line ends with [punct][B-D] → option boundary ─────────────
-    const optTransMatch = line.match(/^(.*[.!?'"\u2019\u201d])\s*([B-D])\s*$/)
-    if (optTransMatch) {
-      const textBefore = optTransMatch[1].trim()
-      const nextLetter = optTransMatch[2]
-      const curIdx = OPT_ORDER.indexOf(currentOpt)
-      const nxtIdx = OPT_ORDER.indexOf(nextLetter)
-
-      if (nxtIdx === curIdx + 1) {
-        // Sequential option transition (A→B, B→C, C→D)
-        if (textBefore) optTexts[currentOpt].push(textBefore)
-        currentOpt = nextLetter
-        continue
-      }
+    const optionMatch = parseRawParaOrderOptionLine(text)
+    if (optionMatch) {
+      currentOpt = optionMatch.label
+      optTexts[currentOpt].push(optionMatch.text)
+      continue
     }
 
     // ── Regular sentence line — add to current option ────────────────────────
-    if (currentOpt) optTexts[currentOpt].push(line)
+    if (currentOpt) optTexts[currentOpt].push(text)
   }
 
   flushQuestion()
+  return output
+}
+
+function normalizeOptionOnlyQuestionBlock(block, instruction) {
+  const text = cleanText(String(block.text || '').replace(/\n+/g, ' '))
+  const match = text.match(/^(\d{1,3})\s*[\).:\-]\s*(.+)$/)
+  if (!match) return null
+
+  const optionSegments = extractOptionSegments(cleanText(match[2]))
+  if (!optionSegments.length || optionSegments[0].labelStart > 2) return null
+
+  const questionText = cleanText(instruction || 'Choose the correct answer.')
+  const lines = [`${match[1]}. ${questionText}`]
+  optionSegments.forEach(option => {
+    lines.push(`${option.label}. ${option.text}`)
+  })
+
+  return {
+    ...block,
+    text: lines.join('\n'),
+    sharedInstruction: questionText,
+  }
+}
+
+function preprocessStandaloneInstructions(blocks) {
+  const output = []
+  let currentInstruction = ''
+
+  blocks.forEach(block => {
+    const text = cleanText(block.text)
+    const singleLineText = cleanText(String(block.text || '').replace(/\n+/g, ' '))
+    const leadingLine = splitLines(text)[0] || singleLineText
+    if (!text) {
+      output.push(block)
+      return
+    }
+
+    const detectedQuestion = questionMatch(leadingLine)
+    const comprehensionInstruction = isComprehensionInstruction(singleLineText)
+    const standaloneInstruction = isStandaloneInstruction(singleLineText)
+    const sectionBreak = isSectionHeading(singleLineText) ||
+      isPassageLabel(singleLineText) ||
+      ANSWER_KEY_HEADING_RE.test(singleLineText)
+
+    if (sectionBreak || comprehensionInstruction) {
+      currentInstruction = ''
+      output.push(block)
+      return
+    }
+
+    if (standaloneInstruction && !detectedQuestion) {
+      currentInstruction = singleLineText.replace(/^instruction\s*:\s*/i, '')
+      output.push(block)
+      return
+    }
+
+    if (currentInstruction) {
+      const normalizedOptionOnly = normalizeOptionOnlyQuestionBlock(block, currentInstruction)
+      if (normalizedOptionOnly) {
+        output.push(normalizedOptionOnly)
+        return
+      }
+
+      if (detectedQuestion) {
+        output.push({
+          ...block,
+          sharedInstruction: currentInstruction,
+        })
+        return
+      }
+    }
+
+    output.push(block)
+  })
+
   return output
 }
 
@@ -859,6 +1047,7 @@ function parseQuestionsFromBlocks(blocks, warnings) {
   const answerKey = extractAnswerKey(blocks)
   let pendingAssets = []
   let inAnswerKey = false
+  let sharedInstruction = ''
 
   // ── Comprehension state ───────────────────────────────────────────────────
   let compActive = false        // currently inside a comprehension section
@@ -923,6 +1112,15 @@ function parseQuestionsFromBlocks(blocks, warnings) {
   function finalizeComprehension() {
     finalizeSubQuestion()
     if (!compActive) return
+    if (!compTitle && compSubQuestions.length === 0) {
+      compActive = false
+      compInstructions = []
+      compTitle = ''
+      compPassageParts = []
+      compSubQuestions = []
+      current = null
+      return
+    }
     if (compPassageParts.length > 0 || compSubQuestions.length > 0 || compInstructions.length > 0) {
       pushComprehensionBlock()
     }
@@ -940,10 +1138,14 @@ function parseQuestionsFromBlocks(blocks, warnings) {
     } else {
       finalizeStandaloneQuestion()
     }
-    const inline = splitInlineOptionsFromQuestion(text)
+    const inline = splitInlineOptionsFromQuestion(
+      text,
+      !isSubQuestion ? sharedInstruction : '',
+    )
     current = {
       textParts: [inline.text],
       options: [],
+      lastOptionIndex: inline.options.length ? inline.options[inline.options.length - 1].index : null,
       answerRaw: '',
       explanationParts: [],
       reviewNotes: [],
@@ -954,6 +1156,7 @@ function parseQuestionsFromBlocks(blocks, warnings) {
       tableFlattened: block.source === 'docx-table',
       sourceNumber,
       isSubQuestion,
+      sharedInstruction: block.sharedInstruction || (!isSubQuestion ? sharedInstruction : ''),
     }
     inline.options.forEach(opt => { current.options[opt.index] = opt.text })
     pendingAssets = []
@@ -978,6 +1181,7 @@ function parseQuestionsFromBlocks(blocks, warnings) {
         finalizeComprehension()
         finalizeStandaloneQuestion()
         inAnswerKey = true
+        sharedInstruction = ''
         return
       }
       if (inAnswerKey) {
@@ -996,10 +1200,14 @@ function parseQuestionsFromBlocks(blocks, warnings) {
       const answerMatch = line.match(ANSWER_RE)
       const explanationMatch = line.match(EXPLANATION_RE)
       const optionSegments = extractOptionSegments(line)
+      const optionOnlyQuestion = optionOnlyQuestionMatch(line)
+      const paraOrderOption = parseParaOrderOptionLine(line)
       const imageOnlyHint = IMAGE_HINT_RE.test(line)
       const isInstruction = isComprehensionInstruction(line)
       const isPassLabel = isPassageLabel(line)
       const isSectionBreak = isSectionHeading(line)
+      const numberOnlyQuestion = line.match(PARA_ORDER_QUESTION_ONLY_RE)
+      const explicitInstruction = /^instruction\s*:/i.test(line)
 
       // ══════════════════════════════════════════════════════════════════════
       // COMPREHENSION MODE
@@ -1022,7 +1230,9 @@ function parseQuestionsFromBlocks(blocks, warnings) {
           if (compPassageParts.length > 0 || compSubQuestions.length > 0 || current) {
             // New story within same section — push current passage, start new
             finalizeSubQuestion()
-            pushComprehensionBlock()
+            if (compTitle || compSubQuestions.length > 0) {
+              pushComprehensionBlock()
+            }
             const savedInstructions = [...compInstructions]
             compActive = true
             compInstructions = savedInstructions
@@ -1032,6 +1242,10 @@ function parseQuestionsFromBlocks(blocks, warnings) {
             current = null
           }
           compTitle = cleanText(line)
+          return
+        }
+
+        if (isQuestionRangeHeading(line) && !detectedQuestion) {
           return
         }
 
@@ -1056,7 +1270,10 @@ function parseQuestionsFromBlocks(blocks, warnings) {
           if (answerMatch) { current.answerRaw = answerMatch[1]; return }
           if (explanationMatch) { current.explanationParts.push(explanationMatch[1]); return }
           if (optionSegments.length) {
-            optionSegments.forEach(opt => { current.options[opt.index] = opt.text })
+            optionSegments.forEach(opt => {
+              current.options[opt.index] = opt.text
+              current.lastOptionIndex = opt.index
+            })
             return
           }
           if (imageOnlyHint && !current.diagramText) current.diagramText = line
@@ -1081,9 +1298,16 @@ function parseQuestionsFromBlocks(blocks, warnings) {
       // NON-COMPREHENSION MODE
       // ══════════════════════════════════════════════════════════════════════
 
+      if (explicitInstruction && !detectedQuestion) {
+        finalizeStandaloneQuestion()
+        sharedInstruction = cleanText(line).replace(/^instruction\s*:\s*/i, '')
+        return
+      }
+
       // Instruction line → enter comprehension mode
       if (isInstruction && !detectedQuestion) {
         finalizeStandaloneQuestion()
+        sharedInstruction = ''
         compActive = true
         compInstructions.push(line)
         if (lineAssets.length) pendingAssets.push(...lineAssets)
@@ -1091,9 +1315,41 @@ function parseQuestionsFromBlocks(blocks, warnings) {
       }
 
       // Section heading → finish current question, stay in standalone mode
-      if (isSectionBreak) {
+      if (isSectionBreak || isPassLabel) {
         if (lineAssets.length) pendingAssets.push(...lineAssets)
         finalizeStandaloneQuestion()
+        sharedInstruction = ''
+        return
+      }
+
+      if (isStandaloneInstruction(line) && !detectedQuestion) {
+        finalizeStandaloneQuestion()
+        sharedInstruction = cleanText(line).replace(/^instruction\s*:\s*/i, '')
+        return
+      }
+
+      if (isQuestionRangeHeading(line) && !detectedQuestion) {
+        return
+      }
+
+      if (sharedInstruction && PARA_ORDER_INSTRUCTION_RE.test(sharedInstruction) && numberOnlyQuestion) {
+        startQuestion(
+          deriveParaOrderQuestionText(sharedInstruction),
+          { ...block, assets: lineAssets, sharedInstruction },
+          numberOnlyQuestion[0],
+          false,
+        )
+        return
+      }
+
+      if (optionOnlyQuestion) {
+        startQuestion(
+          sharedInstruction || 'Choose the correct answer.',
+          { ...block, assets: lineAssets, sharedInstruction },
+          optionOnlyQuestion.number,
+          false,
+        )
+        current.options = optionOnlyQuestion.options
         return
       }
 
@@ -1130,7 +1386,26 @@ function parseQuestionsFromBlocks(blocks, warnings) {
       if (answerMatch) { current.answerRaw = answerMatch[1]; return }
       if (explanationMatch) { current.explanationParts.push(explanationMatch[1]); return }
       if (optionSegments.length) {
-        optionSegments.forEach(opt => { current.options[opt.index] = opt.text })
+        optionSegments.forEach(opt => {
+          current.options[opt.index] = opt.text
+          current.lastOptionIndex = opt.index
+        })
+        return
+      }
+      if (current.sharedInstruction && PARA_ORDER_INSTRUCTION_RE.test(current.sharedInstruction) && paraOrderOption) {
+        current.lastOptionIndex = paraOrderOption.label.charCodeAt(0) - 65
+        current.options[current.lastOptionIndex] = paraOrderOption.text
+        return
+      }
+      if (
+        current.sharedInstruction &&
+        PARA_ORDER_INSTRUCTION_RE.test(current.sharedInstruction) &&
+        Number.isInteger(current.lastOptionIndex) &&
+        current.lastOptionIndex >= 0
+      ) {
+        current.options[current.lastOptionIndex] = cleanText(
+          [current.options[current.lastOptionIndex], line].filter(Boolean).join(' '),
+        )
         return
       }
       if (imageOnlyHint && !current.diagramText) current.diagramText = line
@@ -1184,6 +1459,58 @@ function parseQuestionsFromBlocks(blocks, warnings) {
   return questions
 }
 
+function buildImportedSections(questions = []) {
+  return questions.map(question => {
+    if (question.type === 'comprehension' || question.detectedType === 'comprehension') {
+      return createPassageSection({
+        title: question.passageTitle ?? '',
+        instructions: question.instructions ?? question.text ?? '',
+        passageText: question.passage ?? '',
+        imageUrl: question.imageUrl ?? '',
+        questions: (question.subQuestions || []).map(subQuestion => ({
+          ...subQuestion,
+          type: 'mcq',
+          detectedType: 'mcq',
+          passageId: null,
+        })),
+      })
+    }
+
+    return createStandaloneSection(question)
+  })
+}
+
+function summarizeImportedSections(sections = []) {
+  let questionCount = 0
+  let images = 0
+  let needsReview = 0
+  let passages = 0
+
+  sections.forEach(section => {
+    if (section.kind === 'passage') {
+      passages += 1
+      if (section.passage?.imageUrl) images += 1
+      ;(section.passage?.questions || []).forEach(question => {
+        questionCount += 1
+        if (question.imageUrl) images += 1
+        if (question.requiresReview) needsReview += 1
+      })
+      return
+    }
+
+    questionCount += 1
+    if (section.question?.imageUrl) images += 1
+    if (section.question?.requiresReview) needsReview += 1
+  })
+
+  return {
+    questions: questionCount,
+    images,
+    needsReview,
+    passages,
+  }
+}
+
 export async function importQuizDocument(file) {
   if (!file) throw new Error('Choose a Word or PDF file first.')
 
@@ -1200,14 +1527,15 @@ export async function importQuizDocument(file) {
     throw new Error('Please upload a .doc, .docx, or .pdf file.')
   }
 
-  // Pre-process paragraph-ordering questions (e.g. "choose the paragraph with
-  // sentences in the best order") before the main parser runs.
-  const processedBlocks = preprocessParaOrdering(extracted.blocks)
-
-  const allText = processedBlocks.map(b => b.text).join('\n')
-  const metadata = metadataFromText(allText, file.name)
-  const questions = parseQuestionsFromBlocks(processedBlocks, extracted.warnings)
-  const importStatus = questions.some(q => q.requiresReview) || extracted.warnings.length
+  const { processedBlocks, questions, sections, summary } = processImportedQuestionBlocks(
+    extracted.blocks,
+    extracted.warnings,
+  )
+  const metadata = buildImportMetadata(
+    processedBlocks.map(block => block.text).join('\n'),
+    file.name,
+  )
+  const importStatus = summary.needsReview > 0 || extracted.warnings.length
     ? 'needs_review'
     : 'success'
 
@@ -1224,15 +1552,12 @@ export async function importQuizDocument(file) {
       ),
       importWarnings: extracted.warnings,
     },
+    sections,
     questions,
     imageAssets: extracted.imageAssets,
     importStatus,
     warnings: extracted.warnings,
-    summary: {
-      questions: questions.length,
-      images: questions.filter(q => q.imageAssetId).length,
-      needsReview: questions.filter(q => q.requiresReview).length,
-    },
+    summary,
   }
 }
 

@@ -34,10 +34,10 @@ const MOOD_CONFIG = {
   },
   tip: {
     mood:        'normal',
-    bg:          'bg-blue-50 border-blue-200',
-    header:      'text-blue-700',
-    text:        'text-blue-800',
-    badge:       'bg-blue-100 text-blue-700',
+    bg:          'theme-accent-bg theme-border',
+    header:      'theme-accent-text',
+    text:        'theme-text',
+    badge:       'theme-card theme-border theme-accent-text',
     badgeLabel:  '🦉 Pako\'s Tip',
     headerText:  'Quick tip from Professor Pako:',
   },
@@ -141,7 +141,7 @@ export default function QuizTip({ isCorrect, tipText, onDismiss, visible }) {
             <div
               className="h-1 rounded-full opacity-50 animate-[shrink_8s_linear_forwards]"
               style={{
-                background: isCorrect ? '#15803D' : isCorrect === false ? '#EA580C' : '#2563EB',
+                background: isCorrect ? '#15803D' : isCorrect === false ? '#EA580C' : 'var(--accent)',
                 animation: 'shrink 8s linear forwards',
               }}
             />

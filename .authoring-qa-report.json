@@ -1,0 +1,98 @@
+[
+  {
+    "route": "/admin/lessons",
+    "url": "http://127.0.0.1:4173/admin/lessons",
+    "title": "ZedExams — Practise Smart. Pass Confidently.",
+    "body": "Admin Panel 🏠 Learner Dashboard 📊 Dashboard ▦ Lessons 📖 Create Lesson ✏️ Create Quiz 📤 Upload Paper 📁 Manage Content 🔔 Approvals 🧑‍🏫 Teacher Apps 📈 Results 💳 Payments M Mahenga Mwelwa 🚪 Sign Out LESSONS Lesson Dashboard Create, edit, publish, and organise native slides or preserved PowerPoint presentations. Create New Lesson 2 TOTAL 2 PUBLISHED 0 PENDING 0 DRAFTS All Grades Grade 4 Grade 5 Grade 6 All Subjects Mathematics English Integrated Science Social Studies Technology Studies Home Economics Expressive Arts All Topics Our Amazing Respiratory System Respiratory System All Statuses Published Pending Draft Rejected ▦ The Respiratory System published Grade 4 Integrated Science Respiratory System 8 slides Builder Updated 16 Apr 2026 View Edit Unpublish Delete ▣ Our Amazing Respiratory System published Grade 4 Integrated Science Our Amazing Respiratory System 13 slides Presentation Updated 15 Apr 2026 View Edit Unpublish Delete Zed ×",
+    "stuckLoading": false,
+    "errors": []
+  },
+  {
+    "route": "/admin/lessons/new",
+    "url": "http://127.0.0.1:4173/admin/lessons/new",
+    "title": "ZedExams — Practise Smart. Pass Confidently.",
+    "body": "Admin Panel 🏠 Learner Dashboard 📊 Dashboard ▦ Lessons 📖 Create Lesson ✏️ Create Quiz 📤 Upload Paper 📁 Manage Content 🔔 Approvals 🧑‍🏫 Teacher Apps 📈 Results 💳 Payments M Mahenga Mwelwa 🚪 Sign Out CREATE LESSON Choose how you want to build Every option creates the same final structure: a native slide lesson that learners can play inside the website. ▦ Slide Builder Create each slide by choosing a layout and filling in the fields. ✦ Quick Lesson Paste notes and convert them into editable presentation slides. P Import PowerPoint Upload a .pptx file and convert its slides into editable lesson slides. ▣ PowerPoint Viewer Preserve the original presentation layout and play it slide by slide. Need a starting point? Load the Grade 4 Integrated Science respiratory system sample lesson. Use Sample Lesson Zed ×",
+    "stuckLoading": false,
+    "errors": []
+  },
+  {
+    "route": "/admin/quizzes/new",
+    "url": "http://127.0.0.1:4173/admin/quizzes/new",
+    "title": "ZedExams — Practise Smart. Pass Confidently.",
+    "body": "Admin Panel 🏠 Learner Dashboard 📊 Dashboard ▦ Lessons 📖 Create Lesson ✏️ Create Quiz 📤 Upload Paper 📁 Manage Content 🔔 Approvals 🧑‍🏫 Teacher Apps 📈 Results 💳 Payments M Mahenga Mwelwa 🚪 Sign Out ← ✏️ Create Quiz Build quizzes with standalone questions or comprehension passages. CHOOSE HOW TO CREATE THIS QUIZ Selected Create Manually Write questions and answers yourself. Option Import Quiz (Word/PDF) Upload .doc, .docx, or .pdf and convert it into editable questions. Option Generate with Zed AI Create starter questions from a topic, then edit before saving. Quiz Details Grade 4 Grade 5 Grade 6 Mathematics English Integrated Science Social Studies Technology Studies Home Economics Expressive Arts Term 1 Term 2 Term 3 ⏱️ Mins 1 questions 1 marks total Q1 of 1 New question MCQ (4 options) True / False Short Answer Diagram / Image ↑ ↓ Remove 🖼️ Upload Question Image Optional · JPG, PNG, WEBP · max 5 MB INSTRUCTIONS Optional ↩ ↪ B I U S x² x₂ • List 1. List ⇤ ≡ ⇥ A H ∑ Math ⊞ Table QUESTION TEXT Required ↩ ↪ B I U S x² x₂ • List 1. List ⇤ ≡ ⇥ A H ∑ Math ⊞ Table Answer choices - click the radio to mark the correct one A ✓ Correct B C D EXPLANATION Shown after attempt ↩ ↪ B I U",
+    "stuckLoading": false,
+    "errors": []
+  },
+  {
+    "route": "/admin/papers/upload",
+    "url": "http://127.0.0.1:4173/admin/papers/upload",
+    "title": "ZedExams — Practise Smart. Pass Confidently.",
+    "body": "Admin Panel 🏠 Learner Dashboard 📊 Dashboard ▦ Lessons 📖 Create Lesson ✏️ Create Quiz 📤 Upload Paper 📁 Manage Content 🔔 Approvals 🧑‍🏫 Teacher Apps 📈 Results 💳 Payments M Mahenga Mwelwa 🚪 Sign Out ← 📤 Upload Past Paper Upload a PDF exam paper for learners Paper Details Grade 4 Grade 5 Grade 6 Mathematics English Integrated Science Social Studies Technology Studies Home Economics Expressive Arts Term 1 Term 2 Term 3 2024 2023 2022 2021 2020 2019 2018 PDF File 📄 Click to select a PDF PDF only · max 20 MB 💾 Save Draft 🚀 Publish Paper Zed ×",
+    "stuckLoading": false,
+    "errors": []
+  },
+  {
+    "route": "/admin/content",
+    "url": "http://127.0.0.1:4173/admin/content",
+    "title": "ZedExams — Practise Smart. Pass Confidently.",
+    "body": "Admin Panel 🏠 Learner Dashboard 📊 Dashboard ▦ Lessons 📖 Create Lesson ✏️ Create Quiz 📤 Upload Paper 📁 Manage Content 🔔 Approvals 🧑‍🏫 Teacher Apps 📈 Results 💳 Payments M Mahenga Mwelwa 🚪 Sign Out 📁 Manage Content Edit, publish, or delete lessons and quizzes + Quiz Import Quiz + Lesson 5 Total 5 Published 0 Pending 1 Drafts 📝 Quizzes 📖 Lessons All Grades Grade 4 Grade 5 Grade 6 All Subjects Mathematics English Integrated Science Social Studies Technology Studies Home Economics Expressive Arts All Status Published Pending Draft Rejected 📝 GRADE 6 ENGLISH LANGUAGE – FULL PAST PAPER English G6 T3 60Q · 60m Imported Published ✏️ Edit Unpublish Delete 📝 Science Respiratory system Test Science G5 T1 3Q · 5m Published ✏️ Edit Unpublish Delete 📝 Grade 6 Integrated Science — Past Paper Integrated Science G6 T1 50Q · 60m Published ✏️ Edit Unpublish Delete 📝 Grade 6 English 2023 — Paper 1 English G7 T1 60Q · 60m Published ✏️ Edit Unpublish Delete 📝 Grade 5 Mathematics - Term 1 Mathematics G5 T1 10Q · 30m Published ✏️ Edit Unpublish Delete Zed ×",
+    "stuckLoading": false,
+    "errors": []
+  },
+  {
+    "route": "/admin/approvals",
+    "url": "http://127.0.0.1:4173/admin/approvals",
+    "title": "ZedExams — Practise Smart. Pass Confidently.",
+    "body": "Admin Panel 🏠 Learner Dashboard 📊 Dashboard ▦ Lessons 📖 Create Lesson ✏️ Create Quiz 📤 Upload Paper 📁 Manage Content 🔔 Approvals 🧑‍🏫 Teacher Apps 📈 Results 💳 Payments M Mahenga Mwelwa 🚪 Sign Out 🔔 Content Approvals Review and approve teacher-submitted content 0 pending 🎉 All caught up! No content waiting for review. Zed ×",
+    "stuckLoading": false,
+    "errors": []
+  },
+  {
+    "route": "/admin/teacher-applications",
+    "url": "http://127.0.0.1:4173/admin/teacher-applications",
+    "title": "ZedExams — Practise Smart. Pass Confidently.",
+    "body": "Admin Panel 🏠 Learner Dashboard 📊 Dashboard ▦ Lessons 📖 Create Lesson ✏️ Create Quiz 📤 Upload Paper 📁 Manage Content 🔔 Approvals 🧑‍🏫 Teacher Apps 📈 Results 💳 Payments M Mahenga Mwelwa 🚪 Sign Out Teacher Applications Review verification details before granting teacher access. 0 pending No pending teacher applications New submissions will appear here for review. Zed ×",
+    "stuckLoading": false,
+    "errors": []
+  },
+  {
+    "route": "/teacher/content",
+    "url": "http://127.0.0.1:4173/teacher/content",
+    "title": "ZedExams — Practise Smart. Pass Confidently.",
+    "body": "Teacher Panel 🏠 Learner Dashboard 📊 My Dashboard 📁 My Content ▦ My Lessons ✏️ Create Quiz 📖 Create Lesson 📤 Upload Paper M Mahenga Mwelwa 🚪 Sign Out 📁 My Content Manage and submit your quizzes, lessons, and papers + Quiz Import Quiz + Lesson All Draft(0) Pending(0) Published(7) Rejected(0) ✏️ GRADE 6 ENGLISH LANGUAGE – FULL PAST PAPER ✏️ Quiz Grade 6 English T3 Imported ✅ Published Created 17 Apr 2026 ✅ Live for learners 📖 The Respiratory System 📖 Lesson Grade 4 Integrated Science T1 ✅ Published Created 16 Apr 2026 ✅ Live for learners 📖 Our Amazing Respiratory System 📖 Lesson Grade 4 Integrated Science T1 ✅ Published Created 15 Apr 2026 ✅ Live for learners ✏️ Science Respiratory system Test ✏️ Quiz Grade 5 Science T1 ✅ Published Created 12 Apr 2026 ✅ Live for learners ✏️ Grade 6 English 2023 — Paper 1 ✏️ Quiz Grade 7 English T1 ✅ Published Created 11 Apr 2026 ✅ Live for learners ✏️ Grade 5 Mathematics - Term 1 ✏️ Quiz Grade 5 Mathematics T1 ✅ Published Created 11 Apr 2026 ✅ Live for learners 📄 2017 Social studies 📄 Paper Grade 7 Social Studies T1 ✅ Published ✅ Live for learners Zed ×",
+    "stuckLoading": false,
+    "errors": []
+  },
+  {
+    "route": "/teacher/quizzes/new",
+    "url": "http://127.0.0.1:4173/teacher/quizzes/new",
+    "title": "ZedExams — Practise Smart. Pass Confidently.",
+    "body": "Teacher Panel 🏠 Learner Dashboard 📊 My Dashboard 📁 My Content ▦ My Lessons ✏️ Create Quiz 📖 Create Lesson 📤 Upload Paper M Mahenga Mwelwa 🚪 Sign Out ← ✏️ Create Quiz Build quizzes with standalone questions or comprehension passages. CHOOSE HOW TO CREATE THIS QUIZ Selected Create Manually Write questions and answers yourself. Option Import Quiz (Word/PDF) Upload .doc, .docx, or .pdf and convert it into editable questions. Option Generate with Zed AI Create starter questions from a topic, then edit before saving. Quiz Details Grade 4 Grade 5 Grade 6 Mathematics English Integrated Science Social Studies Technology Studies Home Economics Expressive Arts Term 1 Term 2 Term 3 ⏱️ Mins 1 questions 1 marks total Q1 of 1 New question MCQ (4 options) True / False Short Answer Diagram / Image ↑ ↓ Remove 🖼️ Upload Question Image Optional · JPG, PNG, WEBP · max 5 MB INSTRUCTIONS Optional ↩ ↪ B I U S x² x₂ • List 1. List ⇤ ≡ ⇥ A H ∑ Math ⊞ Table QUESTION TEXT Required ↩ ↪ B I U S x² x₂ • List 1. List ⇤ ≡ ⇥ A H ∑ Math ⊞ Table Answer choices - click the radio to mark the correct one A ✓ Correct B C D EXPLANATION Shown after attempt ↩ ↪ B I U S x² x₂ • List 1. List ⇤ ≡ ⇥ A H ∑ Math ⊞ Table Ma",
+    "stuckLoading": false,
+    "errors": []
+  },
+  {
+    "route": "/teacher/lessons",
+    "url": "http://127.0.0.1:4173/teacher/lessons",
+    "title": "ZedExams — Practise Smart. Pass Confidently.",
+    "body": "Teacher Panel 🏠 Learner Dashboard 📊 My Dashboard 📁 My Content ▦ My Lessons ✏️ Create Quiz 📖 Create Lesson 📤 Upload Paper M Mahenga Mwelwa 🚪 Sign Out LESSONS My Lesson Slides Create, edit, publish, and organise native slides or preserved PowerPoint presentations. Create New Lesson 2 TOTAL 2 PUBLISHED 0 PENDING 0 DRAFTS All Grades Grade 4 Grade 5 Grade 6 All Subjects Mathematics English Integrated Science Social Studies Technology Studies Home Economics Expressive Arts All Topics Our Amazing Respiratory System Respiratory System All Statuses Published Pending Draft Rejected ▦ The Respiratory System published Grade 4 Integrated Science Respiratory System 8 slides Builder Updated 16 Apr 2026 View Edit Delete ▣ Our Amazing Respiratory System published Grade 4 Integrated Science Our Amazing Respiratory System 13 slides Presentation Updated 15 Apr 2026 View Edit Delete Zed ×",
+    "stuckLoading": false,
+    "errors": []
+  },
+  {
+    "route": "/teacher/lessons/new",
+    "url": "http://127.0.0.1:4173/teacher/lessons/new",
+    "title": "ZedExams — Practise Smart. Pass Confidently.",
+    "body": "Teacher Panel 🏠 Learner Dashboard 📊 My Dashboard 📁 My Content ▦ My Lessons ✏️ Create Quiz 📖 Create Lesson 📤 Upload Paper M Mahenga Mwelwa 🚪 Sign Out CREATE LESSON Choose how you want to build Every option creates the same final structure: a native slide lesson that learners can play inside the website. ▦ Slide Builder Create each slide by choosing a layout and filling in the fields. ✦ Quick Lesson Paste notes and convert them into editable presentation slides. P Import PowerPoint Upload a .pptx file and convert its slides into editable lesson slides. ▣ PowerPoint Viewer Preserve the original presentation layout and play it slide by slide. Need a starting point? Load the Grade 4 Integrated Science respiratory system sample lesson. Use Sample Lesson Zed ×",
+    "stuckLoading": false,
+    "errors": []
+  },
+  {
+    "route": "/teacher/papers/upload",
+    "url": "http://127.0.0.1:4173/teacher/papers/upload",
+    "title": "ZedExams — Practise Smart. Pass Confidently.",
+    "body": "Teacher Panel 🏠 Learner Dashboard 📊 My Dashboard 📁 My Content ▦ My Lessons ✏️ Create Quiz 📖 Create Lesson 📤 Upload Paper M Mahenga Mwelwa 🚪 Sign Out ← 📤 Upload Past Paper Upload a PDF exam paper for learners Paper Details Grade 4 Grade 5 Grade 6 Mathematics English Integrated Science Social Studies Technology Studies Home Economics Expressive Arts Term 1 Term 2 Term 3 2024 2023 2022 2021 2020 2019 2018 PDF File 📄 Click to select a PDF PDF only · max 20 MB 💾 Save Draft 🚀 Publish Paper Zed ×",
+    "stuckLoading": false,
+    "errors": []
+  }
+]

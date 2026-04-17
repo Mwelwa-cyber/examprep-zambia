@@ -264,3 +264,116 @@ body.data-saver [data-bg-gradient] {
 .animate-shake      { animation: shake     0.45s ease-in-out both; }
 .animate-pulse-green{ animation: pulse-green 1.5s ease-out; }
 .animate-star-burst { animation: star-burst 0.5s cubic-bezier(0.175,0.885,0.32,1.275) both; }
+
+/* ── Quiz rich text ─────────────────────────────────────────── */
+.quiz-rich-editor,
+.quiz-rich-content {
+  color: inherit;
+}
+
+.quiz-rich-editor[data-empty="true"]::before {
+  content: attr(data-placeholder);
+  color: #94a3b8;
+  pointer-events: none;
+  float: left;
+}
+
+.quiz-rich-editor p,
+.quiz-rich-editor div,
+.quiz-rich-content p,
+.quiz-rich-content div {
+  margin: 0 0 0.75rem;
+}
+
+.quiz-rich-editor p:last-child,
+.quiz-rich-editor div:last-child,
+.quiz-rich-content p:last-child,
+.quiz-rich-content div:last-child {
+  margin-bottom: 0;
+}
+
+.quiz-rich-editor ul,
+.quiz-rich-editor ol,
+.quiz-rich-content ul,
+.quiz-rich-content ol {
+  margin: 0.75rem 0 0.75rem 1.25rem;
+  padding-left: 0.5rem;
+}
+
+.quiz-rich-editor li,
+.quiz-rich-content li {
+  margin: 0.2rem 0;
+}
+
+.quiz-rich-editor strong,
+.quiz-rich-content strong {
+  font-weight: 800;
+}
+
+.quiz-rich-editor em,
+.quiz-rich-content em {
+  font-style: italic;
+}
+
+.quiz-rich-editor .mnode,
+.quiz-rich-content .mnode {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  overflow-x: auto;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  background: rgba(14, 165, 233, 0.08);
+  padding: 0.15rem 0.45rem;
+  vertical-align: middle;
+}
+
+.quiz-rich-editor .mnode .katex,
+.quiz-rich-content .mnode .katex {
+  font-size: 1em;
+}
+
+.quiz-rich-editor .etable,
+.quiz-rich-content .etable {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.95);
+  margin: 0.9rem 0;
+}
+
+.quiz-rich-editor .etable td,
+.quiz-rich-editor .etable th,
+.quiz-rich-content .etable td,
+.quiz-rich-content .etable th {
+  min-width: 4.5rem;
+  border: 1px solid var(--border);
+  padding: 0.7rem 0.75rem;
+  vertical-align: top;
+  text-align: left;
+}
+
+.quiz-rich-editor .etable td:focus-within,
+.quiz-rich-editor .etable th:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  background: rgba(14, 165, 233, 0.08);
+}
+
+.quiz-rich-content.inline {
+  display: inline;
+}
+
+.quiz-rich-content.inline p,
+.quiz-rich-content.inline div {
+  display: inline;
+  margin: 0;
+}
+
+.quiz-rich-muted {
+  color: #64748b;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
