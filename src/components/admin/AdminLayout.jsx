@@ -1,20 +1,39 @@
 import { useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import {
+  LayoutDashboard,
+  Presentation,
+  BookOpen,
+  PencilLine,
+  Upload,
+  FolderOpen,
+  BellRing,
+  GraduationCap,
+  TrendingUp,
+  CreditCard,
+  Home,
+  Menu,
+  X,
+  LogOut,
+  Sparkles,
+} from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import Logo from '../ui/Logo'
 import ThemeSelector from '../ui/ThemeSelector'
+import Icon from '../ui/Icon'
 
 const NAV = [
-  { to: '/admin',             icon: '📊', label: 'Dashboard',      end: true },
-  { to: '/admin/lessons',     icon: '▦', label: 'Lessons'                   },
-  { to: '/admin/lessons/new', icon: '📖', label: 'Create Lesson'             },
-  { to: '/admin/quizzes/new', icon: '✏️', label: 'Create Quiz'               },
-  { to: '/admin/papers/upload', icon: '📤', label: 'Upload Paper'            },
-  { to: '/admin/content',     icon: '📁', label: 'Manage Content'            },
-  { to: '/admin/approvals',   icon: '🔔', label: 'Approvals'                 },
-  { to: '/admin/teacher-applications', icon: '🧑‍🏫', label: 'Teacher Apps'   },
-  { to: '/admin/results',     icon: '📈', label: 'Results'                   },
-  { to: '/admin/payments',    icon: '💳', label: 'Payments'                  },
+  { to: '/admin',                        icon: LayoutDashboard, label: 'Dashboard',       end: true },
+  { to: '/admin/lessons',                icon: Presentation,    label: 'Lessons'                   },
+  { to: '/admin/lessons/new',            icon: BookOpen,        label: 'Create Lesson'             },
+  { to: '/admin/generate/lesson-plan',   icon: Sparkles,        label: 'AI Lesson Plan'            },
+  { to: '/admin/quizzes/new',            icon: PencilLine,      label: 'Create Quiz'               },
+  { to: '/admin/papers/upload',          icon: Upload,          label: 'Upload Paper'              },
+  { to: '/admin/content',                icon: FolderOpen,      label: 'Manage Content'            },
+  { to: '/admin/approvals',              icon: BellRing,        label: 'Approvals'                 },
+  { to: '/admin/teacher-applications',   icon: GraduationCap,   label: 'Teacher Apps'              },
+  { to: '/admin/results',                icon: TrendingUp,      label: 'Results'                   },
+  { to: '/admin/payments',               icon: CreditCard,      label: 'Payments'                  },
 ]
 
 export default function AdminLayout({ children }) {
@@ -29,17 +48,29 @@ export default function AdminLayout({ children }) {
     navigate('/login')
   }
 
+  // Shared link style — desktop sidebar + mobile drawer stay in sync.
+  const navClass = ({ isActive }) =>
+    `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all duration-fast ease-out ${
+      isActive
+        ? 'theme-accent-bg theme-accent-text shadow-elev-inner-hl'
+        : 'theme-text-muted hover:theme-bg-subtle hover:theme-text'
+    }`
+  const mobileNavClass = ({ isActive }) =>
+    `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-colors animate-slide-in-soft ${
+      isActive ? 'theme-accent-bg theme-accent-text shadow-elev-inner-hl' : 'theme-text-muted hover:theme-bg-subtle hover:theme-text'
+    }`
+
   return (
     <div className="theme-bg theme-text min-h-screen flex">
       {/* ── Desktop Sidebar ─────────────────────────────── */}
-      <aside className="theme-card theme-border theme-shadow hidden w-60 flex-shrink-0 flex-col border-r md:flex">
+      <aside className="theme-card theme-border shadow-elev-md hidden w-60 flex-shrink-0 flex-col border-r md:flex">
         {/* Logo */}
         <div className="theme-border px-4 py-5 border-b">
           <Link to="/admin" className="inline-flex">
             <Logo variant="full" size="md" />
           </Link>
           <div className="mt-2 flex items-center justify-between gap-2 pl-1">
-            <p className="theme-accent-text text-xs font-bold">Admin Panel</p>
+            <p className="text-eyebrow theme-accent-text">Admin Panel</p>
             <ThemeSelector compact />
           </div>
         </div>
@@ -48,20 +79,15 @@ export default function AdminLayout({ children }) {
         <nav className="flex-1 p-3 space-y-1">
           <Link
             to="/dashboard"
-            className="theme-bg-subtle theme-text hover:theme-accent-bg hover:theme-accent-text flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-colors"
+            className="theme-bg-subtle theme-text hover:theme-accent-bg hover:theme-accent-text flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all duration-fast ease-out"
           >
-            <span className="text-base">🏠</span>
+            <Icon as={Home} size="sm" />
             Learner Dashboard
           </Link>
           <div className="theme-border my-2 border-t" />
           {NAV.map(item => (
-            <NavLink key={item.to} to={item.to} end={item.end}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors ${
-                  isActive ? 'theme-accent-bg theme-accent-text shadow-sm' : 'theme-text-muted hover:theme-bg-subtle hover:theme-text'
-                }`
-              }>
-              <span className="text-base">{item.icon}</span>
+            <NavLink key={item.to} to={item.to} end={item.end} className={navClass}>
+              <Icon as={item.icon} size="sm" />
               {item.label}
             </NavLink>
           ))}
@@ -70,7 +96,7 @@ export default function AdminLayout({ children }) {
         {/* User info + Logout */}
         <div className="theme-border p-3 border-t">
           <div className="flex items-center gap-2 px-3 py-2 mb-1">
-            <div className="theme-accent-fill theme-on-accent flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-xs font-black">
+            <div className="theme-accent-fill theme-on-accent flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-xs font-black shadow-elev-inner-hl">
               {(userProfile?.displayName || 'A')[0].toUpperCase()}
             </div>
             <div className="min-w-0">
@@ -78,26 +104,32 @@ export default function AdminLayout({ children }) {
               <p className="theme-text-muted truncate text-xs">{userProfile?.email}</p>
             </div>
           </div>
-          <button onClick={handleLogout}
-            className="w-full text-left flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-bold text-red-500 hover:bg-red-50 transition-colors min-h-0">
-            🚪 Sign Out
+          <button
+            onClick={handleLogout}
+            className="w-full text-left flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-bold text-danger hover:bg-danger-subtle transition-colors min-h-0"
+          >
+            <Icon as={LogOut} size="sm" />
+            Sign Out
           </button>
         </div>
       </aside>
 
       {/* ── Mobile Header ───────────────────────────────── */}
-      <div className="theme-card theme-border theme-shadow fixed left-0 right-0 top-0 z-40 border-b md:hidden">
+      <div className="theme-card theme-border shadow-elev-md fixed left-0 right-0 top-0 z-40 border-b md:hidden backdrop-blur-md" style={{ backgroundColor: 'color-mix(in srgb, var(--card) 92%, transparent)' }}>
         <div className="flex items-center justify-between px-4 h-20">
           <Link to="/admin" className="flex items-center gap-2.5">
             <Logo variant="icon" size="md" />
-            <span className="theme-text text-sm font-black">Admin Panel</span>
+            <span className="text-display-md theme-text" style={{ fontSize: 15 }}>Admin Panel</span>
           </Link>
           <div className="flex items-center gap-2">
             <ThemeSelector compact />
-            <button onClick={() => setMobileOpen(o => !o)}
+            <button
+              onClick={() => setMobileOpen(o => !o)}
               aria-label={mobileOpen ? 'Close admin navigation' : 'Open admin navigation'}
-              className="theme-text-muted hover:theme-bg-subtle min-h-0 rounded-lg p-2 transition-colors">
-              {mobileOpen ? '✕' : '☰'}
+              aria-expanded={mobileOpen}
+              className="theme-text-muted hover:theme-bg-subtle min-h-0 rounded-lg p-2 transition-colors"
+            >
+              <Icon as={mobileOpen ? X : Menu} size="md" />
             </button>
           </div>
         </div>
@@ -106,31 +138,35 @@ export default function AdminLayout({ children }) {
       {/* ── Mobile Drawer Overlay ────────────────────────── */}
       {mobileOpen && (
         <div className="md:hidden fixed inset-0 z-30" onClick={() => setMobileOpen(false)}>
-          <div className="absolute inset-0 bg-black/30" />
-          <nav className="theme-card theme-border absolute left-0 right-0 top-20 space-y-1 border-t p-3 shadow-xl"
-            onClick={e => e.stopPropagation()}>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in" />
+          <nav
+            className="theme-card theme-border absolute left-0 right-0 top-20 space-y-1 border-t p-3 shadow-elev-xl stagger"
+            onClick={e => e.stopPropagation()}
+          >
             <Link
               to="/dashboard"
               onClick={() => setMobileOpen(false)}
-              className="theme-bg-subtle theme-text hover:theme-accent-bg hover:theme-accent-text flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-colors"
+              className="theme-bg-subtle theme-text hover:theme-accent-bg hover:theme-accent-text flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-colors animate-slide-in-soft"
             >
-              <span>🏠</span>Learner Dashboard
+              <Icon as={Home} size="sm" />Learner Dashboard
             </Link>
             <div className="theme-border my-2 border-t" />
             {NAV.map(item => (
-              <NavLink key={item.to} to={item.to} end={item.end}
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
                 onClick={() => setMobileOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-colors ${
-                    isActive ? 'theme-accent-bg theme-accent-text' : 'theme-text-muted hover:theme-bg-subtle hover:theme-text'
-                  }`
-                }>
-                <span>{item.icon}</span>{item.label}
+                className={mobileNavClass}
+              >
+                <Icon as={item.icon} size="sm" />{item.label}
               </NavLink>
             ))}
-            <button onClick={handleLogout}
-              className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-red-500 hover:bg-red-50 min-h-0">
-              🚪 Sign Out
+            <button
+              onClick={handleLogout}
+              className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-danger hover:bg-danger-subtle min-h-0 transition-colors"
+            >
+              <Icon as={LogOut} size="sm" />Sign Out
             </button>
           </nav>
         </div>
