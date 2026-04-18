@@ -21,6 +21,7 @@ const MyResults = lazy(() => import('./components/dashboard/MyResults'))
 const BadgesPage = lazy(() => import('./components/dashboard/BadgesPage'))
 const ProfilePage = lazy(() => import('./components/dashboard/ProfilePage'))
 const ZedStudyAssistant = lazy(() => import('./components/ai/ZedStudyAssistant'))
+const FloatingZedButton = lazy(() => import('./components/ai/FloatingZedButton'))
 const NotFound = lazy(() => import('./components/ui/NotFound'))
 
 // Admin section
@@ -38,6 +39,8 @@ const TeacherLayout = lazy(() => import('./components/teacher/TeacherLayout'))
 const TeacherDashboard = lazy(() => import('./components/teacher/TeacherDashboard'))
 const TeacherContent = lazy(() => import('./components/teacher/TeacherContent'))
 const TeacherPaperUpload = lazy(() => import('./components/teacher/TeacherPaperUpload'))
+const LessonPlanGenerator = lazy(() => import('./components/teacher/generate/LessonPlanGenerator'))
+const WorksheetGenerator = lazy(() => import('./components/teacher/generate/WorksheetGenerator'))
 
 // Quiz editor (shared by admin + teacher)
 const EditQuiz = lazy(() => import('./components/quiz/EditQuizV2'))
@@ -120,6 +123,8 @@ export default function App() {
           <Route path="/admin/teacher-applications"     element={<AdminRoute><TeacherApplications /></AdminRoute>} />
           <Route path="/admin/results"                  element={<AdminRoute><AdminResults /></AdminRoute>} />
           <Route path="/admin/payments"                 element={<AdminRoute><PaymentsPanel /></AdminRoute>} />
+          <Route path="/admin/generate/lesson-plan"     element={<AdminRoute><LessonPlanGenerator /></AdminRoute>} />
+          <Route path="/admin/generate/worksheet"       element={<AdminRoute><WorksheetGenerator /></AdminRoute>} />
 
           {/* ── Teacher routes (all wrapped in TeacherLayout) ─── */}
           <Route path="/teacher"                        element={<TeacherRoute><TeacherDashboard /></TeacherRoute>} />
@@ -130,9 +135,13 @@ export default function App() {
           <Route path="/teacher/lessons/new"           element={<TeacherRoute><LessonEditor /></TeacherRoute>} />
           <Route path="/teacher/lessons/:lessonId/edit" element={<TeacherRoute><LessonEditor /></TeacherRoute>} />
           <Route path="/teacher/papers/upload"         element={<TeacherRoute><TeacherPaperUpload /></TeacherRoute>} />
+          <Route path="/teacher/generate/lesson-plan"  element={<TeacherRoute><LessonPlanGenerator /></TeacherRoute>} />
+          <Route path="/teacher/generate/worksheet"    element={<TeacherRoute><WorksheetGenerator /></TeacherRoute>} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>
+        {/* Floating "Ask Zed" button — self-gates visibility per route */}
+        <FloatingZedButton />
       </Suspense>
     </BrowserRouter>
   )
