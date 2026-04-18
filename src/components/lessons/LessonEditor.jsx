@@ -102,37 +102,37 @@ function ModeChoice({ onChoose, onSample }) {
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-sm font-black uppercase tracking-wide text-emerald-700">Create lesson</p>
-        <h1 className="mt-2 text-3xl font-black text-gray-900">Choose how you want to build</h1>
-        <p className="mt-2 max-w-2xl text-sm font-bold leading-relaxed text-gray-500">
+        <p className="text-eyebrow text-emerald-700">Create lesson</p>
+        <h1 className="text-display-xl text-gray-900 mt-2">Choose how you want to build</h1>
+        <p className="text-body text-gray-500 mt-2 max-w-2xl font-bold">
           Every option creates the same final structure: a native slide lesson that learners can play inside the website.
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 stagger">
         {CREATION_MODES.map(mode => (
           <button
             key={mode.id}
             onClick={() => onChoose(mode.id)}
-            className="rounded-3xl border-2 border-gray-100 bg-white p-6 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md"
+            className="rounded-3xl border-2 border-gray-100 bg-white p-6 text-left shadow-elev-sm transition-all duration-base ease-out hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-elev-md animate-slide-in-soft"
           >
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-xl font-black text-emerald-700">
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-xl font-black text-emerald-700 shadow-elev-inner-hl">
               {mode.icon}
             </span>
-            <h2 className="mt-4 text-xl font-black text-gray-900">{mode.label}</h2>
-            <p className="mt-2 text-sm font-bold leading-relaxed text-gray-500">{mode.description}</p>
+            <h2 className="text-display-md text-gray-900 mt-4" style={{ fontSize: 18 }}>{mode.label}</h2>
+            <p className="text-body-sm text-gray-500 mt-2 font-bold">{mode.description}</p>
           </button>
         ))}
       </div>
 
-      <div className="rounded-3xl border border-sky-100 bg-sky-50 p-5">
+      <div className="rounded-3xl border border-sky-100 bg-sky-50 p-5 shadow-elev-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm font-black text-sky-900">Need a starting point?</p>
-            <p className="mt-1 text-xs font-bold text-sky-700">Load the Grade 4 Integrated Science respiratory system sample lesson.</p>
+            <p className="text-display-md text-sky-900" style={{ fontSize: 15 }}>Need a starting point?</p>
+            <p className="text-body-sm text-sky-700 mt-1 font-bold">Load the Grade 4 Integrated Science respiratory system sample lesson.</p>
           </div>
-          <button onClick={onSample} className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-black text-white">
-            Use Sample Lesson
+          <button onClick={onSample} className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-black text-white shadow-elev-sm shadow-elev-inner-hl transition-all duration-fast ease-out hover:-translate-y-px hover:shadow-elev-md">
+            Use sample lesson
           </button>
         </div>
       </div>
@@ -142,13 +142,13 @@ function ModeChoice({ onChoose, onSample }) {
 
 function MetadataForm({ form, quizzes, onPatch }) {
   return (
-    <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm">
+    <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-elev-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-black text-gray-900">Lesson details</h2>
-          <p className="text-xs font-bold text-gray-500">These fields power filtering, quiz linking, and learner discovery.</p>
+          <h2 className="text-display-md text-gray-900" style={{ fontSize: 17 }}>Lesson details</h2>
+          <p className="text-body-sm font-bold text-gray-500 mt-0.5">These fields power filtering, quiz linking, and learner discovery.</p>
         </div>
-        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">Schema v{LESSON_SCHEMA_VERSION}</span>
+        <span className="text-eyebrow bg-emerald-50 px-3 py-1 rounded-full text-emerald-700">Schema v{LESSON_SCHEMA_VERSION}</span>
       </div>
 
       <div className="mt-4 grid gap-4">
@@ -1077,10 +1077,10 @@ export default function LessonEditor() {
         <Toast toast={toast} />
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-sm font-black uppercase tracking-wide text-sky-700">Quick Lesson Mode</p>
-            <h1 className="mt-1 text-3xl font-black text-gray-900">Convert notes into slides</h1>
+            <p className="text-eyebrow text-sky-700">Quick lesson mode</p>
+            <h1 className="text-display-xl text-gray-900 mt-1">Convert notes into slides</h1>
           </div>
-          <button onClick={() => setSelectedMode(null)} className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-black text-gray-600">
+          <button onClick={() => setSelectedMode(null)} className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-black text-gray-600 shadow-elev-sm transition-all duration-fast ease-out hover:-translate-y-px hover:shadow-elev-md">
             Change mode
           </button>
         </div>
@@ -1105,10 +1105,10 @@ export default function LessonEditor() {
         <Toast toast={toast} />
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-sm font-black uppercase tracking-wide text-emerald-700">Import PowerPoint</p>
-            <h1 className="mt-1 text-3xl font-black text-gray-900">Upload and convert a .pptx lesson</h1>
+            <p className="text-eyebrow text-emerald-700">Import PowerPoint</p>
+            <h1 className="text-display-xl text-gray-900 mt-1">Upload and convert a .pptx lesson</h1>
           </div>
-          <button onClick={() => setSelectedMode(null)} className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-black text-gray-600">
+          <button onClick={() => setSelectedMode(null)} className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-black text-gray-600 shadow-elev-sm transition-all duration-fast ease-out hover:-translate-y-px hover:shadow-elev-md">
             Change mode
           </button>
         </div>
@@ -1130,31 +1130,31 @@ export default function LessonEditor() {
         {previewOpen && <PreviewModal lesson={lessonForPreview} slideIndex={0} onClose={() => setPreviewOpen(false)} />}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-sm font-black uppercase tracking-wide text-sky-700">PowerPoint Viewer Mode</p>
-            <h1 className="mt-1 text-3xl font-black text-gray-900">{form.title || 'Preserved presentation lesson'}</h1>
-            <p className="mt-1 text-sm font-bold text-gray-500">
+            <p className="text-eyebrow text-sky-700">PowerPoint viewer mode</p>
+            <h1 className="text-display-xl text-gray-900 mt-1">{form.title || 'Preserved presentation lesson'}</h1>
+            <p className="text-body-sm font-bold text-gray-500 mt-1">
               {form.presentation?.slideCount || 0} presentation slides
               {autoSavedAt ? ` · Auto-saved ${autoSavedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             {!isEditing && (
-              <button onClick={() => setSelectedMode(null)} className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-black text-gray-600">
+              <button onClick={() => setSelectedMode(null)} className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-black text-gray-600 shadow-elev-sm transition-all duration-fast ease-out hover:-translate-y-px hover:shadow-elev-md">
                 Change mode
               </button>
             )}
-            <button onClick={() => setPreviewOpen(true)} disabled={convertingPresentation || (!form.presentation?.slideImages?.length && !form.presentation?.sourceFileName)} className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-black text-gray-700 disabled:opacity-50">
+            <button onClick={() => setPreviewOpen(true)} disabled={convertingPresentation || (!form.presentation?.slideImages?.length && !form.presentation?.sourceFileName)} className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-black text-gray-700 shadow-elev-sm transition-all duration-fast ease-out hover:-translate-y-px hover:shadow-elev-md disabled:opacity-50 disabled:pointer-events-none">
               Preview
             </button>
-            <button onClick={() => saveLesson({})} disabled={saving || convertingPresentation} className="rounded-xl border-2 border-sky-500 bg-white px-4 py-2 text-sm font-black text-sky-700 disabled:opacity-50">
-              {saving ? 'Saving...' : isEditing ? 'Save Changes' : 'Save Draft'}
+            <button onClick={() => saveLesson({})} disabled={saving || convertingPresentation} className="rounded-xl border-2 border-sky-500 bg-white px-4 py-2 text-sm font-black text-sky-700 shadow-elev-sm transition-all duration-fast ease-out hover:-translate-y-px hover:shadow-elev-md disabled:opacity-50 disabled:pointer-events-none">
+              {saving ? 'Saving…' : isEditing ? 'Save changes' : 'Save draft'}
             </button>
             {isAdmin ? (
-              <button onClick={() => saveLesson({ publish: true })} disabled={saving || convertingPresentation} className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-black text-white shadow-sm disabled:opacity-50">
+              <button onClick={() => saveLesson({ publish: true })} disabled={saving || convertingPresentation} className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-black text-white shadow-elev-sm shadow-elev-inner-hl transition-all duration-fast ease-out hover:-translate-y-px hover:shadow-elev-md disabled:opacity-50 disabled:pointer-events-none">
                 Publish
               </button>
             ) : (
-              <button onClick={() => saveLesson({ submit: true })} disabled={saving || convertingPresentation} className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-black text-white shadow-sm disabled:opacity-50">
+              <button onClick={() => saveLesson({ submit: true })} disabled={saving || convertingPresentation} className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-black text-white shadow-elev-sm shadow-elev-inner-hl transition-all duration-fast ease-out hover:-translate-y-px hover:shadow-elev-md disabled:opacity-50 disabled:pointer-events-none">
                 Submit
               </button>
             )}
@@ -1181,29 +1181,29 @@ export default function LessonEditor() {
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-black uppercase tracking-wide text-emerald-700">
-            {isEditing ? 'Edit lesson' : selectedMode === 'quick-lesson' ? 'Quick lesson generated' : selectedMode === 'imported_pptx' ? 'Imported PowerPoint' : 'Slide Builder Mode'}
+          <p className="text-eyebrow text-emerald-700">
+            {isEditing ? 'Edit lesson' : selectedMode === 'quick-lesson' ? 'Quick lesson generated' : selectedMode === 'imported_pptx' ? 'Imported PowerPoint' : 'Slide builder mode'}
           </p>
-          <h1 className="mt-1 text-3xl font-black text-gray-900">{form.title || 'Untitled lesson'}</h1>
-          <p className="mt-1 text-sm font-bold text-gray-500">
+          <h1 className="text-display-xl text-gray-900 mt-1">{form.title || 'Untitled lesson'}</h1>
+          <p className="text-body-sm font-bold text-gray-500 mt-1">
             {form.slides?.length || 0} slides
             {autoSavedAt ? ` · Auto-saved ${autoSavedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button onClick={() => setPreviewOpen(true)} className="rounded-xl border-2 border-gray-200 bg-white px-4 py-2 text-sm font-black text-gray-700">
+          <button onClick={() => setPreviewOpen(true)} className="rounded-xl border-2 border-gray-200 bg-white px-4 py-2 text-sm font-black text-gray-700 shadow-elev-sm transition-all duration-fast ease-out hover:-translate-y-px hover:shadow-elev-md">
             Preview
           </button>
-          <button onClick={() => saveLesson({})} disabled={saving} className="rounded-xl border-2 border-emerald-500 bg-white px-4 py-2 text-sm font-black text-emerald-700 disabled:opacity-50">
-            {saving ? 'Saving...' : isEditing ? 'Save Changes' : 'Save Draft'}
+          <button onClick={() => saveLesson({})} disabled={saving} className="rounded-xl border-2 border-emerald-500 bg-white px-4 py-2 text-sm font-black text-emerald-700 shadow-elev-sm transition-all duration-fast ease-out hover:-translate-y-px hover:shadow-elev-md disabled:opacity-50 disabled:pointer-events-none">
+            {saving ? 'Saving…' : isEditing ? 'Save changes' : 'Save draft'}
           </button>
           {isAdmin && (
-            <button onClick={() => saveLesson({ publish: true })} disabled={saving} className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-black text-white shadow-sm disabled:opacity-50">
+            <button onClick={() => saveLesson({ publish: true })} disabled={saving} className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-black text-white shadow-elev-sm shadow-elev-inner-hl transition-all duration-fast ease-out hover:-translate-y-px hover:shadow-elev-md disabled:opacity-50 disabled:pointer-events-none">
               Publish
             </button>
           )}
           {!isAdmin && (
-            <button onClick={() => saveLesson({ submit: true })} disabled={saving} className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-black text-white shadow-sm disabled:opacity-50">
+            <button onClick={() => saveLesson({ submit: true })} disabled={saving} className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-black text-white shadow-elev-sm shadow-elev-inner-hl transition-all duration-fast ease-out hover:-translate-y-px hover:shadow-elev-md disabled:opacity-50 disabled:pointer-events-none">
               Submit
             </button>
           )}

@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { ChevronRight, LayoutGrid, Presentation } from 'lucide-react'
 import { useFirestore } from '../../hooks/useFirestore'
 import ComingSoon from '../ui/ComingSoon'
 import { LESSON_GRADES, LESSON_SUBJECTS } from './lessonConstants'
+import Button from '../ui/Button'
+import Icon from '../ui/Icon'
+import Skeleton from '../ui/Skeleton'
 
 function getReadTime(lesson) {
   const words = String(lesson.content || '').split(/\s+/).filter(Boolean).length
@@ -20,18 +24,21 @@ function LessonCard({ lesson }) {
   const showTopic = lesson.topic && normalize(lesson.topic) !== normalize(lesson.title)
 
   return (
-    <Link to={`/lessons/${lesson.id}`} className="group block rounded-3xl border border-gray-100 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+    <Link
+      to={`/lessons/${lesson.id}`}
+      className="group block rounded-3xl border border-gray-100 bg-white p-4 shadow-elev-sm transition-all duration-base ease-out hover:-translate-y-0.5 hover:shadow-elev-md"
+    >
       <div className="flex gap-4">
-        <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-2xl font-black text-emerald-700">
-          {isPresentation ? '▣' : '▦'}
+        <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
+          <Icon as={isPresentation ? Presentation : LayoutGrid} size="lg" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full bg-sky-50 px-2 py-0.5 text-xs font-black text-sky-700">Grade {lesson.grade}</span>
             <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-black text-emerald-700">{lesson.subject}</span>
           </div>
-          <h2 className="mt-2 text-lg font-black leading-tight text-gray-900 group-hover:text-emerald-700">{lesson.title}</h2>
-          {showTopic && <p className="mt-1 text-sm font-bold text-gray-500">{lesson.topic}</p>}
+          <h2 className="text-display-md text-gray-900 mt-2 group-hover:text-emerald-700 transition-colors duration-fast">{lesson.title}</h2>
+          {showTopic && <p className="mt-1 text-body-sm font-bold text-gray-500">{lesson.topic}</p>}
           <div className="mt-3 flex flex-wrap gap-2">
             <span className="rounded-full bg-gray-50 px-2 py-0.5 text-xs font-black text-gray-600">{slideCount || 'Slide'} slides</span>
             {isPresentation && <span className="rounded-full bg-sky-50 px-2 py-0.5 text-xs font-black text-sky-700">PowerPoint viewer</span>}
@@ -39,8 +46,8 @@ function LessonCard({ lesson }) {
             {lesson.linkedQuizId && <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-black text-amber-700">Quiz linked</span>}
           </div>
         </div>
-        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gray-50 text-lg font-black text-gray-400 transition-colors group-hover:bg-emerald-600 group-hover:text-white">
-          →
+        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gray-50 text-gray-400 transition-all duration-fast ease-out group-hover:bg-emerald-600 group-hover:text-white group-hover:shadow-elev-sm">
+          <Icon as={ChevronRight} size="md" />
         </div>
       </div>
     </Link>
@@ -79,11 +86,11 @@ export default function LessonLibrary() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="bg-gradient-to-br from-emerald-700 via-sky-700 to-amber-500 px-4 py-8 text-white">
+      <div className="bg-gradient-to-br from-emerald-700 via-sky-700 to-amber-500 px-4 py-8 text-white shadow-elev-lg">
         <div className="mx-auto max-w-5xl">
-          <p className="text-sm font-black uppercase tracking-wide text-white/75">Lessons</p>
-          <h1 className="mt-2 text-3xl font-black sm:text-4xl">Slide lessons for focused study</h1>
-          <p className="mt-2 max-w-2xl text-sm font-bold leading-relaxed text-white/80">
+          <p className="text-eyebrow" style={{ color: 'rgba(255,255,255,0.75)' }}>Lessons</p>
+          <h1 className="text-display-xl mt-2">Slide lessons for focused study</h1>
+          <p className="text-body mt-2 max-w-2xl text-white/80 font-bold">
             Open a topic, move slide by slide, then take the linked quiz or check activity answers.
           </p>
         </div>
@@ -110,7 +117,9 @@ export default function LessonLibrary() {
 
         <div className="mt-5 grid gap-3">
           {loading ? (
-            Array.from({ length: 4 }).map((_, index) => <div key={index} className="h-32 animate-pulse rounded-3xl bg-gray-200" />)
+            Array.from({ length: 4 }).map((_, index) => (
+              <Skeleton key={index} height={128} className="rounded-3xl" />
+            ))
           ) : lessons.length === 0 ? (
             <ComingSoon
               title="Lessons Coming Soon"
@@ -118,11 +127,17 @@ export default function LessonLibrary() {
               icon="▦"
             />
           ) : filtered.length === 0 ? (
-            <div className="rounded-3xl border border-gray-100 bg-white py-16 text-center shadow-sm">
-              <h2 className="text-xl font-black text-gray-900">No lessons match those filters</h2>
-              <button onClick={() => setFilters({ search: '', grade: '', subject: '', topic: '' })} className="mt-3 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-black text-white">
-                Clear Filters
-              </button>
+            <div className="rounded-3xl border border-gray-100 bg-white py-16 text-center shadow-elev-sm">
+              <h2 className="text-display-lg text-gray-900">No lessons match those filters</h2>
+              <div className="mt-3 inline-flex">
+                <Button
+                  variant="primary"
+                  size="md"
+                  onClick={() => setFilters({ search: '', grade: '', subject: '', topic: '' })}
+                >
+                  Clear filters
+                </Button>
+              </div>
             </div>
           ) : (
             filtered.map(lesson => <LessonCard key={lesson.id} lesson={lesson} />)

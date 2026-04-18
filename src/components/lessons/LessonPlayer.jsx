@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { ArrowLeft, ChevronLeft, ChevronRight, Maximize2, Volume2, Eye, EyeOff } from 'lucide-react'
 import { useFirestore } from '../../hooks/useFirestore'
 import SlideRenderer from './SlideRenderer'
 import LessonCompleteScreen from './LessonCompleteScreen'
 import PowerPointViewerPlayer from './PowerPointViewerPlayer'
 import { convertQuickLessonToSlides } from './quickLessonConverter'
 import { ensureEndSlide, getSlideAnswers } from './lessonConstants'
+import Button from '../ui/Button'
+import Icon from '../ui/Icon'
+import Skeleton from '../ui/Skeleton'
 
 function AnswersPanel({ answers }) {
   if (!answers.length) {
@@ -117,8 +121,8 @@ export default function LessonPlayer() {
   if (loading) {
     return (
       <div className="mx-auto max-w-5xl space-y-4 px-4 py-6">
-        <div className="h-8 w-2/3 animate-pulse rounded-xl bg-gray-200" />
-        <div className="h-[520px] animate-pulse rounded-3xl bg-gray-200" />
+        <Skeleton height={32} width="66%" className="rounded-xl" />
+        <Skeleton height={520} className="rounded-3xl" />
       </div>
     )
   }
@@ -127,8 +131,18 @@ export default function LessonPlayer() {
     return (
       <div className="flex min-h-[70vh] items-center justify-center px-4">
         <div className="text-center">
-          <h1 className="text-2xl font-black text-gray-900">Lesson not found</h1>
-          <Link to="/lessons" className="mt-4 inline-block rounded-xl bg-emerald-600 px-4 py-2 text-sm font-black text-white">Back to Lessons</Link>
+          <h1 className="text-display-xl text-gray-900">Lesson not found</h1>
+          <div className="mt-4 inline-flex">
+            <Button
+              as={Link}
+              to="/lessons"
+              variant="primary"
+              size="md"
+              leadingIcon={<Icon as={ArrowLeft} size="sm" />}
+            >
+              Back to Lessons
+            </Button>
+          </div>
         </div>
       </div>
     )
@@ -143,22 +157,44 @@ export default function LessonPlayer() {
       <div className="mx-auto max-w-6xl space-y-4 px-4 py-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <button onClick={() => navigate('/lessons')} className="mb-2 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-black text-gray-600">
-              Back to Lessons
-            </button>
-            <h1 className="text-2xl font-black text-gray-900">{lesson.title}</h1>
-            <p className="text-sm font-bold text-gray-500">Grade {lesson.grade} · {lesson.subject} · {lesson.topic}</p>
+            <div className="mb-2 inline-flex">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/lessons')}
+                leadingIcon={<Icon as={ArrowLeft} size="sm" />}
+              >
+                Back to Lessons
+              </Button>
+            </div>
+            <p className="text-eyebrow">Lesson</p>
+            <h1 className="text-display-xl text-gray-900 mt-1">{lesson.title}</h1>
+            <p className="text-body-sm font-bold text-gray-500 mt-1">Grade {lesson.grade} · {lesson.subject} · {lesson.topic}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => setTeacherMode(value => !value)} className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-black text-gray-700">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setTeacherMode(value => !value)}
+            >
               {teacherMode ? 'Learner Mode' : 'Teacher Mode'}
-            </button>
-            <button onClick={() => alert('Read-aloud support is prepared for a future text-to-speech integration.')} className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-black text-sky-700">
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => alert('Read-aloud support is prepared for a future text-to-speech integration.')}
+              leadingIcon={<Icon as={Volume2} size="sm" />}
+            >
               Read Aloud
-            </button>
-            <button onClick={toggleFullscreen} className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-black text-gray-700">
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={toggleFullscreen}
+              leadingIcon={<Icon as={Maximize2} size="sm" />}
+            >
               Full Screen
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -188,18 +224,34 @@ export default function LessonPlayer() {
             </div>
           )}
 
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white p-3">
-            <button onClick={goPrevious} disabled={!complete && index === 0} className="rounded-xl border-2 border-gray-200 px-4 py-2 text-sm font-black text-gray-700 disabled:opacity-40">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white p-3 shadow-elev-sm">
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={goPrevious}
+              disabled={!complete && index === 0}
+              leadingIcon={<Icon as={ChevronLeft} size="sm" />}
+            >
               Previous
-            </button>
+            </Button>
             {!complete && activeSlide?.type === 'question' && (
-              <button onClick={() => setShowAnswers(value => !value)} className="rounded-xl border-2 border-sky-200 bg-sky-50 px-4 py-2 text-sm font-black text-sky-700">
+              <Button
+                variant="secondary"
+                size="md"
+                onClick={() => setShowAnswers(value => !value)}
+                leadingIcon={<Icon as={showAnswers ? EyeOff : Eye} size="sm" />}
+              >
                 {showAnswers ? 'Hide Answer' : 'Check This Answer'}
-              </button>
+              </Button>
             )}
-            <button onClick={goNext} className="rounded-xl bg-emerald-600 px-5 py-2 text-sm font-black text-white">
+            <Button
+              variant="primary"
+              size="md"
+              onClick={goNext}
+              trailingIcon={<Icon as={ChevronRight} size="sm" />}
+            >
               {index >= slides.length - 1 && !complete ? 'Finish Lesson' : 'Next'}
-            </button>
+            </Button>
           </div>
         </div>
 
