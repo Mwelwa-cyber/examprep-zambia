@@ -475,6 +475,11 @@ export default function CreateQuizV2() {
         options: question.options?.length ? question.options : ['', '', '', ''],
       }))
 
+      if (!nextSections.length) {
+        show('Zed could not generate questions. Please try again.', true)
+        return
+      }
+
       setSections(currentSections => hasOnlyEmptyStarterSection(currentSections)
         ? nextSections
         : [...currentSections, ...nextSections])
