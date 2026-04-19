@@ -102,7 +102,7 @@ function createGenerateFlashcards(anthropicApiKeySecret) {
         throw new HttpsError("invalid-argument", inputErrors.join(" "));
       }
 
-      const {contextBlock, kbMatch, kbWarning} = resolveCbcContext({
+      const {contextBlock, kbMatch, kbWarning} = await resolveCbcContext({
         grade: inputs.grade,
         subject: inputs.subject,
         topic: inputs.topic,

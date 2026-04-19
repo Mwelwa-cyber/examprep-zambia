@@ -111,7 +111,7 @@ function createGenerateLessonPlan(anthropicApiKeySecret) {
       //    generic Zambian-CBC brief when the specific topic isn't seeded.
       //    Unknown topics NEVER block generation — worst case we surface a
       //    soft warning alongside the output.
-      const {contextBlock, kbMatch, kbWarning} = resolveCbcContext({
+      const {contextBlock, kbMatch, kbWarning} = await resolveCbcContext({
         grade: inputs.grade,
         subject: inputs.subject,
         topic: inputs.topic,

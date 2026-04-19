@@ -113,7 +113,7 @@ function createGenerateWorksheet(anthropicApiKeySecret) {
       }
 
       // 2. CBC context (with graceful fallback).
-      const {contextBlock, kbMatch, kbWarning} = resolveCbcContext({
+      const {contextBlock, kbMatch, kbWarning} = await resolveCbcContext({
         grade: inputs.grade,
         subject: inputs.subject,
         topic: inputs.topic,

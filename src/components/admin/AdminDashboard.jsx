@@ -150,6 +150,7 @@ export default function AdminDashboard() {
           <QuickAction to="/admin/quizzes/new?mode=ai" icon="✦" label="AI Quiz Generator" sub="Draft questions with Zed" color="blue" />
           <QuickAction to="/admin/content"     icon="📁" label="Manage Content" sub="Edit or delete existing content" color="orange" />
           <QuickAction to="/admin/teacher-applications" icon="🧑‍🏫" label="Review Teachers" sub="Approve verified teacher accounts" color="blue" />
+          <QuickAction to="/admin/cbc-kb" icon="📚" label="CBC Knowledge Base" sub="Add custom curriculum topics (esp. G10–12)" color="green" />
         </div>
       </div>
 

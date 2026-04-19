@@ -1,27 +1,102 @@
 /**
  * CBC Knowledge Base — lookup, suggest, and context-rendering logic.
  *
- * Topic data lives in cbcTopics.js so this file stays focused on logic.
- * When the Firestore-backed admin editor ships, cbcTopics.js will become the
- * fallback loaded only when Firestore has no data for the requested grade.
+ * Two sources of topic data:
+ *   1. Firestore — `cbcKnowledgeBase/{KB_VERSION}/topics/*` — admin-editable.
+ *   2. In-code — `cbcTopics.js` — hand-curated seed (G1-9). Acts as fallback
+ *      when a topic isn't in Firestore yet.
+ *
+ * We merge both on every generation call. Firestore entries win on
+ * grade+subject+topic collision. In-process cache holds the merged set for
+ * 60 seconds to keep Firestore costs negligible.
  */
 
-const {TOPICS} = require("./cbcTopics");
+const admin = require("firebase-admin");
+const {TOPICS: SEED_TOPICS} = require("./cbcTopics");
 
 const KB_VERSION = "cbc-kb-2026-04-seed";
+
+// Module-level cache to avoid hitting Firestore on every generation.
+let _cache = null;
+let _cacheAt = 0;
+const CACHE_TTL_MS = 60_000;
+
+/**
+ * Fetch topics from Firestore for the active KB version. Returns [] if the
+ * collection doesn't exist yet or the request fails — the in-code fallback
+ * still works.
+ */
+async function fetchFirestoreTopics() {
+  try {
+    const db = admin.firestore();
+    const snap = await db
+      .collection("cbcKnowledgeBase")
+      .doc(KB_VERSION)
+      .collection("topics")
+      .get();
+    return snap.docs.map((d) => ({id: d.id, ...d.data()}));
+  } catch (err) {
+    console.error("fetchFirestoreTopics failed", err);
+    return [];
+  }
+}
+
+/**
+ * Return the merged topic list (Firestore + in-code). Firestore wins on
+ * matching grade+subject+topic-name triplets.
+ */
+async function getAllTopics() {
+  const now = Date.now();
+  if (_cache && (now - _cacheAt) < CACHE_TTL_MS) return _cache;
+
+  const fromFirestore = await fetchFirestoreTopics();
+  const byKey = new Map();
+  // Seed first...
+  for (const t of SEED_TOPICS) {
+    byKey.set(topicKey(t), {...t, _source: "seed"});
+  }
+  // ...then Firestore overrides.
+  for (const t of fromFirestore) {
+    byKey.set(topicKey(t), {...t, _source: "firestore"});
+  }
+  _cache = Array.from(byKey.values());
+  _cacheAt = now;
+  return _cache;
+}
+
+function topicKey(t) {
+  const grade = String(t.grade || "").toUpperCase();
+  const subject = String(t.subject || "").toLowerCase();
+  const topic = String(t.topic || "").toLowerCase().trim();
+  return `${grade}|${subject}|${topic}`;
+}
+
+/** Force the next getAllTopics() call to bypass the cache. Used after writes. */
+function invalidateKbCache() {
+  _cache = null;
+  _cacheAt = 0;
+}
+
+// Legacy synchronous reference used by the older lookup functions. Now a
+// getter that returns the cached set (may be empty on cold start — the async
+// paths above are preferred).
+const TOPICS = SEED_TOPICS;
 
 /**
  * Look up a topic. Fuzzy-matches on the topic string within a grade+subject.
  * Returns null if no confident match.
+ *
+ * Now async — pulls merged topic set (Firestore + seed).
  */
-function lookupTopic({grade, subject, topic}) {
+async function lookupTopic({grade, subject, topic}) {
   if (!grade || !subject || !topic) return null;
   const gradeNorm = String(grade).toUpperCase().replace(/\s+/g, "");
   const subjectNorm = String(subject).toLowerCase().replace(/[^a-z]/g, "_");
   const topicNorm = String(topic).toLowerCase().trim();
-  const candidates = TOPICS.filter((t) =>
-    t.grade.toUpperCase() === gradeNorm &&
-    t.subject.toLowerCase() === subjectNorm,
+  const allTopics = await getAllTopics();
+  const candidates = allTopics.filter((t) =>
+    String(t.grade || "").toUpperCase() === gradeNorm &&
+    String(t.subject || "").toLowerCase() === subjectNorm,
   );
   if (candidates.length === 0) return null;
 
@@ -65,13 +140,14 @@ function lookupTopic({grade, subject, topic}) {
  * Suggest up to 5 topic strings for a grade + subject. Used when we can't
  * find a confident match — teacher sees: "Did you mean one of these?"
  */
-function suggestTopics({grade, subject}) {
+async function suggestTopics({grade, subject}) {
   const gradeNorm = String(grade || "").toUpperCase().replace(/\s+/g, "");
   const subjectNorm = String(subject || "").toLowerCase().replace(/[^a-z]/g, "_");
-  return TOPICS
+  const allTopics = await getAllTopics();
+  return allTopics
     .filter((t) =>
-      t.grade.toUpperCase() === gradeNorm &&
-      t.subject.toLowerCase() === subjectNorm,
+      String(t.grade || "").toUpperCase() === gradeNorm &&
+      String(t.subject || "").toLowerCase() === subjectNorm,
     )
     .map((t) => t.topic)
     .slice(0, 5);
@@ -150,8 +226,8 @@ function renderFallbackContext({grade, subject, topic, subtopic}) {
  * where kbMatch is the KB topic entry (or null) and kbWarning is either null
  * or a human-readable string to surface in the UI.
  */
-function resolveCbcContext({grade, subject, topic, subtopic}) {
-  const match = lookupTopic({grade, subject, topic});
+async function resolveCbcContext({grade, subject, topic, subtopic}) {
+  const match = await lookupTopic({grade, subject, topic});
   if (match) {
     return {
       contextBlock: renderContextBlock(match),
@@ -159,7 +235,7 @@ function resolveCbcContext({grade, subject, topic, subtopic}) {
       kbWarning: null,
     };
   }
-  const suggestions = suggestTopics({grade, subject});
+  const suggestions = await suggestTopics({grade, subject});
   return {
     contextBlock: renderFallbackContext({grade, subject, topic, subtopic}),
     kbMatch: null,
@@ -179,5 +255,7 @@ module.exports = {
   renderContextBlock,
   renderFallbackContext,
   resolveCbcContext,
+  invalidateKbCache,
+  getAllTopics,
   _topics: TOPICS,
 };
