@@ -9,12 +9,14 @@ import {
   WORKSHEET_DURATIONS,
 } from '../../../utils/teacherTools'
 import { downloadWorksheetDocx } from '../../../utils/worksheetToDocx'
+import { useFormDefaultsFromUrl } from '../../../utils/useFormDefaultsFromUrl'
 
 /**
  * Worksheet Generator — pupil-facing worksheet + separate answer-key export.
  */
 export default function WorksheetGenerator() {
-  const [form, setForm] = useState({
+  const urlDefaults = useFormDefaultsFromUrl()
+  const [form, setForm] = useState(() => ({
     grade: 'G5',
     subject: 'mathematics',
     topic: '',
@@ -25,7 +27,8 @@ export default function WorksheetGenerator() {
     language: 'english',
     instructions: '',
     includeAnswerKey: true,
-  })
+    ...urlDefaults,
+  }))
   const [status, setStatus] = useState('idle')
   const [errorMessage, setErrorMessage] = useState('')
   const [errorDetail, setErrorDetail] = useState('')

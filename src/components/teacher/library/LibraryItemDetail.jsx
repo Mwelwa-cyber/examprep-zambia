@@ -16,6 +16,7 @@ import { downloadLessonPlanDocx } from '../../../utils/lessonPlanToDocx'
 import { downloadWorksheetDocx } from '../../../utils/worksheetToDocx'
 import { downloadFlashcardsDocx } from '../../../utils/flashcardsToDocx'
 import { downloadSchemeOfWorkDocx } from '../../../utils/schemeOfWorkToDocx'
+import { buildGeneratorQueryString } from '../../../utils/useFormDefaultsFromUrl'
 
 export default function LibraryItemDetail() {
   const { id } = useParams()
@@ -95,9 +96,10 @@ export default function LibraryItemDetail() {
     if (!item) return
     const meta = TOOL_META[item.tool]
     if (!meta) return
-    // Pre-fill future: for now just send them to the generator page. A later
-    // iteration could deep-link pre-filled form state via query params.
-    navigate(meta.route)
+    // Build a query string from the original inputs so the target generator
+    // pre-fills its form via useFormDefaultsFromUrl().
+    const qs = buildGeneratorQueryString(item.inputs || {})
+    navigate(`${meta.route}${qs}`)
   }
 
   if (status === 'loading') {

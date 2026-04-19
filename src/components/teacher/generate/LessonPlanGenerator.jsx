@@ -8,6 +8,7 @@ import {
   DURATION_PRESETS,
 } from '../../../utils/teacherTools'
 import { downloadLessonPlanDocx } from '../../../utils/lessonPlanToDocx'
+import { useFormDefaultsFromUrl } from '../../../utils/useFormDefaultsFromUrl'
 import { printLessonPlanAsPdf } from '../../../utils/lessonPlanToPdf'
 
 /**
@@ -18,7 +19,8 @@ import { printLessonPlanAsPdf } from '../../../utils/lessonPlanToPdf'
  */
 export default function LessonPlanGenerator() {
   const { userProfile } = useAuth()
-  const [form, setForm] = useState({
+  const urlDefaults = useFormDefaultsFromUrl()
+  const [form, setForm] = useState(() => ({
     grade: 'G5',
     subject: 'mathematics',
     topic: '',
@@ -29,7 +31,8 @@ export default function LessonPlanGenerator() {
     school: userProfile?.schoolName || '',
     numberOfPupils: 40,
     instructions: '',
-  })
+    ...urlDefaults,
+  }))
   const [status, setStatus] = useState('idle') // idle | generating | success | error
   const [errorMessage, setErrorMessage] = useState('')
   const [errorDetail, setErrorDetail] = useState('')

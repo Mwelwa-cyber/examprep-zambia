@@ -1,3 +1,7 @@
+/**
+ * src/editor/components/modals/TableModal.jsx
+ */
+
 import { useState } from 'react'
 
 export default function TableModal({ editor, onClose }) {

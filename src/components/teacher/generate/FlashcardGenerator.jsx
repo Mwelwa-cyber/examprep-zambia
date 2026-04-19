@@ -8,13 +8,15 @@ import {
   FLASHCARD_COUNTS,
 } from '../../../utils/teacherTools'
 import { downloadFlashcardsDocx } from '../../../utils/flashcardsToDocx'
+import { useFormDefaultsFromUrl } from '../../../utils/useFormDefaultsFromUrl'
 
 /**
  * Flashcard Generator — grid preview + keyboard-driven study mode + DOCX
  * export for printable cut-out cards.
  */
 export default function FlashcardGenerator() {
-  const [form, setForm] = useState({
+  const urlDefaults = useFormDefaultsFromUrl()
+  const [form, setForm] = useState(() => ({
     grade: 'G5',
     subject: 'mathematics',
     topic: '',
@@ -23,7 +25,8 @@ export default function FlashcardGenerator() {
     difficulty: 'mixed',
     language: 'english',
     instructions: '',
-  })
+    ...urlDefaults,
+  }))
   const [status, setStatus] = useState('idle')
   const [errorMessage, setErrorMessage] = useState('')
   const [errorDetail, setErrorDetail] = useState('')

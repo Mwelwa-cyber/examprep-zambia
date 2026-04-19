@@ -1,3 +1,23 @@
+/**
+ * src/editor/extensions/buildExtensions.js
+ *
+ * Factory that creates a fresh Tiptap extension array for each editor instance.
+ *
+ * WHY a factory and not a shared constant?
+ * Placeholder extension must be configured per editor (different placeholder text).
+ * StarterKit.configure() returns a NEW extension instance each time.
+ * Extensions are pure configuration — re-creating them is cheap and correct.
+ *
+ * Usage:
+ *   const extensions = buildExtensions({ placeholder: 'Write the question…' })
+ *   const editor = useEditor({ extensions, content, … })
+ */
+
+// NOTE on imports:
+//   Tiptap v3 (the version installed here) changed several extensions from
+//   default to named exports (TextStyle, Color, Table family, Placeholder).
+//   Using default imports for those produces a "default is not exported"
+//   build error. Do NOT swap these to default imports.
 import StarterKit      from '@tiptap/starter-kit'
 import Underline       from '@tiptap/extension-underline'
 import { TextStyle }   from '@tiptap/extension-text-style'
@@ -13,14 +33,21 @@ import Subscript       from '@tiptap/extension-subscript'
 import { Placeholder } from '@tiptap/extension-placeholder'
 import { MathInline }  from './MathInline.js'
 
+/**
+ * @param {object} options
+ * @param {string} [options.placeholder='']  Placeholder text for this editor
+ * @param {boolean} [options.readOnly=false] When true, omit interactive extensions
+ * @returns {import('@tiptap/core').AnyExtension[]}
+ */
 export function buildExtensions({ placeholder = '', readOnly = false } = {}) {
   const base = [
     StarterKit.configure({
       heading:   { levels: [1, 2, 3] },
-      codeBlock: false,
+      codeBlock: false,  // not needed in a quiz editor
+      // History is included in StarterKit — keep it for undo/redo
     }),
     Underline,
-    TextStyle,
+    TextStyle,   // required by Color
     Color,
     TextAlign.configure({ types: ['heading', 'paragraph'] }),
     Highlight.configure({ multicolor: true }),
@@ -46,4 +73,8 @@ export function buildExtensions({ placeholder = '', readOnly = false } = {}) {
   return base
 }
 
+/**
+ * Convenience: build extensions for pure rendering (generateHTML, generateJSON).
+ * No Placeholder, no interactive extensions.
+ */
 export const renderExtensions = buildExtensions({ readOnly: true })

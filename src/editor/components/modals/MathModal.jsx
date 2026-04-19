@@ -1,3 +1,17 @@
+/**
+ * src/editor/components/modals/MathModal.jsx
+ *
+ * Math insert / edit modal.
+ * Identical visual design to the working demo.
+ * All state is local — no external dependencies beyond the editor ref.
+ *
+ * Props:
+ *   editor      {object|null}    The Tiptap editor instance
+ *   editState   {object|null}    { latex: string, pos: number|null } for editing;
+ *                                null for inserting new math
+ *   onClose     {function}       Close the modal
+ */
+
 import { useState, useEffect } from 'react'
 import katex from 'katex'
 
@@ -12,18 +26,18 @@ const SYMBOLS = [
 ]
 
 const TEMPLATES = [
-  {label:"Fraction",  latex:"\\frac{a}{b}",           preview:"a⁄b"},
-  {label:"xⁿ Power",  latex:"x^{n}",                  preview:"xⁿ"},
-  {label:"√ Root",    latex:"\\sqrt{x}",               preview:"√x"},
-  {label:"ⁿ√ Root",   latex:"\\sqrt[n]{x}",           preview:"ⁿ√x"},
-  {label:"x²",        latex:"x^{2}",                   preview:"x²"},
-  {label:"x³",        latex:"x^{3}",                   preview:"x³"},
-  {label:"½",         latex:"\\frac{1}{2}",            preview:"½"},
-  {label:"¾",         latex:"\\frac{3}{4}",            preview:"¾"},
-  {label:"Subscript", latex:"x_{n}",                   preview:"xₙ"},
-  {label:"Quadratic", latex:"ax^{2}+bx+c=0",          preview:"ax²…"},
-  {label:"%",         latex:"\\frac{x}{100}\\times n", preview:"%"},
-  {label:"Log",       latex:"\\log_{b}(x)",            preview:"logb"},
+  {label:"Fraction",  latex:"\\frac{a}{b}",          preview:"a⁄b"},
+  {label:"xⁿ Power",  latex:"x^{n}",                 preview:"xⁿ"},
+  {label:"√ Root",    latex:"\\sqrt{x}",              preview:"√x"},
+  {label:"ⁿ√ Root",   latex:"\\sqrt[n]{x}",          preview:"ⁿ√x"},
+  {label:"x²",        latex:"x^{2}",                  preview:"x²"},
+  {label:"x³",        latex:"x^{3}",                  preview:"x³"},
+  {label:"½",         latex:"\\frac{1}{2}",           preview:"½"},
+  {label:"¾",         latex:"\\frac{3}{4}",           preview:"¾"},
+  {label:"Subscript", latex:"x_{n}",                  preview:"xₙ"},
+  {label:"Quadratic", latex:"ax^{2}+bx+c=0",         preview:"ax²…"},
+  {label:"%",         latex:"\\frac{x}{100}\\times n",preview:"%"},
+  {label:"Log",       latex:"\\log_{b}(x)",           preview:"logb"},
 ]
 
 export default function MathModal({ editor, editState, onClose }) {
@@ -34,6 +48,7 @@ export default function MathModal({ editor, editState, onClose }) {
   const [prevHTML, setPrevHTML] = useState('')
   const [prevErr,  setPrevErr]  = useState(false)
 
+  // Re-render KaTeX preview whenever latex changes
   useEffect(() => {
     try {
       const html = katex.renderToString(latex, { throwOnError: true, displayMode: true })
@@ -47,12 +62,16 @@ export default function MathModal({ editor, editState, onClose }) {
 
   const handleSave = () => {
     if (prevErr || !latex.trim() || !editor) return
+
     if (isEditing && editState.pos !== null) {
+      // UPDATE: modify the existing node via ProseMirror transaction.
+      // This is tracked by History — undo/redo works correctly.
       const { state, view } = editor
       const tr = state.tr
       tr.setNodeMarkup(editState.pos, undefined, { latex })
       view.dispatch(tr)
     } else {
+      // INSERT: use our custom Tiptap command.
       editor.chain().focus().insertMathNode(latex).run()
     }
     onClose()
@@ -83,6 +102,7 @@ export default function MathModal({ editor, editState, onClose }) {
         </div>
 
         <div className="mbd">
+          {/* Template grid */}
           <div className="mlbl">Quick Templates</div>
           <div className="tgrid">
             {TEMPLATES.map((t, i) => (
@@ -100,6 +120,7 @@ export default function MathModal({ editor, editState, onClose }) {
             ))}
           </div>
 
+          {/* Symbol palette */}
           <div className="mlbl">Symbols — click to append</div>
           <div className="sgrid">
             {SYMBOLS.map((s, i) => (
@@ -109,7 +130,7 @@ export default function MathModal({ editor, editState, onClose }) {
                 className="sbtn"
                 title={s.l}
                 onMouseDown={(e) => {
-                  e.preventDefault()
+                  e.preventDefault()  // prevent focus loss from editor
                   setLatex((prev) => prev + s.l)
                   setSelTpl(-1)
                 }}
@@ -119,6 +140,7 @@ export default function MathModal({ editor, editState, onClose }) {
             ))}
           </div>
 
+          {/* LaTeX input */}
           <div className="mlbl">LaTeX Expression</div>
           <input
             type="text"
@@ -132,6 +154,7 @@ export default function MathModal({ editor, editState, onClose }) {
             autoFocus={isEditing}
           />
 
+          {/* Live preview */}
           <div className="mlbl">Live Preview</div>
           <div className="kprev">
             {prevHTML

@@ -10,10 +10,12 @@ import {
 } from '../../../utils/teacherTools'
 import { downloadSchemeOfWorkDocx } from '../../../utils/schemeOfWorkToDocx'
 import SchemeOfWorkView from '../views/SchemeOfWorkView'
+import { useFormDefaultsFromUrl } from '../../../utils/useFormDefaultsFromUrl'
 
 export default function SchemeOfWorkGenerator() {
   const { userProfile } = useAuth()
-  const [form, setForm] = useState({
+  const urlDefaults = useFormDefaultsFromUrl()
+  const [form, setForm] = useState(() => ({
     grade: 'G5',
     subject: 'mathematics',
     term: 1,
@@ -22,7 +24,8 @@ export default function SchemeOfWorkGenerator() {
     teacherName: userProfile?.displayName || userProfile?.fullName || '',
     school: userProfile?.schoolName || '',
     instructions: '',
-  })
+    ...urlDefaults,
+  }))
   const [status, setStatus] = useState('idle')
   const [errorMessage, setErrorMessage] = useState('')
   const [errorDetail, setErrorDetail] = useState('')
