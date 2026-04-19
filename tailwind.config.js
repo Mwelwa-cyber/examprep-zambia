@@ -1,6 +1,12 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
+  // Dark mode is driven by the app's own theme-* CSS variable system (not
+  // OS preference). Setting this to 'class' means Tailwind's dark: variant
+  // only activates when an ancestor has the `dark` class — preventing
+  // unintended dark styling on marketing pages for visitors whose OS
+  // prefers dark mode.
+  darkMode: 'class',
   theme: {
     extend: {
       fontFamily: {
