@@ -42,91 +42,66 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # 20 min is plenty — function deploys usually finish in 3-6 min.
     timeout-minutes: 20
+
+    # Explicit minimum permissions — some org settings restrict actions
+    # unless this is stated explicitly.
+    permissions:
+      contents: read
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: "18"
-          cache: "npm"
-          cache-dependency-path: functions/package-lock.json
+          node-version: "20"
 
       - name: Install function dependencies
         working-directory: functions
-        run: npm ci
-
-      # Work out what to deploy. On a push, we detect which files changed and
-      # deploy only the relevant targets. On workflow_dispatch we honour the
-      # user's `target` input.
-      - name: Decide what to deploy
-        id: decide
         run: |
-          set -euo pipefail
-          TARGETS=""
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            case "${{ github.event.inputs.target }}" in
-              all)        TARGETS="firestore,storage,functions" ;;
-              firestore)  TARGETS="firestore" ;;
-              functions)  TARGETS="functions" ;;
-              storage)    TARGETS="storage" ;;
-            esac
+          if [ -f package-lock.json ]; then
+            npm ci
           else
-            # Push event — inspect the diff.
-            BEFORE="${{ github.event.before }}"
-            AFTER="${{ github.sha }}"
-            # Guard against the initial push where BEFORE is all zeros.
-            if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
-              CHANGED=$(git ls-tree -r --name-only "$AFTER")
-            else
-              CHANGED=$(git diff --name-only "$BEFORE" "$AFTER" || git ls-tree -r --name-only "$AFTER")
-            fi
-            echo "$CHANGED" | head -20
-
-            if echo "$CHANGED" | grep -qE '^(firestore\.rules|firestore\.indexes\.json)$'; then
-              TARGETS="$TARGETS,firestore"
-            fi
-            if echo "$CHANGED" | grep -qE '^storage\.rules$'; then
-              TARGETS="$TARGETS,storage"
-            fi
-            if echo "$CHANGED" | grep -qE '^functions/'; then
-              TARGETS="$TARGETS,functions"
-            fi
-            if echo "$CHANGED" | grep -qE '^(firebase\.json|\.firebaserc|\.github/workflows/deploy-firebase\.yml)$'; then
-              # Config changed — redeploy everything to be safe.
-              TARGETS="firestore,storage,functions"
-            fi
-            TARGETS="${TARGETS#,}"   # strip leading comma
+            npm install
           fi
 
-          if [ -z "$TARGETS" ]; then
-            echo "No Firebase targets need deploying."
-            echo "targets=" >> "$GITHUB_OUTPUT"
-          else
-            echo "Will deploy: $TARGETS"
-            echo "targets=$TARGETS" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Deploy to Firebase
-        if: steps.decide.outputs.targets != ''
+      - name: Verify FIREBASE_TOKEN secret is set
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
           if [ -z "$FIREBASE_TOKEN" ]; then
-            echo "::error::FIREBASE_TOKEN secret is not set. Follow DEPLOY.md."
+            echo "::error::FIREBASE_TOKEN secret is not set in repository secrets."
+            echo "::error::Generate one locally with: npx firebase-tools login:ci"
+            echo "::error::Then add it as a secret at Settings > Secrets and variables > Actions."
+            echo "::error::See DEPLOY.md for step-by-step instructions."
             exit 1
           fi
+          echo "Token is present (length: ${#FIREBASE_TOKEN})"
+
+      - name: Resolve deploy target
+        id: target
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            case "${{ github.event.inputs.target }}" in
+              all)        echo "only=firestore,storage,functions" >> "$GITHUB_OUTPUT" ;;
+              firestore)  echo "only=firestore"                    >> "$GITHUB_OUTPUT" ;;
+              functions)  echo "only=functions"                    >> "$GITHUB_OUTPUT" ;;
+              storage)    echo "only=storage"                      >> "$GITHUB_OUTPUT" ;;
+            esac
+          else
+            # On push, deploy everything. Path filters already ensure this
+            # workflow only runs when a Firebase-relevant file changed.
+            echo "only=firestore,storage,functions" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy to Firebase
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
           npx firebase-tools@latest deploy \
-            --only "${{ steps.decide.outputs.targets }}" \
+            --only "${{ steps.target.outputs.only }}" \
             --non-interactive \
             --project examsprepzambia \
             --force
-
-      - name: Skipped summary
-        if: steps.decide.outputs.targets == ''
-        run: |
-          echo "No Firebase-relevant files changed in this push — nothing to deploy."
