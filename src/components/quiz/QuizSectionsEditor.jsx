@@ -1,25 +1,12 @@
-import { lazy, Suspense, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { QUESTION_LETTERS } from '../../utils/quizSections.js'
-import { RichTextContent, RichTextEditor } from './QuizRichText'
-
-const RichEditor = lazy(() => import('../../editor/components/RichEditor'))
-
-function RichEditorField(props) {
-  return (
-    <Suspense fallback={
-      <textarea
-        value={typeof props.value === 'string' ? props.value : ''}
-        onChange={e => props.onChange(e.target.value)}
-        placeholder={props.placeholder}
-        rows={3}
-        className="w-full resize-none rounded-xl border-2 border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none"
-        style={{ minHeight: props.minHeight }}
-      />
-    }>
-      <RichEditor {...props} />
-    </Suspense>
-  )
-}
+// Tiptap-based rich field (new). Accepts HTML strings or Tiptap JSON on the
+// way in (legacy quizzes render fine) and emits Tiptap JSON. Saving passes
+// the JSON straight through to Firestore.
+import QuizRichField from './QuizRichField'
+// RichContent is format-aware — handles both legacy HTML and Tiptap JSON.
+// Used wherever we previously showed RichTextContent.
+import RichContent from '../../editor/RichContent'
 
 const THEMES = {
   create: {
@@ -286,22 +273,22 @@ function StandaloneQuestionCard({
 
       <div className="space-y-2">
         <FieldHeader title="Instructions" badge="Optional" />
-        <RichTextEditor
+        <QuizRichField
           value={question.sharedInstruction}
           onChange={nextValue => set('sharedInstruction', nextValue)}
           placeholder="Add shared instructions for this question..."
-          minHeightClass="min-h-[6rem]"
+          minHeight={96}
           compact
         />
       </div>
 
       <div className="space-y-2">
         <FieldHeader title="Question Text" badge="Required" />
-        <RichTextEditor
+        <QuizRichField
           value={question.text}
           onChange={nextValue => set('text', nextValue)}
           placeholder={question.imageUrl ? 'Describe what is shown in the image above, or ask your question...' : 'Write your question here...'}
-          minHeightClass="min-h-[9rem]"
+          minHeight={144}
         />
       </div>
 
@@ -366,11 +353,11 @@ function StandaloneQuestionCard({
         />
         <div className="space-y-2">
           <FieldHeader title="Explanation" badge="Shown after attempt" />
-          <RichTextEditor
+          <QuizRichField
             value={question.explanation}
             onChange={nextValue => set('explanation', nextValue)}
             placeholder="Explain the answer, steps, or reasoning..."
-            minHeightClass="min-h-[7rem]"
+            minHeight={112}
             compact
           />
         </div>
@@ -454,11 +441,11 @@ function PassageQuestionCard({
 
       <div className="space-y-2">
         <FieldHeader title="Question Text" badge="Required" />
-        <RichTextEditor
+        <QuizRichField
           value={question.text}
           onChange={nextValue => set('text', nextValue)}
           placeholder="Write the question for this passage..."
-          minHeightClass="min-h-[8rem]"
+          minHeight={128}
           compact
         />
       </div>
@@ -518,11 +505,11 @@ function PassageQuestionCard({
 
       <div className="space-y-2">
         <FieldHeader title="Explanation" badge="Shown after attempt" />
-        <RichTextEditor
+        <QuizRichField
           value={question.explanation}
           onChange={nextValue => set('explanation', nextValue)}
           placeholder="Add the explanation for this passage question..."
-          minHeightClass="min-h-[6rem]"
+          minHeight={96}
           compact
         />
       </div>
@@ -607,7 +594,7 @@ function PassageSectionCard({
         <div className="theme-card theme-border rounded-xl border px-4 py-3">
           <p className="theme-text text-sm font-black">{passage.title || 'Untitled passage'}</p>
           {passage.passageText ? (
-            <RichTextContent value={passage.passageText} className="theme-text-muted mt-2 line-clamp-3 text-sm leading-relaxed" />
+            <RichContent value={passage.passageText} className="theme-text-muted mt-2 line-clamp-3 text-sm leading-relaxed" />
           ) : (
             <p className="theme-text-muted mt-1 text-sm leading-relaxed">No passage text yet.</p>
           )}
@@ -625,21 +612,21 @@ function PassageSectionCard({
               />
               <div className="space-y-2">
                 <FieldHeader title="Instructions" badge="Optional" />
-                <RichTextEditor
+                <QuizRichField
                   value={passage.instructions}
                   onChange={nextValue => onPassageChange(sectionIndex, 'instructions', nextValue)}
                   placeholder="Add optional instructions for this passage..."
-                  minHeightClass="min-h-[6rem]"
+                  minHeight={96}
                   compact
                 />
               </div>
               <div className="space-y-2">
                 <FieldHeader title="Passage / Story" badge="Required" />
-                <RichTextEditor
+                <QuizRichField
                   value={passage.passageText}
                   onChange={nextValue => onPassageChange(sectionIndex, 'passageText', nextValue)}
                   placeholder="Paste or type the passage / story here..."
-                  minHeightClass="min-h-[16rem]"
+                  minHeight={256}
                 />
               </div>
               <ImageUpload

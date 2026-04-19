@@ -4,6 +4,7 @@ import {
   getGeneration,
   deleteGeneration,
   recordExport,
+  updateGenerationOutput,
   TOOL_META,
   titleForGeneration,
   formatDate,
@@ -26,6 +27,8 @@ export default function LibraryItemDetail() {
   const [item, setItem] = useState(null)
   const [status, setStatus] = useState('loading')
   const [showAnswers, setShowAnswers] = useState(false)
+  const [editingHeader, setEditingHeader] = useState(false)
+  const [savingEdit, setSavingEdit] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -106,6 +109,24 @@ export default function LibraryItemDetail() {
     const qs = buildGeneratorQueryString(item.inputs || {})
     navigate(`${meta.route}${qs}`)
   }
+
+  async function onSaveHeaderEdits(nextHeader) {
+    if (!item) return
+    setSavingEdit(true)
+    const nextOutput = { ...item.output, header: { ...(item.output?.header || {}), ...nextHeader } }
+    const ok = await updateGenerationOutput(item.id, nextOutput)
+    if (ok) {
+      setItem((prev) => ({ ...prev, output: nextOutput, teacherEdited: true }))
+      setEditingHeader(false)
+    } else {
+      window.alert('Could not save changes. Please try again.')
+    }
+    setSavingEdit(false)
+  }
+
+  // Edit-details is currently supported for tools with an editable `output.header`.
+  const canEditDetails = item && ['lesson_plan', 'scheme_of_work', 'worksheet']
+    .includes(item.tool)
 
   if (status === 'loading') {
     return (
@@ -207,6 +228,14 @@ export default function LibraryItemDetail() {
                 🔑 Answer Key .docx
               </button>
             )}
+            {canEditDetails && (
+              <button
+                onClick={() => setEditingHeader(true)}
+                className="px-4 py-2 rounded-xl text-sm font-bold border theme-border"
+              >
+                ✏️ Edit details
+              </button>
+            )}
             <button
               onClick={onRegenerate}
               className="px-4 py-2 rounded-xl text-sm font-bold border theme-border"
@@ -253,6 +282,131 @@ export default function LibraryItemDetail() {
           )}
         </div>
       </div>
+
+      {editingHeader && item && (
+        <EditHeaderModal
+          tool={item.tool}
+          header={item.output?.header || {}}
+          saving={savingEdit}
+          onCancel={() => setEditingHeader(false)}
+          onSave={onSaveHeaderEdits}
+        />
+      )}
+    </div>
+  )
+}
+
+/* ── Edit-header modal ─────────────────────────────────────── */
+
+const HEADER_FIELDS_BY_TOOL = {
+  lesson_plan: [
+    { key: 'school',              label: 'School',              type: 'text' },
+    { key: 'teacherName',         label: 'Teacher name',        type: 'text' },
+    { key: 'date',                label: 'Date',                type: 'text', placeholder: 'YYYY-MM-DD' },
+    { key: 'time',                label: 'Time',                type: 'text', placeholder: '08:40–09:20' },
+    { key: 'class',               label: 'Class',               type: 'text' },
+    { key: 'termAndWeek',         label: 'Term & week',         type: 'text' },
+    { key: 'numberOfPupils',      label: 'Number of pupils',    type: 'number' },
+    { key: 'mediumOfInstruction', label: 'Medium of instruction', type: 'text' },
+  ],
+  scheme_of_work: [
+    { key: 'school',              label: 'School',              type: 'text' },
+    { key: 'teacherName',         label: 'Teacher name',        type: 'text' },
+    { key: 'class',               label: 'Class',               type: 'text' },
+    { key: 'academicYear',        label: 'Academic year',       type: 'text' },
+    { key: 'mediumOfInstruction', label: 'Medium of instruction', type: 'text' },
+  ],
+  worksheet: [
+    { key: 'title',        label: 'Title',        type: 'text' },
+    { key: 'instructions', label: 'Instructions', type: 'textarea' },
+    { key: 'duration',     label: 'Duration',     type: 'text', placeholder: '30 minutes' },
+  ],
+}
+
+function EditHeaderModal({ tool, header, saving, onCancel, onSave }) {
+  const fields = HEADER_FIELDS_BY_TOOL[tool] || []
+  const [draft, setDraft] = useState(() => {
+    const d = {}
+    for (const f of fields) {
+      d[f.key] = header[f.key] ?? ''
+    }
+    return d
+  })
+
+  function set(key, value) {
+    setDraft((prev) => ({ ...prev, [key]: value }))
+  }
+
+  function onSubmit(e) {
+    e.preventDefault()
+    // Coerce number fields
+    const cleaned = { ...draft }
+    for (const f of fields) {
+      if (f.type === 'number') {
+        const n = Number(cleaned[f.key])
+        cleaned[f.key] = Number.isFinite(n) ? n : 0
+      }
+    }
+    onSave(cleaned)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-900/70 flex items-start justify-center overflow-y-auto p-4">
+      <form
+        onSubmit={onSubmit}
+        className="bg-white rounded-2xl max-w-xl w-full my-8 shadow-2xl"
+      >
+        <div className="sticky top-0 bg-white border-b border-slate-200 px-5 py-3 flex items-center justify-between rounded-t-2xl">
+          <h2 className="font-black text-lg">Edit details</h2>
+          <button type="button" onClick={onCancel} className="text-slate-500 hover:text-slate-900">✕</button>
+        </div>
+        <div className="p-5 space-y-3">
+          {fields.map((f) => (
+            <div key={f.key}>
+              <label className="block text-xs font-black uppercase tracking-wide text-slate-600 mb-1">
+                {f.label}
+              </label>
+              {f.type === 'textarea' ? (
+                <textarea
+                  value={draft[f.key] ?? ''}
+                  onChange={(e) => set(f.key, e.target.value)}
+                  placeholder={f.placeholder || ''}
+                  rows={3}
+                  className="w-full px-3 py-2 rounded-lg border-2 border-slate-200 focus:outline-none focus:border-emerald-400 resize-none"
+                />
+              ) : (
+                <input
+                  type={f.type}
+                  value={draft[f.key] ?? ''}
+                  onChange={(e) => set(f.key, e.target.value)}
+                  placeholder={f.placeholder || ''}
+                  className="w-full px-3 py-2 rounded-lg border-2 border-slate-200 focus:outline-none focus:border-emerald-400"
+                />
+              )}
+            </div>
+          ))}
+          <p className="text-xs text-slate-500 italic pt-1">
+            These changes save to your library and reflect in future exports.
+            To change the lesson's topic or content, use <b>Generate similar</b> instead.
+          </p>
+        </div>
+        <div className="sticky bottom-0 bg-white border-t border-slate-200 px-5 py-3 flex items-center justify-end gap-2 rounded-b-2xl">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-4 py-2 rounded-xl text-sm font-bold border-2 border-slate-200 hover:bg-slate-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={saving}
+            className="px-5 py-2 rounded-xl text-sm font-black text-white bg-gradient-to-r from-emerald-500 to-teal-500 disabled:opacity-50"
+          >
+            {saving ? 'Saving…' : 'Save changes'}
+          </button>
+        </div>
+      </form>
     </div>
   )
 }

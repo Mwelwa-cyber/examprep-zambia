@@ -4,12 +4,13 @@ import { useFirestore } from '../../hooks/useFirestore'
 import { useAuth } from '../../contexts/AuthContext'
 import { useSubscription } from '../../hooks/useSubscription'
 import { buildQuizDisplaySections } from '../../utils/quizSections.js'
-import { richTextToPlainText } from '../../utils/quizRichText.js'
 import UpgradeModal from '../subscription/UpgradeModal'
 import QuizTip from './QuizTip'
-import { RichTextContent } from './QuizRichText'
 import { getPakoTip } from '../../config/curriculum'
 import { checkAnswerWithAI } from '../../utils/geminiChecker'
+// RichContent renders legacy HTML strings AND Tiptap JSON; getRichPlainText
+// extracts plain text from either format. Legacy richTextToPlainText is
+// only HTML-aware, so we prefer getRichPlainText wherever we have a choice.
 import RichContent, { getRichPlainText } from '../../editor/RichContent'
 
 function fmt(seconds) {
@@ -207,7 +208,7 @@ export default function QuizRunnerV2() {
       const isCorrect = currentQuestion && optionIndex === currentQuestion.correctAnswer
       setFeedbackType(isCorrect ? 'correct' : 'wrong')
       setTimeout(() => setFeedbackType(null), 1300)
-      const tipText = richTextToPlainText(currentQuestion?.explanation) || getPakoTip(currentQuestion?.topic, isCorrect)
+      const tipText = getRichPlainText(currentQuestion?.explanation) || getPakoTip(currentQuestion?.topic, isCorrect)
       setPakoTip({ visible: true, text: tipText, isCorrect, questionId })
     }
   }
@@ -218,8 +219,8 @@ export default function QuizRunnerV2() {
     if (!typedAnswer || !currentQuestion) return
 
     const questionText = [
-      richTextToPlainText(currentQuestion.sharedInstruction),
-      richTextToPlainText(currentQuestion.text),
+      getRichPlainText(currentQuestion.sharedInstruction),
+      getRichPlainText(currentQuestion.text),
       String(currentQuestion.diagramText ?? '').trim(),
     ].filter(Boolean).join('\n')
     if (!questionText) {
@@ -385,10 +386,10 @@ export default function QuizRunnerV2() {
         <div>
           {question.sharedInstruction && (
             <div className="theme-accent-bg theme-border theme-accent-text mb-3 rounded-2xl border px-3 py-2 text-sm font-bold leading-relaxed">
-              <RichTextContent value={question.sharedInstruction} className="theme-accent-text text-sm font-bold leading-relaxed" />
+              <RichContent value={question.sharedInstruction} className="theme-accent-text text-sm font-bold leading-relaxed" />
             </div>
           )}
-          <RichTextContent value={question.text} className="text-[17px] font-bold leading-relaxed" />
+          <RichContent value={question.text} className="text-[17px] font-bold leading-relaxed" />
           {question.diagramText && (
             <p className="theme-bg-subtle theme-text-muted mt-2 rounded-xl px-3 py-2 text-xs font-bold leading-relaxed">{question.diagramText}</p>
           )}
@@ -467,7 +468,7 @@ export default function QuizRunnerV2() {
                 {question.explanation && (
                   <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3">
                     <p className="text-xs font-black uppercase tracking-wide text-sky-700">Teacher explanation</p>
-                    <RichTextContent value={question.explanation} className="mt-2 text-sm leading-relaxed text-sky-950" />
+                    <RichContent value={question.explanation} className="mt-2 text-sm leading-relaxed text-sky-950" />
                   </div>
                 )}
                 <QuizTip
@@ -530,7 +531,7 @@ export default function QuizRunnerV2() {
                 {question.explanation && (
                   <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3">
                     <p className="text-xs font-black uppercase tracking-wide text-sky-700">Explanation</p>
-                    <RichTextContent value={question.explanation} className="mt-2 text-sm leading-relaxed text-sky-950" />
+                    <RichContent value={question.explanation} className="mt-2 text-sm leading-relaxed text-sky-950" />
                   </div>
                 )}
               </>
@@ -631,7 +632,7 @@ export default function QuizRunnerV2() {
                   </div>
                   {activeSection.passage.title && <h2 className="theme-text text-lg font-black">{activeSection.passage.title}</h2>}
                   {activeSection.passage.instructions && (
-                    <RichTextContent value={activeSection.passage.instructions} className="theme-accent-text mt-2 text-sm font-bold" />
+                    <RichContent value={activeSection.passage.instructions} className="theme-accent-text mt-2 text-sm font-bold" />
                   )}
                 </div>
                 {activeSection.passage.imageUrl && (
@@ -640,7 +641,7 @@ export default function QuizRunnerV2() {
                   </div>
                 )}
                 <div className="p-5">
-                  <RichTextContent value={activeSection.passage.passageText} className="text-sm leading-7" />
+                  <RichContent value={activeSection.passage.passageText} className="text-sm leading-7" />
                 </div>
               </div>
             </div>

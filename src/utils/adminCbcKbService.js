@@ -9,7 +9,32 @@ import {
   collection, deleteDoc, doc, getDocs, query, orderBy,
   serverTimestamp, setDoc, updateDoc,
 } from 'firebase/firestore'
-import { db } from '../firebase/config'
+import { getFunctions, httpsCallable } from 'firebase/functions'
+import app, { db } from '../firebase/config'
+
+const functions = getFunctions(app, 'us-central1')
+const importBuiltInCbcTopicsCallable = httpsCallable(functions, 'importBuiltInCbcTopics', {
+  timeout: 60_000,
+})
+
+/**
+ * One-click admin action: copy the 90 built-in G1-9 topics into Firestore so
+ * they become editable through the admin UI. Returns { ok, written, totalInCode }.
+ */
+export async function importBuiltInTopics() {
+  try {
+    const result = await importBuiltInCbcTopicsCallable({})
+    return { ok: true, ...result.data }
+  } catch (err) {
+    console.error('importBuiltInTopics failed', err)
+    return {
+      ok: false,
+      error: err?.code === 'permission-denied' ?
+        'Admin only.' :
+        (err?.message || 'Import failed'),
+    }
+  }
+}
 
 // Must match the server-side KB_VERSION in functions/teacherTools/cbcKnowledge.js
 export const KB_VERSION = 'cbc-kb-2026-04-seed'

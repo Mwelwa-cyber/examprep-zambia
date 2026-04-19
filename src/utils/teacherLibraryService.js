@@ -109,6 +109,25 @@ export async function markAsEdited(id, edited = true) {
 }
 
 /**
+ * Replace the `output` field of a generation. Used by in-place editing in
+ * the library detail view — e.g. personalising the header of a lesson plan
+ * (teacher name, date, school) without re-running Claude.
+ */
+export async function updateGenerationOutput(id, output) {
+  if (!id || !output || typeof output !== 'object') return false
+  try {
+    await updateDoc(doc(db, 'aiGenerations', id), {
+      output,
+      teacherEdited: true,
+    })
+    return true
+  } catch (err) {
+    console.error('updateGenerationOutput failed', err)
+    return false
+  }
+}
+
+/**
  * Record that the user exported a generation in a given format. Appends to
  * the `exportedFormats` array (deduped).
  */

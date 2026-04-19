@@ -4,10 +4,11 @@ import { ChevronDown, ChevronUp, RotateCcw, ListChecks, Sparkles, Check, X } fro
 import { useFirestore } from '../../hooks/useFirestore'
 import { useAuth } from '../../contexts/AuthContext'
 import { buildQuizDisplaySections } from '../../utils/quizSections.js'
-import { richTextToPlainText } from '../../utils/quizRichText.js'
 import { getRoleLandingPath } from '../../utils/navigation'
 import { explainQuizAnswer } from '../../utils/aiAssistant'
-import { RichTextContent } from './QuizRichText'
+// Format-aware renderer + plain-text extractor. Works for both legacy HTML
+// quizzes and Tiptap JSON quizzes saved by the new editor.
+import RichContent, { getRichPlainText } from '../../editor/RichContent'
 import Button from '../ui/Button'
 import Icon from '../ui/Icon'
 import Skeleton from '../ui/Skeleton'
@@ -185,12 +186,12 @@ export default function QuizResultsV2() {
           <div className="min-w-0 flex-1">
             {question.sharedInstruction && (
               <div className="theme-accent-bg theme-border theme-accent-text mb-2 rounded-2xl border px-3 py-2 text-sm font-bold leading-relaxed">
-                <RichTextContent value={question.sharedInstruction} className="theme-accent-text text-sm font-bold leading-relaxed" />
+                <RichContent value={question.sharedInstruction} className="theme-accent-text text-sm font-bold leading-relaxed" />
               </div>
             )}
             <div className="text-sm font-bold leading-snug">
               <p>Q{question.questionNumber}.</p>
-              <RichTextContent value={question.text} className="mt-1" />
+              <RichContent value={question.text} className="mt-1" />
             </div>
             {question.topic && <p className="theme-text-muted mt-1 text-xs font-bold">{question.topic}</p>}
           </div>
@@ -308,10 +309,10 @@ export default function QuizResultsV2() {
                       </div>
                       {section.passage.title && <p className="text-lg font-black">{section.passage.title}</p>}
                       {section.passage.instructions && (
-                        <RichTextContent value={section.passage.instructions} className="theme-accent-text mt-1 text-sm font-bold" />
+                        <RichContent value={section.passage.instructions} className="theme-accent-text mt-1 text-sm font-bold" />
                       )}
                       {section.passage.imageUrl && <img src={section.passage.imageUrl} alt="Passage illustration" className="mt-3 max-h-72 w-full rounded-2xl object-contain" />}
-                      <RichTextContent value={section.passage.passageText} className="mt-3 text-sm leading-7" />
+                      <RichContent value={section.passage.passageText} className="mt-3 text-sm leading-7" />
                     </div>
                     {section.questions.map(renderQuestion)}
                   </div>

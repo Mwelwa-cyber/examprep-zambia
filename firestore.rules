@@ -242,10 +242,19 @@ service cloud.firestore {
       allow read:   if isAuthed() && (resource.data.ownerUid == request.auth.uid || isAdmin());
       // Client never creates these — only the Cloud Function does (admin SDK bypasses rules).
       allow create: if false;
-      // Teachers can flip a few fields on their own generations.
+      // Teachers can update their own generations' output (in-place editing)
+      // and the teacherEdited / visibility / exportedFormats metadata fields.
+      // Structural fields (tool, ownerUid, inputs, tokens, etc.) remain
+      // immutable from the client.
       allow update: if isAuthed()
                        && resource.data.ownerUid == request.auth.uid
-                       && changedKeys().hasOnly(['teacherEdited', 'visibility', 'exportedFormats']);
+                       && changedKeys().hasOnly([
+                         'output', 'teacherEdited', 'visibility', 'exportedFormats',
+                       ])
+                       && incoming().ownerUid == resource.data.ownerUid
+                       && incoming().tool == resource.data.tool;
+      // Admin can update anything (for moderation, flag/unflag etc.)
+      allow update: if isAdmin();
       allow delete: if isAuthed() && (resource.data.ownerUid == request.auth.uid || isAdmin());
     }
 

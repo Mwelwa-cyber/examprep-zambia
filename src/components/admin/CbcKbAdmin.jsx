@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  listCbcTopics, saveCbcTopic, deleteCbcTopic,
+  listCbcTopics, saveCbcTopic, deleteCbcTopic, importBuiltInTopics,
 } from '../../utils/adminCbcKbService'
 import {
   TEACHER_GRADES, TEACHER_SUBJECTS,
@@ -27,6 +27,7 @@ export default function CbcKbAdmin() {
   const [saving, setSaving] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [toast, setToast] = useState('')
+  const [importing, setImporting] = useState(false)
 
   async function load() {
     setStatus('loading')
@@ -110,6 +111,26 @@ export default function CbcKbAdmin() {
     }
   }
 
+  async function onImportBuiltIn() {
+    const confirmed = window.confirm(
+      'Import the 90 built-in G1–9 topics into Firestore so you can edit them here?\n\n' +
+      'Existing Firestore entries with matching IDs will be OVERWRITTEN with the ' +
+      'latest in-code data. Use with care if you have custom edits on built-ins.',
+    )
+    if (!confirmed) return
+    setImporting(true)
+    setToast('')
+    const res = await importBuiltInTopics()
+    setImporting(false)
+    if (res.ok) {
+      setToast(`Imported ${res.written} / ${res.totalInCode} built-in topics.`)
+      await load()
+    } else {
+      setToast(`Import failed: ${res.error}`)
+    }
+    setTimeout(() => setToast(''), 6000)
+  }
+
   return (
     <div className="space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -132,6 +153,30 @@ export default function CbcKbAdmin() {
       {toast && (
         <div className="rounded-xl border-2 border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
           {toast}
+        </div>
+      )}
+
+      {/* Import built-ins panel — prominent when list is small */}
+      {(status !== 'loading' && rows.length < 20) && (
+        <div className="rounded-2xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-sky-50 p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="text-3xl">📦</div>
+            <div className="flex-1">
+              <p className="font-black text-indigo-900">Import the 90 built-in G1–9 topics</p>
+              <p className="text-sm text-indigo-800/80 mt-1">
+                The Cloud Function ships with a curated Grade 1–9 seed. Import it
+                here to make every topic editable through this page — fix typos,
+                adjust outcomes, tailor to your school's language.
+              </p>
+            </div>
+            <button
+              onClick={onImportBuiltIn}
+              disabled={importing}
+              className="px-5 py-3 rounded-xl font-black text-white bg-gradient-to-r from-indigo-500 to-sky-500 disabled:opacity-50 whitespace-nowrap"
+            >
+              {importing ? 'Importing…' : 'Import 90 topics'}
+            </button>
+          </div>
         </div>
       )}
 
@@ -185,6 +230,11 @@ export default function CbcKbAdmin() {
                 <span>{formatSubject(topic.subject)}</span>
                 <span>·</span>
                 <span>Term {topic.term}</span>
+                {topic.origin === 'builtin_seed' && (
+                  <span className="ml-auto px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-[10px]">
+                    built-in
+                  </span>
+                )}
               </div>
               <h3 className="font-black text-base text-slate-900">{topic.topic}</h3>
               {topic.subtopics?.length > 0 && (
