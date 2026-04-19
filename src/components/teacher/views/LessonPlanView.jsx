@@ -3,6 +3,8 @@
  * Used by both the Lesson Plan Generator and the Library detail view.
  */
 
+import { renderText } from '../../../utils/mathRender'
+
 export default function LessonPlanView({ plan }) {
   if (!plan) return null
   return (
@@ -53,11 +55,11 @@ export default function LessonPlanView({ plan }) {
             {plan.assessment?.summative?.description && (
               <div>
                 <h4 className="font-bold text-sm mb-1">Summative</h4>
-                <p className="text-sm theme-text">{plan.assessment.summative.description}</p>
+                <p className="text-sm theme-text">{renderText(plan.assessment.summative.description)}</p>
                 {plan.assessment.summative.successCriteria && (
                   <p className="text-xs theme-text-secondary mt-1">
                     <span className="font-bold">Success criteria: </span>
-                    {plan.assessment.summative.successCriteria}
+                    {renderText(plan.assessment.summative.successCriteria)}
                   </p>
                 )}
               </div>
@@ -79,7 +81,7 @@ export default function LessonPlanView({ plan }) {
       </div>
       {plan.homework?.description && (
         <Section title="Homework">
-          <p className="text-sm theme-text">{plan.homework.description}</p>
+          <p className="text-sm theme-text">{renderText(plan.homework.description)}</p>
           {plan.homework.estimatedMinutes > 0 && (
             <p className="text-xs theme-text-secondary mt-1">
               Estimated time: {plan.homework.estimatedMinutes} minutes
@@ -152,7 +154,7 @@ function OrderedList({ items }) {
   if (!items?.length) return <p className="text-sm theme-text-secondary italic">—</p>
   return (
     <ol className="list-decimal list-inside space-y-1 text-sm theme-text">
-      {items.map((it, i) => <li key={i}>{it}</li>)}
+      {items.map((it, i) => <li key={i}>{renderText(it)}</li>)}
     </ol>
   )
 }
@@ -161,7 +163,7 @@ function UnorderedList({ items }) {
   if (!items?.length) return <p className="text-sm theme-text-secondary italic">—</p>
   return (
     <ul className="list-disc list-inside space-y-1 text-sm theme-text">
-      {items.map((it, i) => <li key={i}>{it}</li>)}
+      {items.map((it, i) => <li key={i}>{renderText(it)}</li>)}
     </ul>
   )
 }

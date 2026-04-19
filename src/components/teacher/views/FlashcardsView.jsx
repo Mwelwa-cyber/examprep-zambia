@@ -4,6 +4,7 @@
  */
 
 import { useState } from 'react'
+import { renderText } from '../../../utils/mathRender'
 
 export default function FlashcardsView({ flashcards }) {
   const cards = flashcards?.cards || []
@@ -33,15 +34,15 @@ export default function FlashcardsView({ flashcards }) {
             <span className="text-[10px] text-slate-500">click to flip</span>
           </div>
           {!flipped[i] ? (
-            <p className="theme-text font-bold">{card.front}</p>
+            <p className="theme-text font-bold">{renderText(card.front)}</p>
           ) : (
             <div>
-              <p className="theme-text text-sm">{card.back}</p>
+              <p className="theme-text text-sm">{renderText(card.back)}</p>
               {card.example && (
-                <p className="text-xs text-slate-600 italic mt-2">e.g. {card.example}</p>
+                <p className="text-xs text-slate-600 italic mt-2">e.g. {renderText(card.example)}</p>
               )}
               {card.hint && (
-                <p className="text-xs text-slate-600 italic mt-1">💡 {card.hint}</p>
+                <p className="text-xs text-slate-600 italic mt-1">💡 {renderText(card.hint)}</p>
               )}
             </div>
           )}

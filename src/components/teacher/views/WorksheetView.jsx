@@ -3,6 +3,8 @@
  * Shared by the Worksheet Generator and the Library detail view.
  */
 
+import { renderText } from '../../../utils/mathRender'
+
 export default function WorksheetView({ worksheet, showAnswers = false }) {
   if (!worksheet) return null
   return (
@@ -56,24 +58,24 @@ function QuestionView({ q, showAnswers }) {
       <div className="flex items-start gap-2">
         <span className="font-black theme-text shrink-0">{q.number}.</span>
         <div className="flex-1">
-          <p className="theme-text">{q.prompt}</p>
+          <p className="theme-text">{renderText(q.prompt)}</p>
           {(q.type === 'multiple_choice' || q.type === 'true_false') && q.options?.length > 0 && (
             <ul className="mt-2 space-y-1">
               {q.options.map((opt, i) => (
                 <li key={i} className="text-sm theme-text">
-                  <span className="font-bold mr-2">{letters[i] || '•'}.</span>{opt}
+                  <span className="font-bold mr-2">{letters[i] || '•'}.</span>{renderText(opt)}
                 </li>
               ))}
             </ul>
           )}
           {showAnswers && q.answer && (
             <div className="mt-2 pt-2 border-t theme-border">
-              <p className="text-sm text-emerald-700 dark:text-emerald-400">
-                <span className="font-bold">✓ Answer: </span>{q.answer}
+              <p className="text-sm text-emerald-700">
+                <span className="font-bold">✓ Answer: </span>{renderText(q.answer)}
               </p>
               {q.workingNotes && (
                 <p className="text-xs theme-text-secondary italic mt-1">
-                  {q.workingNotes}
+                  {renderText(q.workingNotes)}
                 </p>
               )}
             </div>
