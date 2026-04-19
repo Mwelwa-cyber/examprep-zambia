@@ -24,12 +24,12 @@
   force = true
 
 [[redirects]]
-  from = "/*"
-  to   = "/index.html"
-  status = 200
-  
-  [[redirects]]
   from   = "/api/tts"
   to     = "https://us-central1-examsprepzambia.cloudfunctions.net/apiTextToSpeech"
   status = 200
   force  = true
+
+[[redirects]]
+  from = "/*"
+  to   = "/index.html"
+  status = 200

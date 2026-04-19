@@ -64,10 +64,10 @@ force = true
 [redirects.headers]
 
 [[redirects]]
-from = "/*"
-to = "/index.html"
+from = "/api/tts"
+to = "https://us-central1-examsprepzambia.cloudfunctions.net/apiTextToSpeech"
 status = 200.0
-force = false
+force = true
 
 [redirects.query]
 
@@ -76,10 +76,10 @@ force = false
 [redirects.headers]
 
 [[redirects]]
-from = "/api/tts"
-to = "https://us-central1-examsprepzambia.cloudfunctions.net/apiTextToSpeech"
+from = "/*"
+to = "/index.html"
 status = 200.0
-force = true
+force = false
 
 [redirects.query]
 

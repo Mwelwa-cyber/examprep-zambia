@@ -55,6 +55,10 @@ const {
 const {
   createGenerateRubric,
 } = require("./teacherTools/generateRubric");
+// Teacher Tools — import built-in CBC topics into Firestore (admin-only).
+const {
+  importBuiltInCbcTopics,
+} = require("./teacherTools/importBuiltInCbcTopics");
 
 const anthropicApiKey = defineSecret("ANTHROPIC_API_KEY");
 const mtnApiUser = defineSecret("MTN_API_USER");
@@ -903,4 +907,7 @@ exports.generateSchemeOfWork = createGenerateSchemeOfWork(anthropicApiKey);
 
 // Teacher Tools — Zambian CBC Rubric Generator.
 exports.generateRubric = createGenerateRubric(anthropicApiKey);
+
+// Teacher Tools — admin-only: import the built-in G1-9 topics into Firestore.
+exports.importBuiltInCbcTopics = importBuiltInCbcTopics;
 exports.apiTextToSpeech = require('./tts').apiTextToSpeech;

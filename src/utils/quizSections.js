@@ -1,4 +1,6 @@
-import { ensureRichTextHtml, richTextHasContent } from './quizRichText.js'
+// Rich-text format handling is now dual (HTML + Tiptap JSON) and lives in
+// the serializeRichField / hydrateRichField / richFieldEmpty helpers below.
+// ensureRichTextHtml from the legacy module is intentionally no longer used.
 
 let localIdCounter = 0
 
@@ -42,11 +44,15 @@ export function emptyQuestion(overrides = {}) {
     ...overrides,
   }
 
+  // hydrateRichField is dual-format: it passes Tiptap JSON objects through,
+  // parses JSON strings, and leaves HTML strings untouched. This lets
+  // documentQuizImporter keep shipping HTML while the new editor ships JSON —
+  // both flow through this constructor without being destroyed.
   return {
     ...nextQuestion,
-    sharedInstruction: ensureRichTextHtml(nextQuestion.sharedInstruction),
-    text: ensureRichTextHtml(nextQuestion.text),
-    explanation: ensureRichTextHtml(nextQuestion.explanation),
+    sharedInstruction: hydrateRichField(nextQuestion.sharedInstruction),
+    text: hydrateRichField(nextQuestion.text),
+    explanation: hydrateRichField(nextQuestion.explanation),
   }
 }
 
@@ -96,8 +102,8 @@ export function createPassageSection(passageOverrides = {}) {
     passage: {
       ...nextPassage,
       id: passageId,
-      instructions: ensureRichTextHtml(nextPassage.instructions),
-      passageText: ensureRichTextHtml(nextPassage.passageText),
+      instructions: hydrateRichField(nextPassage.instructions),
+      passageText: hydrateRichField(nextPassage.passageText),
       questions: questionOverrides.map(question =>
         emptyPassageQuestion({
           ...question,
@@ -153,9 +159,12 @@ export function isQuestionBlank(question = {}) {
     ? question.correctAnswer.trim()
     : question.correctAnswer
 
-  return !richTextHasContent(question.sharedInstruction) &&
-    !richTextHasContent(question.text) &&
-    !richTextHasContent(question.explanation) &&
+  // richFieldEmpty is format-aware (HTML string OR Tiptap JSON); the legacy
+  // richTextHasContent only recognises HTML, so it would mark every Tiptap
+  // JSON field as "blank" — which would make every new quiz fail validation.
+  return richFieldEmpty(question.sharedInstruction) &&
+    richFieldEmpty(question.text) &&
+    richFieldEmpty(question.explanation) &&
     !String(question.topic ?? '').trim() &&
     !String(question.diagramText ?? '').trim() &&
     !String(question.imageUrl ?? '').trim() &&
@@ -188,6 +197,10 @@ export function countQuizMarks(sections = []) {
 }
 
 export function serializeQuizSections(sections = []) {
+  // Dual-format safe: serializeRichField writes Tiptap JSON as a JSON string
+  // (keeps objects out of Firestore document fields) and passes HTML strings
+  // through untouched. Legacy quizzes still save as HTML until a teacher
+  // edits them; new quizzes save as stringified Tiptap JSON from day one.
   const passages = []
   const questions = []
   let questionOrder = 1
@@ -201,8 +214,8 @@ export function serializeQuizSections(sections = []) {
       passages.push({
         id: passageId,
         title: String(passage.title ?? '').trim(),
-        instructions: ensureRichTextHtml(passage.instructions),
-        passageText: ensureRichTextHtml(passage.passageText),
+        instructions: serializeRichField(passage.instructions),
+        passageText: serializeRichField(passage.passageText),
         imageUrl: passage.imageUrl || null,
         order: startOrder,
       })
@@ -210,9 +223,9 @@ export function serializeQuizSections(sections = []) {
       ;(passage.questions || []).forEach(question => {
         questions.push({
           ...question,
-          sharedInstruction: ensureRichTextHtml(question.sharedInstruction),
-          text: ensureRichTextHtml(question.text),
-          explanation: ensureRichTextHtml(question.explanation),
+          sharedInstruction: serializeRichField(question.sharedInstruction),
+          text: serializeRichField(question.text),
+          explanation: serializeRichField(question.explanation),
           passageId,
           type: 'mcq',
           detectedType: 'mcq',
@@ -225,9 +238,9 @@ export function serializeQuizSections(sections = []) {
 
     questions.push({
       ...(section.question || emptyQuestion()),
-      sharedInstruction: ensureRichTextHtml(section.question?.sharedInstruction),
-      text: ensureRichTextHtml(section.question?.text),
-      explanation: ensureRichTextHtml(section.question?.explanation),
+      sharedInstruction: serializeRichField(section.question?.sharedInstruction),
+      text: serializeRichField(section.question?.text),
+      explanation: serializeRichField(section.question?.explanation),
       passageId: null,
       order: questionOrder,
     })

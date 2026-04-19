@@ -95,7 +95,7 @@ export default function QuizResultsV2() {
     setAiLoading(current => ({ ...current, [question.id]: true }))
     try {
       const explanation = await explainQuizAnswer({
-        question: [richTextToPlainText(question.sharedInstruction), richTextToPlainText(question.text), question.diagramText]
+        question: [getRichPlainText(question.sharedInstruction), getRichPlainText(question.text), question.diagramText]
           .filter(Boolean)
           .join('\n'),
         learnerAnswer: answerToText(question, userAnswer),
