@@ -151,6 +151,12 @@ export const TOOL_META = {
     route: '/teacher/generate/lesson-plan',
     colour: 'emerald',
   },
+  scheme_of_work: {
+    label: 'Scheme of Work',
+    icon: '🗓️',
+    route: '/teacher/generate/scheme-of-work',
+    colour: 'teal',
+  },
   worksheet: {
     label: 'Worksheet',
     icon: '📝',
@@ -168,6 +174,7 @@ export const TOOL_META = {
 export const TOOL_FILTER_OPTIONS = [
   {value: '', label: 'All tools'},
   {value: 'lesson_plan', label: 'Lesson plans'},
+  {value: 'scheme_of_work', label: 'Schemes of work'},
   {value: 'worksheet', label: 'Worksheets'},
   {value: 'flashcards', label: 'Flashcards'},
 ]
@@ -188,6 +195,12 @@ export function titleForGeneration(gen) {
   }
   if (gen.tool === 'flashcards') {
     return out?.header?.title || `${gen.inputs?.topic || 'Flashcards'}`
+  }
+  if (gen.tool === 'scheme_of_work') {
+    const g = out?.header?.class || gen.inputs?.grade || ''
+    const s = out?.header?.subject || gen.inputs?.subject || ''
+    const t = out?.header?.term || gen.inputs?.term || ''
+    return `${g} ${s} — Term ${t} Scheme of Work`.trim()
   }
   return gen.inputs?.topic || 'Generation'
 }

@@ -47,6 +47,10 @@ const {
 const {
   createGenerateFlashcards,
 } = require("./teacherTools/generateFlashcards");
+// Teacher Tools — Scheme of Work Generator.
+const {
+  createGenerateSchemeOfWork,
+} = require("./teacherTools/generateSchemeOfWork");
 
 const anthropicApiKey = defineSecret("ANTHROPIC_API_KEY");
 const mtnApiUser = defineSecret("MTN_API_USER");
@@ -889,4 +893,7 @@ exports.generateWorksheet = createGenerateWorksheet(anthropicApiKey);
 
 // Teacher Tools — Zambian CBC Flashcard Generator.
 exports.generateFlashcards = createGenerateFlashcards(anthropicApiKey);
+
+// Teacher Tools — Zambian CBC Scheme of Work Generator.
+exports.generateSchemeOfWork = createGenerateSchemeOfWork(anthropicApiKey);
 exports.apiTextToSpeech = require('./tts').apiTextToSpeech;

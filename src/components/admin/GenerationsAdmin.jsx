@@ -145,9 +145,10 @@ export default function GenerationsAdmin() {
           value={filters.tool}
           options={[
             { value: '', label: 'All tools' },
-            { value: 'lesson_plan', label: 'Lesson plans' },
-            { value: 'worksheet',   label: 'Worksheets' },
-            { value: 'flashcards',  label: 'Flashcards' },
+            { value: 'lesson_plan',    label: 'Lesson plans' },
+            { value: 'scheme_of_work', label: 'Schemes of work' },
+            { value: 'worksheet',      label: 'Worksheets' },
+            { value: 'flashcards',     label: 'Flashcards' },
           ]}
           onChange={(v) => setFilters((f) => ({ ...f, tool: v }))}
         />

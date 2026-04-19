@@ -11,9 +11,11 @@ import {
 import LessonPlanView from '../views/LessonPlanView'
 import WorksheetView from '../views/WorksheetView'
 import FlashcardsView from '../views/FlashcardsView'
+import SchemeOfWorkView from '../views/SchemeOfWorkView'
 import { downloadLessonPlanDocx } from '../../../utils/lessonPlanToDocx'
 import { downloadWorksheetDocx } from '../../../utils/worksheetToDocx'
 import { downloadFlashcardsDocx } from '../../../utils/flashcardsToDocx'
+import { downloadSchemeOfWorkDocx } from '../../../utils/schemeOfWorkToDocx'
 
 export default function LibraryItemDetail() {
   const { id } = useParams()
@@ -68,6 +70,9 @@ export default function LibraryItemDetail() {
       recordExport(item.id, 'docx')
     } else if (item.tool === 'flashcards') {
       await downloadFlashcardsDocx(item.output, `${base}_flashcards.docx`)
+      recordExport(item.id, 'docx')
+    } else if (item.tool === 'scheme_of_work') {
+      await downloadSchemeOfWorkDocx(item.output, `${base}_scheme-of-work.docx`)
       recordExport(item.id, 'docx')
     }
   }
@@ -232,6 +237,7 @@ export default function LibraryItemDetail() {
             <WorksheetView worksheet={item.output} showAnswers={showAnswers} />
           )}
           {item.tool === 'flashcards' && <FlashcardsView flashcards={item.output} />}
+          {item.tool === 'scheme_of_work' && <SchemeOfWorkView scheme={item.output} />}
           {!item.output && (
             <p className="text-sm theme-text-secondary italic">
               This generation has no output to display.

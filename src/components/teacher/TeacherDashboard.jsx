@@ -145,19 +145,32 @@ export default function TeacherDashboard() {
       {/* Featured — AI Teacher Tools */}
       <div>
         <h2 className="text-eyebrow mb-3">AI teacher tools <span className="ml-2 inline-block px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase tracking-wide">New</span></h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           <Link
             to="/teacher/generate/lesson-plan"
             className="group flex items-start gap-4 p-5 rounded-2xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50 shadow-elev-sm transition-all duration-base ease-out hover:-translate-y-0.5 hover:shadow-elev-md hover:border-emerald-400"
           >
             <span className="text-3xl" aria-hidden="true">✨</span>
             <div className="flex-1 min-w-0">
-              <p className="font-black text-emerald-900 text-base">CBC Lesson Plan</p>
+              <p className="font-black text-emerald-900 text-base">Lesson Plan</p>
               <p className="text-sm text-emerald-800/80 mt-1">
-                Full Zambian CBC format — Specific Outcomes, Key Competencies, Pupils' &amp; Teacher's Activities.
+                Full CDC-format plan for one lesson — Outcomes, Activities, Assessment.
               </p>
             </div>
             <span className="text-emerald-700 font-black text-sm group-hover:translate-x-1 transition-transform">→</span>
+          </Link>
+          <Link
+            to="/teacher/generate/scheme-of-work"
+            className="group flex items-start gap-4 p-5 rounded-2xl border-2 border-teal-200 bg-gradient-to-br from-teal-50 to-cyan-50 shadow-elev-sm transition-all duration-base ease-out hover:-translate-y-0.5 hover:shadow-elev-md hover:border-teal-400"
+          >
+            <span className="text-3xl" aria-hidden="true">🗓️</span>
+            <div className="flex-1 min-w-0">
+              <p className="font-black text-teal-900 text-base">Scheme of Work</p>
+              <p className="text-sm text-teal-800/80 mt-1">
+                A whole term's plan — weekly topics, outcomes, and assessment for head teachers.
+              </p>
+            </div>
+            <span className="text-teal-700 font-black text-sm group-hover:translate-x-1 transition-transform">→</span>
           </Link>
           <Link
             to="/teacher/generate/worksheet"

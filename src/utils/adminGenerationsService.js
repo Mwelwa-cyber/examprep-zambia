@@ -193,7 +193,8 @@ export const STATUS_COLOURS = {
 }
 
 export const TOOL_META = {
-  lesson_plan: { label: 'Lesson Plan', icon: '✨' },
-  worksheet:   { label: 'Worksheet',   icon: '📝' },
-  flashcards:  { label: 'Flashcards',  icon: '🎴' },
+  lesson_plan:    { label: 'Lesson Plan',     icon: '✨' },
+  scheme_of_work: { label: 'Scheme of Work',  icon: '🗓️' },
+  worksheet:      { label: 'Worksheet',       icon: '📝' },
+  flashcards:     { label: 'Flashcards',      icon: '🎴' },
 }

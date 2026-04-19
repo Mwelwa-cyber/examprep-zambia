@@ -19,6 +19,9 @@ const generateWorksheetCallable = httpsCallable(functions, 'generateWorksheet', 
 const generateFlashcardsCallable = httpsCallable(functions, 'generateFlashcards', {
   timeout: 90_000, // server: 90s
 })
+const generateSchemeOfWorkCallable = httpsCallable(functions, 'generateSchemeOfWork', {
+  timeout: 180_000, // server: 180s — schemes are long
+})
 
 export const TEACHER_GRADES = [
   { value: 'ECE', label: 'Early Childhood Education' },
@@ -100,6 +103,19 @@ export const FLASHCARD_COUNTS = [
   { value: 30, label: '30 cards — deep revision' },
 ]
 
+export const SCHEME_TERMS = [
+  { value: 1, label: 'Term 1' },
+  { value: 2, label: 'Term 2' },
+  { value: 3, label: 'Term 3' },
+]
+
+export const SCHEME_WEEK_COUNTS = [
+  { value: 10, label: '10 weeks' },
+  { value: 12, label: '12 weeks (recommended)' },
+  { value: 13, label: '13 weeks' },
+  { value: 14, label: '14 weeks' },
+]
+
 function messageFromError(error) {
   const code = error?.code || ''
   const detail = error?.message || ''
@@ -149,6 +165,38 @@ function withTimeout(promise, ms, label = 'request') {
       (e) => { clearTimeout(t); reject(e) },
     )
   })
+}
+
+export async function generateSchemeOfWork(inputs) {
+  console.info('[zedexams] generateSchemeOfWork →', {
+    grade: inputs?.grade, subject: inputs?.subject,
+    term: inputs?.term, numberOfWeeks: inputs?.numberOfWeeks,
+  })
+  const startedAt = Date.now()
+  try {
+    const result = await withTimeout(
+      generateSchemeOfWorkCallable(inputs),
+      200_000, // a bit over the 180s server timeout
+      'generateSchemeOfWork',
+    )
+    console.info(
+      '[zedexams] generateSchemeOfWork ← ok in',
+      Date.now() - startedAt, 'ms',
+      { generationId: result?.data?.generationId, warning: result?.data?.warning },
+    )
+    return { ok: true, data: result.data }
+  } catch (error) {
+    console.error('[zedexams] generateSchemeOfWork ← FAILED after',
+      Date.now() - startedAt, 'ms',
+      { code: error?.code, message: error?.message, details: error?.details },
+    )
+    return {
+      ok: false,
+      error: messageFromError(error),
+      code: error?.code || 'unknown',
+      rawMessage: error?.message || '',
+    }
+  }
 }
 
 export async function generateFlashcards(inputs) {
