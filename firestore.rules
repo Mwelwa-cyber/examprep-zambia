@@ -348,9 +348,13 @@ service cloud.firestore {
     }
 
     // ── badges (per-user earned badges) ───────────────────────
+    // Self-awarded game badges are OK — the client evaluates against the
+    // score just saved to `scores`. Tampering is low-stakes (the leaderboard
+    // still uses real scores, badges are decorative). Admin moderates.
     match /badges/{userId} {
-      allow read:  if isAuthed() && (isOwner(userId) || isAdmin());
-      allow write: if isAdmin();  // awarded server-side via Cloud Function
+      allow read:          if isAuthed() && (isOwner(userId) || isAdmin());
+      allow create, update: if isAuthed() && isOwner(userId);
+      allow delete:        if isAdmin();
     }
 
     // ── daily_challenges (one featured game per day) ──────────

@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { saveScore, shuffle } from '../../utils/gamesService'
+import { evaluateAndAwardGameBadges } from '../../utils/gameBadgesService'
 import Leaderboard from './Leaderboard'
+import BadgeToast from './BadgeToast'
 
 /**
  * Engine for any `type: "timed_quiz"` game document.
@@ -38,6 +40,7 @@ export default function TimedQuizGame({ game }) {
   const [score, setScore] = useState(0)
   const [timeLeft, setTimeLeft] = useState(duration)
   const [saveResult, setSaveResult] = useState(null)
+  const [newBadges, setNewBadges] = useState([])
   const startedAtRef = useRef(null)
 
   // Countdown
@@ -93,6 +96,7 @@ export default function TimedQuizGame({ game }) {
     setScore(0)
     setTimeLeft(duration)
     setSaveResult(null)
+    setNewBadges([])
     startedAtRef.current = Date.now()
   }
 
@@ -133,6 +137,18 @@ export default function TimedQuizGame({ game }) {
       bestStreak,
     })
     setSaveResult(result)
+
+    // Only evaluate/award badges if the score actually saved (i.e. signed in).
+    if (result?.ok) {
+      try {
+        const { newlyEarned } = await evaluateAndAwardGameBadges({
+          game, score, correct, wrong, accuracy, bestStreak,
+        })
+        if (newlyEarned?.length) setNewBadges(newlyEarned)
+      } catch (err) {
+        console.warn('badge evaluation failed', err)
+      }
+    }
   }
 
   if (phase === 'ready') return <ReadyCard game={game} onStart={start} />
@@ -148,6 +164,7 @@ export default function TimedQuizGame({ game }) {
         accuracy={accuracy}
         bestStreak={bestStreak}
         saveResult={saveResult}
+        newBadges={newBadges}
         onRestart={start}
       />
     )
@@ -234,9 +251,11 @@ function ReadyCard({ game, onStart }) {
   )
 }
 
-function DoneCard({ game, score, correct, wrong, accuracy, bestStreak, saveResult, onRestart }) {
+function DoneCard({ game, score, correct, wrong, accuracy, bestStreak, saveResult, newBadges, onRestart }) {
   return (
     <div className="space-y-5">
+      {newBadges?.length > 0 && <BadgeToast badges={newBadges} />}
+
       <div className="bg-white rounded-3xl border-2 border-slate-200 shadow-sm p-8 text-center">
         <div className="text-6xl mb-2">🏁</div>
         <h2 className="text-3xl font-black mb-1">{score} pts</h2>
