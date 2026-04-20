@@ -4,8 +4,11 @@ import { useAuth } from '../../contexts/AuthContext'
 import { saveScore, shuffle } from '../../utils/gamesService'
 import { evaluateAndAwardGameBadges } from '../../utils/gameBadgesService'
 import { getTodaysChallenge, recordDailyPlay } from '../../utils/dailyChallengeService'
+import { playCorrect, playWrong, playWin, primeSounds } from '../../utils/gameSounds'
 import Leaderboard from './Leaderboard'
 import BadgeToast from './BadgeToast'
+import ShareButton from './ShareButton'
+import Confetti from './Confetti'
 
 /**
  * Engine for any `type: "timed_quiz"` game document.
@@ -43,6 +46,7 @@ export default function TimedQuizGame({ game }) {
   const [saveResult, setSaveResult] = useState(null)
   const [newBadges, setNewBadges] = useState([])
   const [streakResult, setStreakResult] = useState(null)
+  const [confettiKey, setConfettiKey] = useState(0)
   const startedAtRef = useRef(null)
 
   // Countdown
@@ -85,6 +89,7 @@ export default function TimedQuizGame({ game }) {
   }
 
   function start() {
+    primeSounds()
     setSeed((s) => s + 1)
     setPhase('playing')
     setDeck(shuffle(pool, Date.now()))
@@ -110,6 +115,7 @@ export default function TimedQuizGame({ game }) {
     setPicked(i)
     setRevealedAt(Date.now())
     if (i === correctIdx) {
+      playCorrect()
       const newStreak = streak + 1
       const bonus = Math.min(5, Math.floor(newStreak / 3))
       const gained = points + bonus
@@ -118,6 +124,7 @@ export default function TimedQuizGame({ game }) {
       if (newStreak > bestStreak) setBestStreak(newStreak)
       setScore((s) => s + gained)
     } else {
+      playWrong()
       const penalty = Math.max(2, Math.floor(points / 4))
       setWrong((w) => w + 1)
       setStreak(0)
@@ -130,6 +137,11 @@ export default function TimedQuizGame({ game }) {
     const total = correct + wrong
     const accuracy = total ? Math.round((correct / total) * 100) : 0
     const timeSpent = startedAtRef.current ? Math.round((Date.now() - startedAtRef.current) / 1000) : duration
+    // Celebrate if they played well
+    if (score >= 50 || accuracy >= 80) {
+      playWin()
+      setConfettiKey((k) => k + 1)
+    }
     const result = await saveScore({
       game,
       score,
@@ -147,7 +159,11 @@ export default function TimedQuizGame({ game }) {
         const { newlyEarned } = await evaluateAndAwardGameBadges({
           game, score, correct, wrong, accuracy, bestStreak,
         })
-        if (newlyEarned?.length) setNewBadges(newlyEarned)
+        if (newlyEarned?.length) {
+          setNewBadges(newlyEarned)
+          playWin()
+          setConfettiKey((k) => k + 1)
+        }
       } catch (err) {
         console.warn('badge evaluation failed', err)
       }
@@ -173,18 +189,21 @@ export default function TimedQuizGame({ game }) {
     const total = correct + wrong
     const accuracy = total ? Math.round((correct / total) * 100) : 0
     return (
-      <DoneCard
-        game={game}
-        score={score}
-        correct={correct}
-        wrong={wrong}
-        accuracy={accuracy}
-        bestStreak={bestStreak}
-        saveResult={saveResult}
-        newBadges={newBadges}
-        streakResult={streakResult}
-        onRestart={start}
-      />
+      <>
+        <Confetti fire={confettiKey} />
+        <DoneCard
+          game={game}
+          score={score}
+          correct={correct}
+          wrong={wrong}
+          accuracy={accuracy}
+          bestStreak={bestStreak}
+          saveResult={saveResult}
+          newBadges={newBadges}
+          streakResult={streakResult}
+          onRestart={start}
+        />
+      </>
     )
   }
 
@@ -202,7 +221,11 @@ export default function TimedQuizGame({ game }) {
         <Pill label="Wrong"  value={wrong}   tone="slate" />
       </div>
 
-      <div className="bg-white rounded-3xl border-2 border-slate-200 shadow-sm p-6 sm:p-8">
+      <div
+        key={`card-${seed}-${questionNo}`}
+        className="bg-white rounded-3xl border-2 border-slate-200 shadow-sm p-6 sm:p-8"
+        style={{ animation: 'zx-question-in 0.3s ease-out both' }}
+      >
         <p className="text-xs font-black uppercase tracking-wide text-slate-500 mb-3">
           Question #{questionNo + 1}
         </p>
@@ -233,6 +256,13 @@ export default function TimedQuizGame({ game }) {
           End round early
         </button>
       </div>
+
+      <style>{`
+        @keyframes zx-question-in {
+          0%   { transform: translateY(8px) scale(0.98); opacity: 0; }
+          100% { transform: translateY(0)    scale(1);    opacity: 1; }
+        }
+      `}</style>
     </div>
   )
 
@@ -293,6 +323,7 @@ function DoneCard({ game, score, correct, wrong, accuracy, bestStreak, saveResul
           >
             Play again 🔁
           </button>
+          <ShareButton game={game} score={score} accuracy={accuracy} bestStreak={bestStreak} />
           <Link
             to={`/games/g/${game.grade}/${game.subject}`}
             className="px-5 py-3 rounded-xl font-black text-slate-900 bg-white border-2 border-slate-200 hover:border-slate-400"
