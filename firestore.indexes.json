@@ -4,76 +4,76 @@
       "collectionGroup": "quizzes",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "isPublished", "order": "ASCENDING" },
-        { "fieldPath": "createdAt",   "order": "DESCENDING" }
+        { "fieldPath": "quizType",  "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
     {
       "collectionGroup": "quizzes",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "isPublished", "order": "ASCENDING" },
-        { "fieldPath": "grade",       "order": "ASCENDING" },
-        { "fieldPath": "createdAt",   "order": "DESCENDING" }
+        { "fieldPath": "quizType",  "order": "ASCENDING" },
+        { "fieldPath": "grade",     "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
     {
       "collectionGroup": "quizzes",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "isPublished", "order": "ASCENDING" },
-        { "fieldPath": "subject",     "order": "ASCENDING" },
-        { "fieldPath": "createdAt",   "order": "DESCENDING" }
+        { "fieldPath": "quizType",  "order": "ASCENDING" },
+        { "fieldPath": "subject",   "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
     {
       "collectionGroup": "quizzes",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "isPublished", "order": "ASCENDING" },
-        { "fieldPath": "term",        "order": "ASCENDING" },
-        { "fieldPath": "createdAt",   "order": "DESCENDING" }
+        { "fieldPath": "quizType",  "order": "ASCENDING" },
+        { "fieldPath": "term",      "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
     {
       "collectionGroup": "quizzes",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "isPublished", "order": "ASCENDING" },
-        { "fieldPath": "grade",       "order": "ASCENDING" },
-        { "fieldPath": "subject",     "order": "ASCENDING" },
-        { "fieldPath": "createdAt",   "order": "DESCENDING" }
+        { "fieldPath": "quizType",  "order": "ASCENDING" },
+        { "fieldPath": "grade",     "order": "ASCENDING" },
+        { "fieldPath": "subject",   "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
     {
       "collectionGroup": "quizzes",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "isPublished", "order": "ASCENDING" },
-        { "fieldPath": "grade",       "order": "ASCENDING" },
-        { "fieldPath": "term",        "order": "ASCENDING" },
-        { "fieldPath": "createdAt",   "order": "DESCENDING" }
+        { "fieldPath": "quizType",  "order": "ASCENDING" },
+        { "fieldPath": "grade",     "order": "ASCENDING" },
+        { "fieldPath": "term",      "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
     {
       "collectionGroup": "quizzes",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "isPublished", "order": "ASCENDING" },
-        { "fieldPath": "subject",     "order": "ASCENDING" },
-        { "fieldPath": "term",        "order": "ASCENDING" },
-        { "fieldPath": "createdAt",   "order": "DESCENDING" }
+        { "fieldPath": "quizType",  "order": "ASCENDING" },
+        { "fieldPath": "subject",   "order": "ASCENDING" },
+        { "fieldPath": "term",      "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
     {
       "collectionGroup": "quizzes",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "isPublished", "order": "ASCENDING" },
-        { "fieldPath": "grade",       "order": "ASCENDING" },
-        { "fieldPath": "subject",     "order": "ASCENDING" },
-        { "fieldPath": "term",        "order": "ASCENDING" },
-        { "fieldPath": "createdAt",   "order": "DESCENDING" }
+        { "fieldPath": "quizType",  "order": "ASCENDING" },
+        { "fieldPath": "grade",     "order": "ASCENDING" },
+        { "fieldPath": "subject",   "order": "ASCENDING" },
+        { "fieldPath": "term",      "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
     {
@@ -347,10 +347,10 @@
       "collectionGroup": "quizzes",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "quizType",      "order": "ASCENDING" },
         { "fieldPath": "isDailyExam",   "order": "ASCENDING" },
         { "fieldPath": "dailyExamDate", "order": "ASCENDING" },
-        { "fieldPath": "subject",       "order": "ASCENDING" },
-        { "fieldPath": "isPublished",   "order": "ASCENDING" }
+        { "fieldPath": "subject",       "order": "ASCENDING" }
       ]
     }
   ],

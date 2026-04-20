@@ -77,10 +77,10 @@ export async function getTodaysExam(subject, grade) {
     const snap = await getDocs(
       query(
         collection(db, 'quizzes'),
+        where('quizType', '==', 'daily_exam'),
         where('isDailyExam', '==', true),
         where('dailyExamDate', '==', todayString()),
         where('subject', '==', subject),
-        where('isPublished', '==', true),
         limit(1),
       ),
     )
