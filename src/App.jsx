@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
 import ProtectedRoute from './components/layout/ProtectedRoute'
@@ -12,7 +12,6 @@ const GradeHub = lazy(() => import('./components/dashboard/GradeHub'))
 const QuizList = lazy(() => import('./components/quiz/QuizList'))
 const QuizRunner = lazy(() => import('./components/quiz/QuizRunnerV2'))
 const QuizResults = lazy(() => import('./components/quiz/QuizResultsV2'))
-const PapersLibrary = lazy(() => import('./components/papers/PapersLibrary'))
 const LessonsList = lazy(() => import('./components/lessons/LessonLibrary'))
 const LessonView = lazy(() => import('./components/lessons/LessonPlayer'))
 const LessonDashboard = lazy(() => import('./components/lessons/LessonDashboard'))
@@ -41,7 +40,6 @@ const CbcKbAdmin = lazy(() => import('./components/admin/CbcKbAdmin'))
 const TeacherLayout = lazy(() => import('./components/teacher/TeacherLayout'))
 const TeacherDashboard = lazy(() => import('./components/teacher/TeacherDashboard'))
 const TeacherContent = lazy(() => import('./components/teacher/TeacherContent'))
-const TeacherPaperUpload = lazy(() => import('./components/teacher/TeacherPaperUpload'))
 
 // Teacher — AI Generators
 const LessonPlanGenerator = lazy(() => import('./components/teacher/generate/LessonPlanGenerator'))
@@ -59,12 +57,22 @@ const TeacherLandingPage = lazy(() => import('./components/marketing/TeacherLand
 const SamplesGallery = lazy(() => import('./components/marketing/SamplesGallery'))
 const SampleDetailPage = lazy(() => import('./components/marketing/SampleDetailPage'))
 
+// Public games (no auth)
+const GamesHub = lazy(() => import('./components/games/GamesHub'))
+const SubjectSelector = lazy(() => import('./components/games/SubjectSelector'))
+const GameList = lazy(() => import('./components/games/GameList'))
+const PlayGame = lazy(() => import('./components/games/PlayGame'))
+
+// Admin — games seed importer
+const GamesSeedAdmin = lazy(() => import('./components/admin/GamesSeedAdmin'))
+
 // Quiz editor (shared by admin + teacher)
 const EditQuiz = lazy(() => import('./components/quiz/EditQuizV2'))
 
 function RootRedirect() {
-  const { currentUser, userProfile, isAdmin, isTeacher } = useAuth()
-  if (!currentUser) return <Navigate to="/login" replace />
+  const { currentUser, userProfile, isAdmin, isTeacher, profileIssue } = useAuth()
+  if (!currentUser) return <Navigate to="/teachers" replace />
+  if (profileIssue) return <MissingProfileRecovery />
   if (!userProfile) return <RouteFallback message="Loading your workspace…" />
   return (
     <Navigate
@@ -101,6 +109,76 @@ function RouteFallback({ message = 'Loading ZedExams…' }) {
   )
 }
 
+function MissingProfileRecovery() {
+  const { currentUser, profileIssue, ensureUserProfile, logout } = useAuth()
+  const [working, setWorking] = useState(false)
+  const [message, setMessage] = useState('')
+
+  async function handleRepair() {
+    setWorking(true)
+    setMessage('')
+    try {
+      const profile = await ensureUserProfile(currentUser)
+      if (!profile) {
+        setMessage('We could not restore this account automatically yet. Please sign out and try again, or contact support.')
+      }
+    } finally {
+      setWorking(false)
+    }
+  }
+
+  async function handleSignOut() {
+    setWorking(true)
+    try {
+      await logout()
+    } finally {
+      setWorking(false)
+    }
+  }
+
+  const description = profileIssue === 'unreadable'
+    ? 'We signed you in, but ZedExams could not read your account profile yet.'
+    : 'We signed you in, but your ZedExams profile is missing.'
+
+  return (
+    <div className="min-h-screen theme-bg flex items-center justify-center p-4">
+      <div className="theme-card border theme-border rounded-3xl shadow-xl w-full max-w-md p-8 text-center">
+        <div className="text-4xl mb-3">🛠️</div>
+        <h1 className="text-display-md theme-text mb-2">Account Repair Needed</h1>
+        <p className="theme-text-muted text-body-sm mb-2">{description}</p>
+        <p className="theme-text-muted text-body-sm mb-6">
+          Signed in as <span className="font-black theme-text">{currentUser?.email || 'your account'}</span>.
+        </p>
+
+        {message && (
+          <p className="text-danger bg-danger-subtle border rounded-xl px-4 py-3 text-body-sm mb-4" style={{ borderColor: 'var(--danger-fg)' }}>
+            {message}
+          </p>
+        )}
+
+        <div className="flex flex-col gap-3">
+          <button
+            type="button"
+            onClick={handleRepair}
+            disabled={working}
+            className="w-full rounded-xl bg-green-600 px-4 py-3 text-white font-black transition hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {working ? 'Repairing account…' : 'Repair My Account'}
+          </button>
+          <button
+            type="button"
+            onClick={handleSignOut}
+            disabled={working}
+            className="w-full rounded-xl border theme-border px-4 py-3 font-black theme-text bg-transparent hover:bg-black/5 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -115,6 +193,13 @@ export default function App() {
           <Route path="/teachers/samples"         element={<SamplesGallery />} />
           <Route path="/teachers/samples/:slug"   element={<SampleDetailPage />} />
 
+          {/* ── Public games (no auth) ──────────────────────────── */}
+          {/* Flow: /games → /games/g/:grade → /games/g/:grade/:subject → /games/play/:gameId */}
+          <Route path="/games"                         element={<GamesHub />} />
+          <Route path="/games/g/:grade"                element={<SubjectSelector />} />
+          <Route path="/games/g/:grade/:subject"       element={<GameList />} />
+          <Route path="/games/play/:gameId"            element={<PlayGame />} />
+
           {/* ── Learner routes ─────────────────────────────────── */}
           {/* GradeHub is the new CBC-aligned primary dashboard */}
           <Route path="/dashboard"         element={<ProtectedRoute><GradeHub /></ProtectedRoute>} />
@@ -123,7 +208,6 @@ export default function App() {
           <Route path="/quizzes"           element={<ProtectedRoute><Navbar /><QuizList /></ProtectedRoute>} />
           <Route path="/quiz/:quizId"      element={<ProtectedRoute><QuizRunner /></ProtectedRoute>} />
           <Route path="/results/:resultId" element={<ProtectedRoute><Navbar /><QuizResults /></ProtectedRoute>} />
-          <Route path="/papers"            element={<ProtectedRoute><Navbar /><PapersLibrary /></ProtectedRoute>} />
           <Route path="/lessons"           element={<ProtectedRoute><Navbar /><LessonsList /></ProtectedRoute>} />
           <Route path="/lessons/:lessonId" element={<ProtectedRoute><Navbar /><LessonView /></ProtectedRoute>} />
           <Route path="/my-results"        element={<ProtectedRoute><Navbar /><MyResults /></ProtectedRoute>} />
@@ -138,7 +222,6 @@ export default function App() {
           <Route path="/admin/lessons/:lessonId/edit"   element={<AdminRoute><LessonEditor /></AdminRoute>} />
           <Route path="/admin/quizzes/new"              element={<AdminRoute><CreateQuiz /></AdminRoute>} />
           <Route path="/admin/quizzes/:quizId/edit"     element={<AdminRoute><EditQuiz /></AdminRoute>} />
-          <Route path="/admin/papers/upload"            element={<AdminRoute><TeacherPaperUpload /></AdminRoute>} />
           <Route path="/admin/content"                  element={<AdminRoute><ManageContent /></AdminRoute>} />
           <Route path="/admin/approvals"                element={<AdminRoute><ContentApprovals /></AdminRoute>} />
           <Route path="/admin/teacher-applications"     element={<AdminRoute><TeacherApplications /></AdminRoute>} />
@@ -146,6 +229,7 @@ export default function App() {
           <Route path="/admin/generations"              element={<AdminRoute><GenerationsAdmin /></AdminRoute>} />
           <Route path="/admin/generations/:id"          element={<AdminRoute><LibraryItemDetail /></AdminRoute>} />
           <Route path="/admin/cbc-kb"                   element={<AdminRoute><CbcKbAdmin /></AdminRoute>} />
+          <Route path="/admin/games-seed"               element={<AdminRoute><GamesSeedAdmin /></AdminRoute>} />
           <Route path="/admin/results"                  element={<AdminRoute><AdminResults /></AdminRoute>} />
           <Route path="/admin/payments"                 element={<AdminRoute><PaymentsPanel /></AdminRoute>} />
           <Route path="/admin/generate/lesson-plan"     element={<AdminRoute><LessonPlanGenerator /></AdminRoute>} />
@@ -162,7 +246,6 @@ export default function App() {
           <Route path="/teacher/lessons"                 element={<TeacherRoute><LessonDashboard /></TeacherRoute>} />
           <Route path="/teacher/lessons/new"             element={<TeacherRoute><LessonEditor /></TeacherRoute>} />
           <Route path="/teacher/lessons/:lessonId/edit"  element={<TeacherRoute><LessonEditor /></TeacherRoute>} />
-          <Route path="/teacher/papers/upload"           element={<TeacherRoute><TeacherPaperUpload /></TeacherRoute>} />
           <Route path="/teacher/generate/lesson-plan"    element={<TeacherRoute><LessonPlanGenerator /></TeacherRoute>} />
           <Route path="/teacher/generate/worksheet"      element={<TeacherRoute><WorksheetGenerator /></TeacherRoute>} />
           <Route path="/teacher/generate/flashcards"     element={<TeacherRoute><FlashcardGenerator /></TeacherRoute>} />

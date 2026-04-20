@@ -278,6 +278,16 @@ service cloud.firestore {
       }
     }
 
+    // ── private CBC curriculum grounding ─────────────────────
+    // These collections hold the raw server-side curriculum corpus used to
+    // ground AI generations. They must never be exposed to the browser.
+    match /curriculum/{docId} {
+      allow read, write: if false;
+    }
+    match /rag_chunks/{docId} {
+      allow read, write: if false;
+    }
+
     // ── cbcKnowledgeBase ──────────────────────────────────────
     match /cbcKnowledgeBase/{version} {
       allow read:  if isAuthed();
@@ -301,6 +311,51 @@ service cloud.firestore {
     // ── schoolLicences ────────────────────────────────────────
     match /schoolLicences/{licenceId} {
       allow read:  if isAuthed() && (request.auth.uid in resource.data.memberUids || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // ── games (public read, admin write) ──────────────────────
+    // Students play games anonymously. Admins curate/seed content.
+    // Document shape:
+    //   { title, subject, grade, type, difficulty, description, timer,
+    //     points, active, cbc_topic, questions[], generator?,
+    //     createdAt, updatedAt, createdBy }
+    match /games/{gameId} {
+      allow read:   if resource.data.get('active', true) == true || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ── scores (student-submitted play results) ───────────────
+    // Read: public (powers leaderboards — only name + score leak out).
+    // Create: signed-in players only; can only write their own userId.
+    // Update/delete: admin only (prevents tampering with leaderboards).
+    match /scores/{scoreId} {
+      allow read:   if true;
+      allow create: if isAuthed()
+        && incoming().userId == request.auth.uid
+        && incoming().gameId is string
+        && incoming().score is number
+        && incoming().grade is number
+        && incoming().subject is string
+        && incoming().playedAt == request.time;
+      allow update, delete: if isAdmin();
+    }
+
+    // ── leaderboards (aggregated top-N per game; Cloud Function writes) ─
+    match /leaderboards/{gameId} {
+      allow read:  if true;
+      allow write: if isAdmin();  // Cloud Functions also bypass via admin SDK
+    }
+
+    // ── badges (per-user earned badges) ───────────────────────
+    match /badges/{userId} {
+      allow read:  if isAuthed() && (isOwner(userId) || isAdmin());
+      allow write: if isAdmin();  // awarded server-side via Cloud Function
+    }
+
+    // ── daily_challenges (one featured game per day) ──────────
+    match /daily_challenges/{dateId} {
+      allow read:  if true;
       allow write: if isAdmin();
     }
 

@@ -42,6 +42,7 @@ function NavBar() {
         </Link>
         <div className="flex items-center gap-3">
           <Link to="/teachers/samples" className="hidden sm:block text-sm font-bold text-slate-700 hover:text-slate-900">Samples</Link>
+          <Link to="/games" className="hidden sm:block text-sm font-bold text-slate-700 hover:text-slate-900">Play games</Link>
           <a href="#pricing" className="hidden sm:block text-sm font-bold text-slate-700 hover:text-slate-900">Pricing</a>
           <a href="#faq" className="hidden sm:block text-sm font-bold text-slate-700 hover:text-slate-900">FAQ</a>
           <Link
@@ -417,7 +418,7 @@ function FaqSection() {
     },
     {
       q: 'Who is behind ZedExams?',
-      a: 'ZedExams is a Zambian-built platform already serving students with past papers, quizzes, and revision lessons. The Teacher Suite is our new tool for the people doing the actual teaching.',
+      a: 'ZedExams is a Zambian-built platform already serving students with quizzes and revision lessons. The Teacher Suite is our new tool for the people doing the actual teaching.',
     },
     {
       q: 'Do I need a bank card?',

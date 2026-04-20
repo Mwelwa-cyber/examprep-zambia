@@ -258,6 +258,60 @@
         { "fieldPath": "contacted",   "order": "ASCENDING" },
         { "fieldPath": "createdAt",   "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "games",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "active",  "order": "ASCENDING" },
+        { "fieldPath": "grade",   "order": "ASCENDING" },
+        { "fieldPath": "subject", "order": "ASCENDING" },
+        { "fieldPath": "title",   "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "games",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "active",  "order": "ASCENDING" },
+        { "fieldPath": "grade",   "order": "ASCENDING" },
+        { "fieldPath": "title",   "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "games",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "active",  "order": "ASCENDING" },
+        { "fieldPath": "subject", "order": "ASCENDING" },
+        { "fieldPath": "title",   "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "scores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "gameId",    "order": "ASCENDING" },
+        { "fieldPath": "score",     "order": "DESCENDING" },
+        { "fieldPath": "playedAt",  "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "scores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId",   "order": "ASCENDING" },
+        { "fieldPath": "playedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "scores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "grade",    "order": "ASCENDING" },
+        { "fieldPath": "subject",  "order": "ASCENDING" },
+        { "fieldPath": "score",    "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
