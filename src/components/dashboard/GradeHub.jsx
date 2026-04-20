@@ -350,7 +350,12 @@ export default function GradeHub() {
           to: '/quizzes',
         }
       : null,
-    latestResult
+    // Only show result-based notifications after data has fully loaded.
+    // While loading=true the notification ID would be 'first-quiz'; once
+    // loading=false it flips to 'latest-result:xxx'. That ID change triggers
+    // the cleanup effect which wipes seenNotificationIds — so we suppress
+    // the entry entirely until we have stable data.
+    !loading && (latestResult
       ? {
           id: `latest-result:${latestResult.id || latestResult.quizId || latestResult.completedAt?.seconds || latestResult.completedAt || latestResult.quizTitle || 'latest'}`,
           icon: latestResult.percentage >= 70 ? '✅' : '📘',
@@ -366,7 +371,7 @@ export default function GradeHub() {
           body: 'Your recent activity will appear here after your first attempt.',
           cta: 'Start a quiz →',
           to: '/quizzes',
-        },
+        }),
     isDemoOnly
       ? {
           id: `demo-access:${accessBadge.label}`,
@@ -383,6 +388,12 @@ export default function GradeHub() {
   const unreadNotifications = notifications.filter(note => !seenNotificationIds.includes(note.id))
 
   useEffect(() => {
+    // Skip pruning while data is still loading. The notification IDs are not
+    // stable yet — running the cleanup now would evict IDs from a previous
+    // stable state (e.g. 'first-quiz' or a prior 'latest-result') and reset
+    // the unread badge incorrectly. Wait until loading=false and the final
+    // ID set is known.
+    if (loading) return
     setSeenNotificationIds(previousSeenIds => {
       const nextSeenIds = previousSeenIds.filter(id => activeNotificationIds.includes(id))
       const changed = nextSeenIds.length !== previousSeenIds.length || nextSeenIds.some((id, index) => id !== previousSeenIds[index])
@@ -392,7 +403,7 @@ export default function GradeHub() {
       writeSeenNotificationIds(notificationUserId, nextSeenIds)
       return nextSeenIds
     })
-  }, [activeNotificationIdsKey, notificationUserId])
+  }, [activeNotificationIdsKey, notificationUserId, loading])
 
   function markNotificationsSeen(ids) {
     if (!ids.length) return
