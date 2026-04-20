@@ -7,6 +7,8 @@ import UpgradeModal from '../subscription/UpgradeModal'
 import { UpgradeBanner, AttemptCounter } from '../subscription/PremiumGate'
 import PremiumGate from '../subscription/PremiumGate'
 import Mascot from '../ui/Mascot'
+import Button from '../ui/Button'
+import Skeleton from '../ui/Skeleton'
 
 const STARS = [
   { top: '10%', left:  '7%',  delay: '0s',    dur: '3.2s', emoji: '⭐', cls: 'text-xl opacity-70' },
@@ -56,7 +58,6 @@ function pctColor(p) {
 const QUICK_ACTIONS = [
   { icon: '✏️', label: 'Take a Quiz',  sub: 'Test your knowledge',   to: '/quizzes',  color: 'from-green-500 to-green-700' },
   { icon: '📚', label: 'Lessons',      sub: 'Read study notes',      to: '/lessons',  color: 'from-blue-500 to-blue-700'  },
-  { icon: '📄', label: 'Past Papers',  sub: 'Download exam papers',  to: '/papers',   color: 'from-purple-500 to-purple-700' },
   { icon: '📊', label: 'My Results',   sub: 'View your history',     to: '/my-results', color: 'from-orange-500 to-orange-600' },
 ]
 
@@ -229,16 +230,15 @@ export default function StudentDashboard() {
         </div>
         {loading ? (
           <div className="space-y-2">
-            {[1, 2, 3].map(i => <div key={i} className="h-14 bg-gray-100 rounded-xl animate-pulse" />)}
+            {[1, 2, 3].map(i => <Skeleton key={i} height={56} />)}
           </div>
         ) : results.length === 0 ? (
           <div className="text-center py-8">
-            <div className="text-4xl mb-2">🎯</div>
-            <p className="text-gray-500 text-sm font-bold">No quizzes taken yet</p>
-            <Link to="/quizzes"
-              className="inline-block mt-3 bg-green-600 text-white font-bold text-sm px-5 py-2 rounded-full hover:bg-green-700 transition-colors">
+            <div className="text-4xl mb-2" aria-hidden="true">🎯</div>
+            <p className="theme-text-muted text-sm font-bold">No quizzes taken yet</p>
+            <Button as={Link} to="/quizzes" variant="primary" size="sm" className="mt-3">
               Start your first quiz →
-            </Link>
+            </Button>
           </div>
         ) : (
           <div className="space-y-2">

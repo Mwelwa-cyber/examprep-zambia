@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Sprout, ChevronRight } from 'lucide-react'
 import { useFirestore } from '../../hooks/useFirestore'
 import { useAuth } from '../../contexts/AuthContext'
-import { seedFirestore } from '../../utils/seedData'
+import { clearSeedFirestore, seedFirestore } from '../../utils/seedData'
 import { getWaitlistSummary } from '../../utils/adminWaitlistService'
 import { getGenerationsSummary } from '../../utils/adminGenerationsService'
 import { db } from '../../firebase/config'
@@ -60,6 +60,7 @@ export default function AdminDashboard() {
   const [recent, setRecent]   = useState([])
   const [loading, setLoading] = useState(true)
   const [seeding, setSeeding] = useState(false)
+  const [clearingSeed, setClearingSeed] = useState(false)
   const [seedMsg, setSeedMsg] = useState('')
 
   async function handleSeed() {
@@ -71,6 +72,21 @@ export default function AdminDashboard() {
     } catch (e) {
       setSeedMsg('❌ ' + e.message)
     } finally { setSeeding(false) }
+  }
+
+  async function handleClearSeed() {
+    if (!window.confirm('This will remove the seeded sample quizzes created by your account. Continue?')) return
+    setClearingSeed(true); setSeedMsg('')
+    try {
+      const result = await clearSeedFirestore(db, currentUser.uid)
+      setSeedMsg(
+        result.quizzesDeleted > 0
+          ? `✅ Cleared ${result.quizzesDeleted} seeded sample quiz${result.quizzesDeleted === 1 ? '' : 'zes'}.`
+          : 'ℹ️ No seeded sample quizzes were found for your account.',
+      )
+    } catch (e) {
+      setSeedMsg('❌ ' + e.message)
+    } finally { setClearingSeed(false) }
   }
 
   useEffect(() => {
@@ -160,21 +176,34 @@ export default function AdminDashboard() {
           <div className="flex-1">
             <h2 className="text-display-md text-amber-900" style={{ fontSize: 16 }}>Seed sample data</h2>
             <p className="text-amber-700 text-body-sm mt-0.5">
-              Load Grade 5 Mathematics, Grade 6 English, and Grade 6 Integrated Science sample quizzes into Firestore.
-              Only run this once — it will create duplicate quizzes if run again.
+              Load the sample quizzes into Firestore, or clear the seeded set created by your account.
+              Clearing removes the matching seeded quiz docs and their question subcollections.
             </p>
           </div>
-          <Button
-            variant="primary"
-            size="md"
-            onClick={handleSeed}
-            loading={seeding}
-            leadingIcon={<Icon as={Sprout} size="sm" />}
-            className="shrink-0"
-            style={{ backgroundColor: '#F59E0B', color: 'white' }}
-          >
-            {seeding ? 'Seeding…' : 'Run seed'}
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+            <Button
+              variant="primary"
+              size="md"
+              onClick={handleSeed}
+              loading={seeding}
+              disabled={clearingSeed}
+              leadingIcon={<Icon as={Sprout} size="sm" />}
+              className="shrink-0"
+              style={{ backgroundColor: '#F59E0B', color: 'white' }}
+            >
+              {seeding ? 'Seeding…' : 'Run seed'}
+            </Button>
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={handleClearSeed}
+              loading={clearingSeed}
+              disabled={seeding}
+              className="shrink-0"
+            >
+              {clearingSeed ? 'Clearing…' : 'Clear seed'}
+            </Button>
+          </div>
         </div>
         {seedMsg && <p className="mt-3 text-body-sm font-bold text-amber-900 bg-amber-100 rounded-xl px-4 py-2">{seedMsg}</p>}
       </div>

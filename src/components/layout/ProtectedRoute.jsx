@@ -5,7 +5,7 @@ import { getRoleLandingPath } from '../../utils/navigation'
 const ROLE_LEVEL = { admin: 3, teacher: 2, learner: 1, student: 1 }
 
 export default function ProtectedRoute({ children, requiredRole }) {
-  const { currentUser, userProfile, loading } = useAuth()
+  const { currentUser, userProfile, loading, profileIssue } = useAuth()
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -22,6 +22,7 @@ export default function ProtectedRoute({ children, requiredRole }) {
   )
 
   if (!currentUser) return <Navigate to="/login" replace />
+  if (profileIssue) return <Navigate to="/" replace />
 
   if (requiredRole && !userProfile) return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">

@@ -19,6 +19,7 @@ import { useSubscription }     from '../../hooks/useSubscription'
 import { getRoleLandingPath }  from '../../utils/navigation'
 import { daysUntilExpiry }     from '../../utils/subscriptionConfig'
 import UpgradeModal            from '../subscription/UpgradeModal'
+import Button                  from '../ui/Button'
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -202,16 +203,13 @@ export default function ProfilePage() {
                   ? daysLeft !== null
                     ? `${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining`
                     : 'Active subscription'
-                  : 'Upgrade to unlock all quizzes, papers & exam mode'}
+                  : 'Upgrade to unlock all quizzes & exam mode'}
               </p>
             </div>
             {!isPremium && (
-              <button
-                onClick={() => setShowUpgrade(true)}
-                className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white text-xs font-black px-3 py-1.5 rounded-xl transition-colors min-h-0 shadow-none"
-              >
+              <Button variant="primary" size="sm" onClick={() => setShowUpgrade(true)} className="flex-shrink-0">
                 Upgrade
-              </button>
+              </Button>
             )}
           </div>
         )}
@@ -279,13 +277,9 @@ export default function ProfilePage() {
               </p>
             )}
 
-            <button
-              type="submit"
-              disabled={saving}
-              className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-black text-sm py-3.5 rounded-2xl shadow-md transition-colors"
-            >
+            <Button type="submit" variant="primary" size="lg" fullWidth loading={saving}>
               {saving ? 'Saving…' : 'Save Changes'}
-            </button>
+            </Button>
           </form>
         </div>
 

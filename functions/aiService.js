@@ -406,38 +406,141 @@ function buildExplainMessages(payload) {
   ];
 }
 
+// Quiz generator — Zambian CBC-grounded prompt.
+//
+// Calls resolveCbcContext() upstream (in index.js) to get an authoritative
+// <cbc_context> block for the {grade, subject, topic} triple. That block
+// contains the official sub-topics, Specific Outcomes, Key Competencies and
+// Values from the CDC syllabus. We inject it into the user prompt so Claude
+// writes questions that are actually on-syllabus — no more off-topic trivia.
+const QUIZ_SYSTEM_PROMPT = [
+  "You are an expert Zambian teacher and CDC (Curriculum Development Centre)",
+  "assessment writer. You write multiple-choice quiz questions that match the",
+  "Zambian Competence-Based Curriculum (CBC) exactly as a Zambian School",
+  "Inspector or head teacher would expect to see them.",
+  "",
+  "Your questions MUST:",
+  "- Be GROUNDED in the <cbc_context> block you are given. Every question",
+  "  must test a concept, sub-topic, Specific Outcome, or Key Competency",
+  "  that is explicitly listed or directly implied by that context.",
+  "- Be AGE-APPROPRIATE for the stated grade. A Grade 3 Mathematics question",
+  "  must use Grade 3 vocabulary and operations; a Grade 9 Biology question",
+  "  must use Grade 9 vocabulary and reasoning. Mis-grade-level material",
+  "  (too hard OR too easy) is unacceptable.",
+  "- Be culturally grounded in Zambia when examples are needed (Kwacha,",
+  "  nshima, Lusaka/Kitwe/Ndola/Livingstone, local produce, SI units, etc.)",
+  "  — never force it, but prefer Zambian context to foreign examples.",
+  "- Each question must have EXACTLY FOUR options, ALL plausible to a learner",
+  "  at that grade, and EXACTLY ONE correct answer. Distractors must be",
+  "  believable wrong answers (common misconceptions, near-miss facts,",
+  "  off-by-one values) — NEVER obvious fillers like 'none of these' or",
+  "  'random'.",
+  "- The correct answer must be UNAMBIGUOUSLY correct per the Zambian",
+  "  syllabus. If the topic admits multiple legitimate interpretations,",
+  "  choose one and write the question to exclude the others.",
+  "- Use Zambian English spelling ('colour', 'practise' as verb, 'metre').",
+  "- Every question MUST include an explanation that a teacher could read",
+  "  aloud — say WHY the correct answer is correct, ideally naming the",
+  "  Specific Outcome or sub-topic it maps to. Do not simply restate the",
+  "  question.",
+  "",
+  "You MUST NOT:",
+  "- Invent sub-topics, outcomes, or competencies that are not in the",
+  "  <cbc_context> block (or clearly consistent with CDC syllabi for this",
+  "  grade+subject).",
+  "- Write questions on off-syllabus topics (e.g. high-school chemistry for",
+  "  a Grade 4 Environmental Science quiz).",
+  "- Write adult-themed, politically partisan, violent, or religiously",
+  "  divisive content.",
+  "- Write questions requiring cultural knowledge a Zambian primary learner",
+  "  wouldn't have (e.g. American sports, European history specifics).",
+  "- Duplicate questions within a set. Each of the N questions must test a",
+  "  distinct sub-topic, outcome, or cognitive skill.",
+  "",
+  "Output format: a single valid JSON object with a 'questions' array.",
+  "No prose, no markdown fences, no commentary outside the JSON.",
+].join("\n");
+
 function buildQuizMessages(payload) {
   const subject = cleanString(payload.subject, LIMITS.subject);
   const grade = cleanString(payload.grade, LIMITS.grade);
   const topic = cleanString(payload.topic, LIMITS.topic);
+  const subtopic = cleanString(payload.subtopic, LIMITS.topic);
+  const instructions = cleanString(payload.instructions, 400);
+  const cbcContextBlock = cleanString(payload.cbcContextBlock, 4000) ||
+    [
+      "<cbc_context>",
+      `Grade: ${grade}`,
+      `Subject: ${subject}`,
+      `Topic: ${topic}`,
+      "",
+      "NOTE: This topic is not in the verified CBC knowledge base.",
+      "Use your expert knowledge of the Zambian CBC (2013 CDC framework)",
+      "for this grade+subject. Stay on-syllabus and grade-appropriate.",
+      "</cbc_context>",
+    ].join("\n");
+
   const count = Math.min(
     Math.max(Number(payload.count) || 5, 1),
     LIMITS.quizCount,
   );
+
+  const userPrompt = [
+    cbcContextBlock,
+    "",
+    `Write ${count} multiple-choice quiz questions for the following lesson:`,
+    "",
+    `- Grade / Class: ${grade}`,
+    `- Subject: ${subject}`,
+    `- Topic: ${topic}`,
+    subtopic ? `- Sub-topic: ${subtopic}` : "",
+    instructions ? `- Teacher's additional instructions: ${instructions}` : "",
+    "",
+    "Coverage plan (follow this, do not deviate):",
+    `- Across the ${count} questions, cover DIFFERENT sub-topics or Specific`,
+    "  Outcomes from the <cbc_context> above. Do not repeat the same concept.",
+    "- Mix cognitive levels: recall (what / which / name), comprehension",
+    "  (why / how), and simple application (if/then, a short worked example).",
+    "  Do NOT write all-recall questions.",
+    "- At least one question should test a common misconception at this",
+    "  grade level (the correct answer corrects the misconception).",
+    "",
+    "Return a JSON object in EXACTLY this shape:",
+    "{",
+    '  "questions": [',
+    "    {",
+    '      "text": "The full question, as the learner reads it. Include units where relevant.",',
+    '      "options": ["First option", "Second option", "Third option", "Fourth option"],',
+    '      "correctAnswer": 0,                // 0-based index into options',
+    '      "explanation": "1-2 sentences explaining WHY the correct option is correct. Name the sub-topic or Specific Outcome where possible.",',
+    '      "topic": "The sub-topic or Specific Outcome this question tests",',
+    '      "marks": 1,',
+    '      "type": "mcq"',
+    "    }",
+    "  ]",
+    "}",
+    "",
+    "Hard rules (violations cause the question to be rejected):",
+    "- Exactly 4 options per question, all non-empty, all distinct.",
+    "- correctAnswer is an INTEGER 0-3.",
+    "- The correct option must be factually correct per the Zambian syllabus.",
+    "- Distractors must be plausible but clearly wrong on reflection.",
+    "- Question text must be at least 25 characters, complete sentence,",
+    "  ending with a question mark OR a fill-in-the-blank cue.",
+    "- Explanation must be at least 15 characters and must NOT simply repeat",
+    "  the question verbatim.",
+    "- No two options may be paraphrases of each other.",
+    "- No 'all of the above', 'none of the above', or 'both A and B'.",
+    "- No references to things outside the <cbc_context> block.",
+    "",
+    "Return ONLY the JSON object. No markdown fences. No commentary.",
+  ].filter(Boolean).join("\n");
+
   return {
     count,
     messages: [
-      {
-        role: "system",
-        content: [
-          "You create safe, curriculum-friendly quiz questions for",
-          "ZedExams teachers. Target Grades 4 to 6. Return only valid JSON.",
-          "Questions must be age-appropriate, school-focused, and clear.",
-        ].join(" "),
-      },
-      {
-        role: "user",
-        content: [
-          `Create ${count} multiple-choice questions.`,
-          `Subject: ${subject}`,
-          `Grade: ${grade}`,
-          `Topic: ${topic}`,
-          "Return JSON in this shape:",
-          "{\"questions\":[{\"text\":\"...\",\"options\":[\"A\",\"B\",\"C\",\"D\"],",
-          "\"correctAnswer\":0,\"explanation\":\"...\",\"topic\":\"...\",",
-          "\"marks\":1,\"type\":\"mcq\"}]}",
-        ].join("\n"),
-      },
+      {role: "system", content: QUIZ_SYSTEM_PROMPT},
+      {role: "user", content: userPrompt},
     ],
   };
 }
@@ -527,7 +630,135 @@ function normalizeCorrectAnswer(value, options) {
   return optionIndex >= 0 ? optionIndex : 0;
 }
 
-function parseGeneratedQuiz(raw, fallbackTopic) {
+// Quality filter — drops quiz questions that are technically parseable but
+// aren't good enough to put in front of a teacher. Each check corresponds to
+// a failure mode we've actually seen from Claude:
+//
+//   - duplicate/near-duplicate options (hedged distractors)
+//   - tautological explanations that restate the question
+//   - banned option phrases ('all of the above', 'none of the above')
+//   - too-short question text or explanation
+//   - correct option being empty or equal to a distractor
+//   - topic drift — the question doesn't reference the topic AT ALL and
+//     doesn't reuse vocabulary from topic/subject (off-syllabus)
+//
+// If you ever need to see what was dropped and why, flip LOG_QUALITY_DROPS
+// to true temporarily and tail the Cloud Functions logs.
+const LOG_QUALITY_DROPS = false;
+
+const BANNED_OPTION_PHRASES = [
+  /^(all|any|both)\s+of\s+(the\s+)?above\b/i,
+  /^none\s+of\s+(the\s+)?above\b/i,
+  /^both\s+[a-d]\s+and\s+[a-d]\b/i,
+  /^(random|unrelated|nothing|no\s*idea|i\s+don'?t\s+know)$/i,
+];
+
+function normaliseForCompare(text) {
+  return String(text || "")
+    .toLowerCase()
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function tokenise(text) {
+  const STOP = new Set([
+    "the", "a", "an", "of", "to", "in", "on", "and", "or", "is", "are",
+    "was", "were", "be", "been", "being", "for", "with", "at", "by", "this",
+    "that", "these", "those", "it", "its", "as", "which", "what", "who",
+    "how", "why", "when", "where", "from", "into", "about", "one", "two",
+    "all", "any", "some", "each", "every",
+  ]);
+  return normaliseForCompare(text)
+    .split(/\s+/)
+    .filter((t) => t && !STOP.has(t) && t.length > 2);
+}
+
+function validateQuizQuestion(q, {topic, subject, subtopic}) {
+  const reasons = [];
+  const text = cleanString(q.text, LIMITS.question);
+  const options = q.options || [];
+  const correctIdx = q.correctAnswer;
+  const explanation = cleanString(q.explanation, 500);
+
+  if (text.length < 25) reasons.push("question_too_short");
+  if (!/[?…:]$|_{3,}/.test(text)) reasons.push("no_question_cue");
+
+  if (options.length !== 4) reasons.push("wrong_option_count");
+
+  const normOptions = options.map(normaliseForCompare);
+  const uniqueNormOptions = new Set(normOptions);
+  if (uniqueNormOptions.size !== options.length) {
+    reasons.push("duplicate_options");
+  }
+
+  for (const opt of options) {
+    if (!opt || opt.length < 1) {
+      reasons.push("empty_option");
+      break;
+    }
+    if (BANNED_OPTION_PHRASES.some((re) => re.test(opt))) {
+      reasons.push("banned_phrase_option");
+      break;
+    }
+  }
+
+  // Near-duplicate distractor check: if any two options have Jaccard token
+  // similarity >= 0.8, they're essentially the same distractor twice.
+  const optTokens = options.map((o) => new Set(tokenise(o)));
+  for (let i = 0; i < optTokens.length; i++) {
+    for (let j = i + 1; j < optTokens.length; j++) {
+      const a = optTokens[i];
+      const b = optTokens[j];
+      if (a.size === 0 || b.size === 0) continue;
+      const inter = [...a].filter((t) => b.has(t)).length;
+      const union = new Set([...a, ...b]).size;
+      if (union > 0 && inter / union >= 0.8) {
+        reasons.push("near_duplicate_options");
+        break;
+      }
+    }
+  }
+
+  if (!Number.isInteger(correctIdx) || correctIdx < 0 || correctIdx > 3) {
+    reasons.push("bad_correct_index");
+  }
+
+  if (explanation.length < 15) reasons.push("explanation_too_short");
+  if (normaliseForCompare(explanation) === normaliseForCompare(text)) {
+    reasons.push("explanation_restates_question");
+  }
+
+  // Topic drift check: at least one non-stopword token from topic/subject/
+  // subtopic must appear somewhere in the question text, correct option, or
+  // explanation. If NONE match, the question is probably off-syllabus.
+  const anchorTokens = [
+    ...tokenise(topic),
+    ...tokenise(subtopic),
+    ...tokenise(subject),
+  ];
+  if (anchorTokens.length > 0) {
+    const haystack = normaliseForCompare(
+      `${text} ${options[correctIdx] || ""} ${explanation}`,
+    );
+    const anyMatch = anchorTokens.some((tok) => haystack.includes(tok));
+    if (!anyMatch) reasons.push("topic_drift");
+  }
+
+  return {valid: reasons.length === 0, reasons};
+}
+
+function dedupeQuestionSet(questions) {
+  const seen = new Set();
+  return questions.filter((q) => {
+    const key = normaliseForCompare(q.text).slice(0, 120);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function parseGeneratedQuiz(raw, fallbackTopic, validationContext = {}) {
   let parsed;
   try {
     parsed = JSON.parse(stripJsonFences(raw));
@@ -539,10 +770,10 @@ function parseGeneratedQuiz(raw, fallbackTopic) {
   }
 
   const source = Array.isArray(parsed.questions) ? parsed.questions : [];
-  const questions = source.map((q) => {
-    const options = Array.isArray(q.options)
-      ? q.options.map((o) => cleanString(o, 160)).filter(Boolean).slice(0, 4)
-      : [];
+  const shaped = source.map((q) => {
+    const options = Array.isArray(q.options) ?
+      q.options.map((o) => cleanString(o, 160)).filter(Boolean).slice(0, 4) :
+      [];
     return {
       text: cleanString(q.text, LIMITS.question),
       options,
@@ -554,13 +785,37 @@ function parseGeneratedQuiz(raw, fallbackTopic) {
     };
   }).filter((q) => q.text && q.options.length === 4);
 
-  if (!questions.length) {
+  const {topic, subject, grade, subtopic} =
+    validationContext || {};
+  const anchor = {
+    topic: topic || fallbackTopic,
+    subject: subject || "",
+    grade: grade || "",
+    subtopic: subtopic || "",
+  };
+
+  const filtered = [];
+  for (const q of shaped) {
+    const {valid, reasons} = validateQuizQuestion(q, anchor);
+    if (valid) {
+      filtered.push(q);
+    } else if (LOG_QUALITY_DROPS) {
+      console.warn("generateQuiz: dropped question", {
+        text: q.text.slice(0, 80),
+        reasons,
+      });
+    }
+  }
+
+  const deduped = dedupeQuestionSet(filtered);
+
+  if (!deduped.length) {
     throw new HttpsError(
       "internal",
       "No usable quiz questions were generated. Please try again.",
     );
   }
-  return questions;
+  return deduped;
 }
 
 function normalizeImportedQuestion(question = {}) {

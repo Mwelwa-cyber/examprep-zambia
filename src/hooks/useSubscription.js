@@ -16,7 +16,6 @@ export function useSubscription() {
   // Feature flags (still gated by premium subscription for learners)
   const canUseExamMode          = isPremium || plan.examMode
   const canUseWeaknessAnalysis  = isPremium || plan.weaknessAnalysis
-  const paperLimit              = isAdmin || isPremium ? Infinity : (plan.paperLimit ?? 3)
 
   // Access badge info for display
   const accessBadge = isAdmin
@@ -46,7 +45,6 @@ export function useSubscription() {
     planName: plan.name,
     canUseExamMode,
     canUseWeaknessAnalysis,
-    paperLimit,
     tryStartQuiz,
     // Legacy fields kept so existing components don't break
     attemptsLeft: Infinity,

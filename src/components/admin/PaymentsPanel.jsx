@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useFirestore } from '../../hooks/useFirestore'
 import { PLANS, hasPremiumAccess } from '../../utils/subscriptionConfig'
+import Button from '../ui/Button'
+import Skeleton from '../ui/Skeleton'
 
 const statusColors = {
   pending: 'bg-yellow-100 text-yellow-800',
@@ -109,7 +111,7 @@ export default function PaymentsPanel() {
       </div>
 
       {(tab === 'pending' || tab === 'all') && (
-        loading ? <div className="space-y-3">{[1, 2, 3].map(i => <div key={i} className="h-24 bg-gray-200 rounded-2xl animate-pulse" />)}</div>
+        loading ? <div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} height={96} className="!rounded-2xl" />)}</div>
         : payments.length === 0 ? <div className="text-center py-12 text-gray-400"><div className="text-5xl mb-3">🎉</div><p className="font-bold">No payments</p></div>
         : <div className="space-y-3">
           {payments.map(p => (
@@ -129,10 +131,8 @@ export default function PaymentsPanel() {
                 </div>
                 {p.status === 'pending' && (
                   <div className="flex gap-2 flex-shrink-0">
-                    <button onClick={() => handleConfirm(p)} disabled={actionId === p.id}
-                      className="bg-green-600 text-white font-black text-sm py-2 px-4 rounded-full min-h-0 disabled:opacity-50">✅ Confirm</button>
-                    <button onClick={() => handleReject(p)} disabled={actionId === p.id}
-                      className="bg-red-500 text-white font-black text-sm py-2 px-4 rounded-full min-h-0 disabled:opacity-50">❌ Reject</button>
+                    <Button variant="primary" size="sm" disabled={actionId === p.id} onClick={() => handleConfirm(p)}>✅ Confirm</Button>
+                    <Button variant="danger" size="sm" disabled={actionId === p.id} onClick={() => handleReject(p)}>❌ Reject</Button>
                   </div>
                 )}
               </div>
@@ -154,13 +154,13 @@ export default function PaymentsPanel() {
               </select>
               <input type="number" value={grantDays} onChange={e => setGrantDays(e.target.value)}
                 className="w-20 border-2 border-gray-200 rounded-xl px-3 py-2 text-sm focus:border-green-500 focus:outline-none" />
-              <button type="submit" disabled={granting} className="bg-green-600 text-white font-black text-sm px-5 py-2 rounded-full min-h-0 disabled:opacity-50">
-                {granting ? '…' : 'Grant'}
-              </button>
+              <Button type="submit" variant="primary" size="sm" loading={granting}>
+                {granting ? 'Granting…' : 'Grant'}
+              </Button>
             </form>
           </div>
 
-          {loading ? <div className="space-y-2">{[1, 2, 3].map(i => <div key={i} className="h-14 bg-gray-200 rounded-xl animate-pulse" />)}</div>
+          {loading ? <div className="space-y-2">{[1, 2, 3].map(i => <Skeleton key={i} height={56} />)}</div>
           : <div className="overflow-x-auto rounded-2xl border border-gray-200">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">

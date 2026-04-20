@@ -3,6 +3,8 @@ import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useFirestore } from '../../hooks/useFirestore'
 import { LESSON_GRADES, LESSON_SUBJECTS } from './lessonConstants'
+import Button from '../ui/Button'
+import Skeleton from '../ui/Skeleton'
 
 const STATUS = {
   published: 'bg-emerald-100 text-emerald-700',
@@ -81,26 +83,26 @@ function LessonRow({ lesson, editPath, canPublish, busyId, onPublishToggle, onSu
             Edit
           </Link>
           {canPublish ? (
-            <button onClick={() => onPublishToggle(lesson)} disabled={busyId === lesson.id} className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 disabled:opacity-50">
+            <Button variant="secondary" size="sm" disabled={busyId === lesson.id} onClick={() => onPublishToggle(lesson)}>
               {status === 'published' ? 'Unpublish' : 'Publish'}
-            </button>
+            </Button>
           ) : (
             <>
               {(status === 'draft' || status === 'rejected') && (
-                <button onClick={() => onSubmit(lesson)} disabled={busyId === lesson.id} className="rounded-xl border border-sky-200 bg-sky-600 px-3 py-2 text-xs font-black text-white disabled:opacity-50">
+                <Button variant="primary" size="sm" disabled={busyId === lesson.id} onClick={() => onSubmit(lesson)}>
                   Submit
-                </button>
+                </Button>
               )}
               {status === 'pending' && (
-                <button onClick={() => onWithdraw(lesson)} disabled={busyId === lesson.id} className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black text-amber-700 disabled:opacity-50">
+                <Button variant="secondary" size="sm" disabled={busyId === lesson.id} onClick={() => onWithdraw(lesson)}>
                   Withdraw
-                </button>
+                </Button>
               )}
             </>
           )}
-          <button onClick={() => onDelete(lesson)} disabled={busyId === lesson.id} className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-600 disabled:opacity-50">
+          <Button variant="danger" size="sm" disabled={busyId === lesson.id} onClick={() => onDelete(lesson)}>
             Delete
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -243,9 +245,9 @@ export default function LessonDashboard() {
           <h1 className="mt-1 text-3xl font-black text-gray-900">{isTeacherArea ? 'My Lesson Slides' : 'Lesson Dashboard'}</h1>
           <p className="mt-1 text-sm font-bold text-gray-500">Create, edit, publish, and organise native slides or preserved PowerPoint presentations.</p>
         </div>
-        <Link to={`${basePath}/new`} className="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-black text-white shadow-sm">
+        <Button as={Link} to={`${basePath}/new`} variant="primary" size="md">
           Create New Lesson
-        </Link>
+        </Button>
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -282,15 +284,15 @@ export default function LessonDashboard() {
 
       <div className="space-y-3">
         {loading ? (
-          Array.from({ length: 4 }).map((_, index) => <div key={index} className="h-28 animate-pulse rounded-3xl bg-gray-200" />)
+          Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} height={112} className="!rounded-3xl" />)
         ) : filtered.length === 0 ? (
-          <div className="rounded-3xl border border-gray-100 bg-white py-16 text-center shadow-sm">
-            <p className="text-4xl">▦</p>
-            <h2 className="mt-3 text-xl font-black text-gray-900">No lessons found</h2>
-            <p className="mt-1 text-sm font-bold text-gray-500">Create a slide lesson or adjust the filters.</p>
-            <Link to={`${basePath}/new`} className="mt-4 inline-block rounded-xl bg-emerald-600 px-4 py-2 text-sm font-black text-white">
+          <div className="theme-card border theme-border rounded-3xl py-16 text-center shadow-elev-sm">
+            <p className="text-4xl" aria-hidden="true">▦</p>
+            <h2 className="mt-3 text-display-md theme-text">No lessons found</h2>
+            <p className="mt-1 text-body-sm theme-text-muted">Create a slide lesson or adjust the filters.</p>
+            <Button as={Link} to={`${basePath}/new`} variant="primary" size="sm" className="mt-4">
               Create Lesson
-            </Link>
+            </Button>
           </div>
         ) : (
           filtered.map(lesson => (

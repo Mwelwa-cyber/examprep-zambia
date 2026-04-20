@@ -20,15 +20,53 @@ import { downloadFlashcardsDocx } from '../../../utils/flashcardsToDocx'
 import { downloadSchemeOfWorkDocx } from '../../../utils/schemeOfWorkToDocx'
 import { downloadRubricDocx } from '../../../utils/rubricToDocx'
 import { buildGeneratorQueryString } from '../../../utils/useFormDefaultsFromUrl'
+import { publishShare } from '../../../utils/shareService'
+import { useAuth } from '../../../contexts/AuthContext'
 
 export default function LibraryItemDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { currentUser } = useAuth()
   const [item, setItem] = useState(null)
   const [status, setStatus] = useState('loading')
   const [showAnswers, setShowAnswers] = useState(false)
   const [editingHeader, setEditingHeader] = useState(false)
   const [savingEdit, setSavingEdit] = useState(false)
+  const [sharing, setSharing] = useState(false)
+  const [shareInfo, setShareInfo] = useState(null)
+  const [shareError, setShareError] = useState('')
+
+  async function onShare() {
+    if (!item?.output || !currentUser?.uid) return
+    setSharing(true)
+    setShareError('')
+    try {
+      const title = item.output?.header?.topic
+        ? `Lesson plan — ${item.output.header.topic}`
+        : 'Shared lesson plan'
+      const result = await publishShare({
+        tool: item.tool,
+        ownerUid: currentUser.uid,
+        title,
+        plan: item.output,
+        subject: item.inputs?.subject || item.output?.header?.subject || null,
+        grade: item.inputs?.grade || item.output?.header?.class || null,
+        topic: item.inputs?.topic || item.output?.header?.topic || null,
+      })
+      setShareInfo(result)
+    } catch (err) {
+      setShareError(err?.message || 'Could not create share link.')
+    } finally {
+      setSharing(false)
+    }
+  }
+
+  function onCopyShare() {
+    if (!shareInfo?.url) return
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(shareInfo.url).catch(() => {})
+    }
+  }
 
   useEffect(() => {
     if (!id) return
@@ -220,6 +258,13 @@ export default function LibraryItemDetail() {
             >
               📄 Export .docx
             </button>
+            <button
+              onClick={onShare}
+              disabled={sharing}
+              className="px-4 py-2 rounded-xl text-sm font-bold border theme-border hover:bg-slate-50 dark:hover:bg-slate-800 transition disabled:opacity-50"
+            >
+              {sharing ? '🔗 Publishing…' : '🔗 Share link'}
+            </button>
             {item.tool === 'worksheet' && (
               <button
                 onClick={onExportAnswerKey}
@@ -250,6 +295,31 @@ export default function LibraryItemDetail() {
             </button>
           </div>
         </div>
+
+        {/* Share banner — shown once a share link has been created */}
+        {shareInfo && (
+          <div className="mb-4 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm">
+            <p className="font-black text-emerald-900 mb-1">Share link ready</p>
+            <p className="text-emerald-800 text-xs mb-2">Anyone with this link can view this plan (read-only). You can revoke it from the Library at any time.</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <input
+                type="text"
+                value={shareInfo.url}
+                readOnly
+                onFocus={(e) => e.target.select()}
+                className="flex-1 min-w-[260px] px-3 py-2 rounded-lg border border-emerald-300 bg-white text-emerald-900 text-xs font-mono"
+              />
+              <button onClick={onCopyShare} className="px-3 py-2 rounded-lg text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700">
+                Copy
+              </button>
+            </div>
+          </div>
+        )}
+        {shareError && (
+          <div className="mb-4 rounded-xl border border-rose-300 bg-rose-50 text-rose-900 px-4 py-3 text-sm">
+            ⚠️ {shareError}
+          </div>
+        )}
 
         {/* Warning banner, if present */}
         {item.status === 'flagged' && item.errorMessage && (

@@ -8,6 +8,7 @@
  *   <OnboardingOverlay />   (place anywhere inside the dashboard component tree)
  */
 import { useState, useEffect } from 'react'
+import Button from './Button'
 
 const LS_KEY = 'examprep:onboarded'
 
@@ -65,37 +66,28 @@ export default function OnboardingOverlay() {
   return (
     <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
       <div className="theme-card rounded-3xl shadow-2xl border theme-border w-full max-w-sm p-6 animate-slide-up">
-        {/* Step indicator dots */}
-        <div className="flex justify-center gap-1.5 mb-4">
+        {/* Step indicator dots — theme accent for current, subtle bg for the rest */}
+        <div className="flex justify-center gap-1.5 mb-4" aria-hidden="true">
           {STEPS.map((_, i) => (
             <span
               key={i}
-              className={`rounded-full transition-all ${i === step ? 'w-5 h-2 bg-indigo-600' : 'w-2 h-2 bg-gray-200'}`}
+              className={`rounded-full transition-all duration-base ease-out ${i === step ? 'w-5 h-2 theme-accent-fill' : 'w-2 h-2 theme-bg-subtle'}`}
             />
           ))}
         </div>
 
-        {/* Icon */}
-        <div className="text-5xl text-center mb-3">{current.icon}</div>
+        <div className="text-5xl text-center mb-3" aria-hidden="true">{current.icon}</div>
 
-        {/* Content */}
-        <h2 className="font-black theme-text text-lg text-center mb-2">{current.title}</h2>
-        <p className="theme-text-muted text-sm text-center leading-relaxed mb-6">{current.body}</p>
+        <h2 className="text-display-md theme-text text-center mb-2">{current.title}</h2>
+        <p className="theme-text-muted text-body-sm text-center mb-6">{current.body}</p>
 
-        {/* Actions */}
         <div className="flex gap-3">
-          <button
-            onClick={dismiss}
-            className="flex-1 font-bold text-sm py-2.5 rounded-2xl border theme-border theme-text hover:theme-bg-subtle transition-colors min-h-0"
-          >
+          <Button variant="secondary" size="md" fullWidth onClick={dismiss} className="flex-1">
             Skip tour
-          </button>
-          <button
-            onClick={next}
-            className="flex-1 font-black text-sm py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-md transition-colors min-h-0"
-          >
+          </Button>
+          <Button variant="primary" size="md" fullWidth onClick={next} className="flex-1">
             {step < STEPS.length - 1 ? 'Next →' : "Let's go! 🚀"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

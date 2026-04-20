@@ -12,6 +12,9 @@ import {
   serializeQuizSections,
 } from '../../utils/quizSections.js'
 import { richTextHasContent } from '../../utils/quizRichText.js'
+import { clampInt } from '../../utils/inputs.js'
+import { getErrorMessage } from '../../utils/errors.js'
+import { validateStandaloneQuestion as sharedValidateStandaloneQuestion } from '../../utils/quizValidation.js'
 import QuizSectionsEditor from './QuizSectionsEditor'
 import QuizEditorPreviewPanel from './QuizEditorPreviewPanel'
 
@@ -464,19 +467,9 @@ export default function EditQuizV2() {
   }
 
   function validateStandaloneQuestion(question, label) {
-    if (question.imageUploading) {
-      show(`${label} image is still uploading. Please wait.`, true)
-      return false
-    }
-    if (!richTextHasContent(question.text)) {
-      show(`${label} is missing question text.`, true)
-      return false
-    }
-    if (question.type === 'mcq' && question.options.some(option => !String(option || '').trim())) {
-      show(`${label} has empty options.`, true)
-      return false
-    }
-    return true
+    return sharedValidateStandaloneQuestion(question, label, {
+      onError: message => show(message, true),
+    })
   }
 
   function validate() {
@@ -506,7 +499,7 @@ export default function EditQuizV2() {
         }
         for (const question of passage.questions) {
           const label = `Passage question ${questionNumbers[question.localId]}`
-          if (!validateStandaloneQuestion({ ...question, type: 'mcq' }, label)) return false
+          if (!validateStandaloneQuestion(question, label)) return false
         }
         continue
       }
@@ -549,7 +542,7 @@ export default function EditQuizV2() {
       setTimeout(() => navigate(backPath), 1400)
     } catch (error) {
       console.error('EditQuiz save error:', error)
-      show(`Save failed: ${error.message}`, true)
+      show(`Save failed: ${getErrorMessage(error, 'unexpected error')}`, true)
       setSaving(false)
     }
   }
@@ -578,7 +571,7 @@ export default function EditQuizV2() {
       setDirty(false)
       show(nextStatus === 'published' ? 'Quiz published!' : 'Quiz unpublished.')
     } catch (error) {
-      show(error.message, true)
+      show(getErrorMessage(error, 'Failed to update publish status.'), true)
     } finally {
       setSaving(false)
     }
@@ -661,7 +654,7 @@ export default function EditQuizV2() {
             <select value={form.term} onChange={event => setF('term', event.target.value)} className={SELECT}>{termOptions.map(term => <option key={term} value={term}>Term {term}</option>)}</select>
             <div className="theme-border flex items-center gap-2 rounded-xl border-2 px-3 py-2.5">
               <span className="theme-text-muted whitespace-nowrap text-xs font-bold">⏱️ Mins</span>
-              <input type="number" min={5} max={180} value={form.duration} onChange={event => setF('duration', Number(event.target.value) || 30)} className="flex-1 bg-transparent text-sm font-black outline-none" />
+              <input type="number" min={5} max={180} value={form.duration} onChange={event => setF('duration', clampInt(event.target.value, 5, 180, 30))} className="flex-1 bg-transparent text-sm font-black outline-none" />
             </div>
           </div>
         </div>

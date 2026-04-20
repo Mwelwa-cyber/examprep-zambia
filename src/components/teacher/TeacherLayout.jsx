@@ -6,7 +6,6 @@ import {
   Presentation,
   PencilLine,
   BookOpen,
-  Upload,
   Home,
   Menu,
   X,
@@ -23,7 +22,6 @@ const NAV = [
   { to: '/teacher/lessons',       icon: Presentation,    label: 'My Lessons'              },
   { to: '/teacher/quizzes/new',   icon: PencilLine,      label: 'Create Quiz'             },
   { to: '/teacher/lessons/new',   icon: BookOpen,        label: 'Create Lesson'           },
-  { to: '/teacher/papers/upload', icon: Upload,          label: 'Upload Paper'            },
 ]
 
 export default function TeacherLayout({ children }) {

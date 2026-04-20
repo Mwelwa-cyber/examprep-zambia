@@ -13,6 +13,9 @@ import {
   serializeQuizSections,
 } from '../../utils/quizSections.js'
 import { richTextHasContent } from '../../utils/quizRichText.js'
+import { clampInt } from '../../utils/inputs.js'
+import { getErrorMessage } from '../../utils/errors.js'
+import { validateStandaloneQuestion as sharedValidateStandaloneQuestion } from '../../utils/quizValidation.js'
 import QuizSectionsEditor from '../quiz/QuizSectionsEditor'
 import QuizEditorPreviewPanel from '../quiz/QuizEditorPreviewPanel'
 import {
@@ -462,7 +465,12 @@ export default function CreateQuizV2() {
 
     setAiGenerating(true)
     try {
-      const generated = await generateAIQuizQuestions({
+      // generateAIQuizQuestions now returns { questions, warning }. The
+      // warning is populated when the requested topic wasn't in the verified
+      // CBC knowledge base and the generator fell back to general CBC
+      // knowledge — we surface it to the teacher so they can double-check
+      // or pick a nearby verified topic next time.
+      const { questions: generated, warning: kbWarning } = await generateAIQuizQuestions({
         subject: form.subject,
         grade: form.grade,
         topic,
@@ -470,7 +478,19 @@ export default function CreateQuizV2() {
         type: aiForm.type,
       })
 
-      const nextSections = generated.map(question => buildStandaloneSection({
+      // Keep only AI questions that actually have text and usable options/answer.
+      const generatedList = Array.isArray(generated) ? generated : []
+      const usableGenerated = generatedList.filter(question => {
+        if (!richTextHasContent(question?.text ?? '')) return false
+        const t = question?.type || 'mcq'
+        if (t === 'short_answer' || t === 'diagram') {
+          return String(question?.correctAnswer ?? '').trim().length > 0
+        }
+        const opts = Array.isArray(question?.options) ? question.options.filter(o => String(o ?? '').trim()) : []
+        return opts.length >= 2
+      })
+
+      const nextSections = usableGenerated.map(question => buildStandaloneSection({
         ...question,
         options: question.options?.length ? question.options : ['', '', '', ''],
       }))
@@ -478,6 +498,10 @@ export default function CreateQuizV2() {
       if (!nextSections.length) {
         show('Zed could not generate questions. Please try again.', true)
         return
+      }
+      if (nextSections.length < generatedList.length) {
+        const skipped = generatedList.length - nextSections.length
+        show(`Zed returned ${skipped} incomplete question${skipped === 1 ? '' : 's'}; ${nextSections.length} kept. Review before saving.`)
       }
 
       setSections(currentSections => hasOnlyEmptyStarterSection(currentSections)
@@ -492,8 +516,16 @@ export default function CreateQuizV2() {
       show(usedFastDraft
         ? `Added ${nextSections.length} quick draft question${nextSections.length === 1 ? '' : 's'}. Review before saving.`
         : `Added ${nextSections.length} AI-generated question${nextSections.length === 1 ? '' : 's'}. Review before saving.`)
+
+      // Surface KB warning as a separate, non-blocking notice so teachers
+      // see both "questions added" and "topic wasn't in the verified list".
+      if (kbWarning) {
+        // Small delay so the success toast lands first and the warning
+        // doesn't immediately replace it.
+        setTimeout(() => show(kbWarning, false), 600)
+      }
     } catch (error) {
-      show(error.message, true)
+      show(getErrorMessage(error, 'AI generation failed. Please try again.'), true)
     } finally {
       setAiGenerating(false)
     }
@@ -531,6 +563,11 @@ export default function CreateQuizV2() {
         smartApplied: imported.smartApplied,
         warnings: imported.warnings,
       })
+      const importedCount = (imported.sections?.length || imported.questions?.length || 0)
+      if (importedCount === 0) {
+        show('No questions could be extracted from this document. Check the file or try a different format.', true)
+        return
+      }
       show(imported.importStatus === 'needs_review'
         ? imported.smartApplied
           ? 'Document imported with smart cleanup. Review flagged questions before publishing.'
@@ -682,25 +719,38 @@ export default function CreateQuizV2() {
     if (!currentUser?.uid) throw new Error('Please sign in before saving imported quiz images.')
 
     const uploadedById = {}
-    for (const assetId of assetIds) {
-      const asset = importedAssets[assetId]
-      if (!asset?.blob) {
-        throw new Error('An imported question image is no longer available. Please re-import the document.')
-      }
+    const uploadedRefs = []
+    try {
+      for (const assetId of assetIds) {
+        const asset = importedAssets[assetId]
+        if (!asset?.blob) {
+          throw new Error('An imported question image is no longer available. Please re-import the document.')
+        }
 
-      const sourceFile = new File([asset.blob], asset.fileName || `${assetId}.jpg`, {
-        type: asset.contentType || 'image/jpeg',
-      })
-      const uploadBlob = await compressImage(sourceFile)
-      const path = `quiz-images/${currentUser.uid}/imports/${Date.now()}-${safeStorageName(assetId)}.jpg`
-      const snapshot = await uploadBytes(storageRef(storage, path), uploadBlob, {
-        contentType: 'image/jpeg',
-        customMetadata: {
-          sourceFileName: form.sourceFileName || '',
-          sourcePath: asset.sourcePath || '',
-        },
-      })
-      uploadedById[assetId] = await getDownloadURL(snapshot.ref)
+        const sourceFile = new File([asset.blob], asset.fileName || `${assetId}.jpg`, {
+          type: asset.contentType || 'image/jpeg',
+        })
+        const uploadBlob = await compressImage(sourceFile)
+        const path = `quiz-images/${currentUser.uid}/imports/${Date.now()}-${safeStorageName(assetId)}.jpg`
+        const ref = storageRef(storage, path)
+        const snapshot = await uploadBytes(ref, uploadBlob, {
+          contentType: 'image/jpeg',
+          customMetadata: {
+            sourceFileName: form.sourceFileName || '',
+            sourcePath: asset.sourcePath || '',
+          },
+        })
+        uploadedRefs.push(snapshot.ref)
+        uploadedById[assetId] = await getDownloadURL(snapshot.ref)
+      }
+    } catch (error) {
+      // Clean up any already-uploaded blobs so they don't orphan in Storage
+      // if one of the later uploads fails.
+      const { deleteObject } = await import('firebase/storage')
+      await Promise.all(uploadedRefs.map(ref =>
+        deleteObject(ref).catch(cleanupError => console.warn('Orphaned upload cleanup failed:', cleanupError))
+      ))
+      throw error
     }
 
     return questionsToSave.map(question => {
@@ -715,19 +765,9 @@ export default function CreateQuizV2() {
   }
 
   function validateStandaloneQuestion(question, label) {
-    if (question.imageUploading) {
-      show(`${label} image is still uploading. Please wait.`, true)
-      return false
-    }
-    if (!richTextHasContent(question.text)) {
-      show(`${label} is missing question text.`, true)
-      return false
-    }
-    if (question.type === 'mcq' && question.options.some(option => !String(option || '').trim())) {
-      show(`${label} has empty options.`, true)
-      return false
-    }
-    return true
+    return sharedValidateStandaloneQuestion(question, label, {
+      onError: message => show(message, true),
+    })
   }
 
   function validate() {
@@ -757,7 +797,7 @@ export default function CreateQuizV2() {
         }
         for (const question of passage.questions) {
           const label = `Passage question ${questionNumbers[question.localId]}`
-          if (!validateStandaloneQuestion({ ...question, type: 'mcq' }, label)) return false
+          if (!validateStandaloneQuestion(question, label)) return false
         }
         continue
       }
@@ -803,7 +843,7 @@ export default function CreateQuizV2() {
       setTimeout(() => navigate(returnPath), 1200)
     } catch (error) {
       console.error(error)
-      show(`Failed to save: ${error.message}`, true)
+      show(`Failed to save: ${getErrorMessage(error, 'unexpected error')}`, true)
       setSaving(false)
     }
   }
@@ -871,7 +911,7 @@ export default function CreateQuizV2() {
               min={5}
               max={180}
               value={form.duration}
-              onChange={event => setF('duration', Number(event.target.value) || 30)}
+              onChange={event => setF('duration', clampInt(event.target.value, 5, 180, 30))}
               className="flex-1 bg-transparent text-sm font-black outline-none"
             />
           </div>
@@ -918,7 +958,7 @@ export default function CreateQuizV2() {
               min={1}
               max={10}
               value={aiForm.count}
-              onChange={event => setAi('count', Number(event.target.value) || 1)}
+              onChange={event => setAi('count', clampInt(event.target.value, 1, 10, 1))}
               className="theme-input rounded-xl border-2 px-3 py-2.5 text-sm outline-none focus:border-[var(--accent)]"
               aria-label="Number of questions"
             />

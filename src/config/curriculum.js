@@ -11,7 +11,6 @@
  * /quiz/:id       → QuizRunner
  * /lessons        → LessonsList
  * /lessons/:id    → LessonView
- * /papers         → PapersLibrary
  * /my-results     → MyResults
  * /my-badges      → BadgesPage  (new)
  * /profile        → Profile     (new)
@@ -32,9 +31,6 @@
  *   questions/{qId}
  *
  * lessons/{id}  — same fields as quizzes
- *
- * papers/{id}
- *   grade, subject, year, term, isPublished, …
  *
  * users/{uid}
  *   grade: '4'|'5'|'6'|'7'

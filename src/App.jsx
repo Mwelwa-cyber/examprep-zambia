@@ -51,6 +51,7 @@ const RubricGenerator = lazy(() => import('./components/teacher/generate/RubricG
 // Teacher — Library
 const TeacherLibrary = lazy(() => import('./components/teacher/library/TeacherLibrary'))
 const LibraryItemDetail = lazy(() => import('./components/teacher/library/LibraryItemDetail'))
+const PublicShareView = lazy(() => import('./components/teacher/library/PublicShareView'))
 
 // Public marketing pages (no auth)
 const TeacherLandingPage = lazy(() => import('./components/marketing/TeacherLandingPage'))
@@ -62,6 +63,7 @@ const GamesHub = lazy(() => import('./components/games/GamesHub'))
 const SubjectSelector = lazy(() => import('./components/games/SubjectSelector'))
 const GameList = lazy(() => import('./components/games/GameList'))
 const PlayGame = lazy(() => import('./components/games/PlayGame'))
+const GlobalLeaderboard = lazy(() => import('./components/games/GlobalLeaderboard'))
 
 // Admin — games seed importer
 const GamesSeedAdmin = lazy(() => import('./components/admin/GamesSeedAdmin'))
@@ -192,10 +194,13 @@ export default function App() {
           <Route path="/teachers"                 element={<TeacherLandingPage />} />
           <Route path="/teachers/samples"         element={<SamplesGallery />} />
           <Route path="/teachers/samples/:slug"   element={<SampleDetailPage />} />
+          {/* Public share link — no auth, read-only viewer of a frozen snapshot */}
+          <Route path="/share/:token"             element={<PublicShareView />} />
 
           {/* ── Public games (no auth) ──────────────────────────── */}
           {/* Flow: /games → /games/g/:grade → /games/g/:grade/:subject → /games/play/:gameId */}
           <Route path="/games"                         element={<GamesHub />} />
+          <Route path="/games/leaderboard"             element={<GlobalLeaderboard />} />
           <Route path="/games/g/:grade"                element={<SubjectSelector />} />
           <Route path="/games/g/:grade/:subject"       element={<GameList />} />
           <Route path="/games/play/:gameId"            element={<PlayGame />} />

@@ -575,7 +575,7 @@ function WaitlistSection() {
             <a
               href="https://wa.me/?text=Have%20you%20seen%20ZedExams%20Teacher%20Suite%3F%20It%20writes%20full%20CBC%20lesson%20plans%20in%2030%20seconds.%20https%3A%2F%2Fzedexams.com%2Fteachers"
               target="_blank"
-              rel="noopener"
+              rel="noopener noreferrer"
               className="inline-block px-5 py-3 rounded-xl font-black text-emerald-700 bg-white"
             >
               Share on WhatsApp

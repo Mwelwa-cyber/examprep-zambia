@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
+import { X, ArrowLeft, Sparkles } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { PLANS, PAYMENT_DETAILS } from '../../utils/subscriptionConfig'
 import { initiateMomoPayment, pollMomoPayment } from '../../utils/momoPayments'
+import Button from '../ui/Button'
+import Icon from '../ui/Icon'
 
 const planOrder = ['monthly', 'termly', 'yearly']
 const planBorder = {
@@ -102,9 +105,9 @@ export default function UpgradeModal({ onClose }) {
             type="button"
             onClick={onClose}
             aria-label="Close upgrade dialog"
-            className="absolute top-3 right-4 text-white/80 hover:text-white text-2xl font-black min-h-0 p-0 bg-transparent shadow-none"
+            className="absolute top-3 right-4 text-white/80 hover:text-white min-h-0 p-1 bg-transparent shadow-none"
           >
-            <span aria-hidden="true">×</span>
+            <Icon as={X} size="md" />
           </button>
           <div className="text-4xl mb-1">⭐</div>
           <h2 className="text-2xl font-black text-white">Upgrade to Premium</h2>
@@ -150,17 +153,19 @@ export default function UpgradeModal({ onClose }) {
             <div className="bg-gray-50 rounded-2xl p-3 mb-4 text-sm text-gray-500 text-center">
               Approve the MTN prompt on your phone and your account unlocks automatically.
             </div>
-            <button
-              onClick={() => selectedPlanId && setStep('pay')}
+            <Button
+              variant="primary"
+              size="lg"
+              fullWidth
               disabled={!selectedPlanId}
-              className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-40 text-white font-black text-base py-3.5 rounded-2xl"
+              onClick={() => selectedPlanId && setStep('pay')}
             >
               {selectedPlanId ? `Continue → Pay K${plan.priceZMW}` : 'Select a Plan'}
-            </button>
+            </Button>
           </>}
 
           {step === 'pay' && plan && <>
-            <button onClick={() => setStep('plans')} className="text-green-600 font-bold text-sm mb-4 min-h-0 p-0 bg-transparent shadow-none">← Back</button>
+            <Button variant="ghost" size="sm" leadingIcon={<Icon as={ArrowLeft} size="xs" />} onClick={() => setStep('plans')} className="mb-4 -ml-2">Back</Button>
             <div className="bg-yellow-50 border-2 border-yellow-300 rounded-2xl p-4 mb-4 text-center">
               <p className="text-gray-700 font-bold">You will pay</p>
               <p className="text-4xl font-black text-green-700 my-1">K{plan.priceZMW} ZMW</p>
@@ -184,9 +189,9 @@ export default function UpgradeModal({ onClose }) {
               </div>
             </div>
             {error && <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-xl p-3 mb-3">{error}</p>}
-            <button onClick={handlePay} disabled={submitting} className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-black text-base py-3.5 rounded-2xl">
-              {submitting ? '⏳ Starting payment…' : 'Pay with MTN'}
-            </button>
+            <Button variant="primary" size="lg" fullWidth loading={submitting} onClick={handlePay}>
+              {submitting ? 'Starting payment…' : 'Pay with MTN'}
+            </Button>
             <p className="text-center text-xs text-gray-400 mt-3">You will receive an approval prompt on your phone.</p>
           </>}
 
@@ -200,7 +205,7 @@ export default function UpgradeModal({ onClose }) {
                 <p>{phone}</p>
                 {paymentId && <p className="mt-2 text-xs break-all text-yellow-700">Ref: {paymentId}</p>}
               </div>
-              <button onClick={onClose} className="bg-gray-100 text-gray-700 font-black w-full py-3.5 rounded-2xl">Close</button>
+              <Button variant="secondary" size="lg" fullWidth onClick={onClose}>Close</Button>
             </div>
           )}
 
@@ -213,7 +218,7 @@ export default function UpgradeModal({ onClose }) {
                 <p className="font-bold mb-1">Account activated</p>
                 <p>{statusText || 'You now have full subscription access.'}</p>
               </div>
-              <button onClick={onClose} className="bg-green-600 text-white font-black w-full py-3.5 rounded-2xl">Back to Dashboard</button>
+              <Button variant="primary" size="lg" fullWidth onClick={onClose}>Back to Dashboard</Button>
             </div>
           )}
 
@@ -227,8 +232,8 @@ export default function UpgradeModal({ onClose }) {
                 <p>WhatsApp <a href={`https://wa.me/${PAYMENT_DETAILS.contact.whatsapp.replace(/\s+/g, '')}`} className="font-black underline" target="_blank" rel="noopener noreferrer">{PAYMENT_DETAILS.contact.whatsapp}</a></p>
               </div>
               <div className="flex gap-3">
-                <button onClick={() => setStep('pay')} className="flex-1 bg-green-600 text-white font-black py-3.5 rounded-2xl">Try Again</button>
-                <button onClick={onClose} className="flex-1 bg-gray-100 text-gray-700 font-black py-3.5 rounded-2xl">Close</button>
+                <Button variant="primary" size="lg" className="flex-1" onClick={() => setStep('pay')}>Try Again</Button>
+                <Button variant="secondary" size="lg" className="flex-1" onClick={onClose}>Close</Button>
               </div>
             </div>
           )}
