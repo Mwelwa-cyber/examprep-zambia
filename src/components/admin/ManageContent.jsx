@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Search, Plus, Download, X, ChevronRight } from 'lucide-react'
 import { useFirestore } from '../../hooks/useFirestore'
@@ -398,7 +398,7 @@ export default function ManageContent() {
     return (
       (!gradeF   || l.grade   === gradeF) &&
       (!subjectF || l.subject === subjectF) &&
-      (!statusF  || ls        === statusF) &&
+
       (!term     || l.title?.toLowerCase().includes(term) || l.subject?.toLowerCase().includes(term) || l.topic?.toLowerCase().includes(term))
     )
   })
