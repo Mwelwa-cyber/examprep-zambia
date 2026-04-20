@@ -100,6 +100,11 @@ function numberedList(items = []) {
 }
 
 function headerTable(header = {}) {
+  const hasAttendance =
+    header.boysPresent != null || header.girlsPresent != null || header.totalPupils != null
+  const attendance = hasAttendance
+    ? `${header.boysPresent ?? '—'} boys · ${header.girlsPresent ?? '—'} girls · Total: ${header.totalPupils ?? header.numberOfPupils ?? '—'}`
+    : header.numberOfPupils
   const rows = [
     ['School', header.school],
     ['Teacher', header.teacherName],
@@ -111,7 +116,7 @@ function headerTable(header = {}) {
     ['Topic', header.topic],
     ['Sub-topic', header.subtopic],
     ['Term & Week', header.termAndWeek],
-    ['Number of Pupils', header.numberOfPupils],
+    ['Attendance', attendance],
     ['Medium of Instruction', header.mediumOfInstruction],
   ].filter(([, v]) => v !== undefined && v !== null && v !== '')
 
@@ -120,6 +125,89 @@ function headerTable(header = {}) {
     rows: rows.map(([k, v]) => new TableRow({
       children: [labelCell(k), valueCell(String(v))],
     })),
+  })
+}
+
+function phaseTableV2(phase, minutes, teacher = [], learners = [], criteria = []) {
+  const title = minutes != null ? `${phase} (${minutes} minutes)` : phase
+  const titleRow = new TableRow({
+    children: [
+      new TableCell({
+        children: [para(text(title, { bold: true, size: 22 }))],
+        columnSpan: 2,
+        borders: CELL_BORDER,
+        shading: { fill: 'e0e7ff' },
+      }),
+    ],
+  })
+  const headersRow = new TableRow({
+    children: [
+      new TableCell({
+        children: [para(text('Teacher Activities', { bold: true, size: 20 }))],
+        width: { size: 50, type: WidthType.PERCENTAGE },
+        borders: CELL_BORDER,
+        shading: { fill: 'f9fafb' },
+      }),
+      new TableCell({
+        children: [para(text('Learner Activities', { bold: true, size: 20 }))],
+        width: { size: 50, type: WidthType.PERCENTAGE },
+        borders: CELL_BORDER,
+        shading: { fill: 'f9fafb' },
+      }),
+    ],
+  })
+  const contentRow = new TableRow({
+    children: [
+      new TableCell({ children: bulletList(teacher), borders: CELL_BORDER }),
+      new TableCell({ children: bulletList(learners), borders: CELL_BORDER }),
+    ],
+  })
+  const criteriaRow = criteria && criteria.length > 0 ? new TableRow({
+    children: [
+      new TableCell({
+        children: [
+          para(text('Assessment Criteria:', { bold: true, size: 20 })),
+          ...bulletList(criteria),
+        ],
+        columnSpan: 2,
+        borders: CELL_BORDER,
+        shading: { fill: 'fef3c7' },
+      }),
+    ],
+  }) : null
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: criteriaRow ? [titleRow, headersRow, contentRow, criteriaRow] : [titleRow, headersRow, contentRow],
+  })
+}
+
+function interdisciplinaryTable(connections = []) {
+  if (!connections.length) return null
+  const headerRow = new TableRow({
+    children: [
+      new TableCell({
+        children: [para(text('Subject', { bold: true, size: 20 }))],
+        width: { size: 30, type: WidthType.PERCENTAGE },
+        borders: CELL_BORDER,
+        shading: { fill: 'f3f4f6' },
+      }),
+      new TableCell({
+        children: [para(text('How the concept connects', { bold: true, size: 20 }))],
+        width: { size: 70, type: WidthType.PERCENTAGE },
+        borders: CELL_BORDER,
+        shading: { fill: 'f3f4f6' },
+      }),
+    ],
+  })
+  const bodyRows = connections.map((c) => new TableRow({
+    children: [
+      new TableCell({ children: [para(text(c.subject || '', { bold: true, size: 20 }))], borders: CELL_BORDER }),
+      new TableCell({ children: [para(text(c.connection || '', { size: 20 }))], borders: CELL_BORDER }),
+    ],
+  }))
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: [headerRow, ...bodyRows],
   })
 }
 
@@ -180,13 +268,98 @@ function referencesBlock(refs = []) {
   }))
 }
 
-/**
- * Build a docx Document from a lesson plan JSON object.
- */
-export function buildLessonPlanDocument(plan) {
+function buildV2Body(plan) {
   const children = []
+  children.push(headerTable(plan.header || {}))
 
-  children.push(h1('LESSON PLAN'))
+  if (plan.lessonGoal) {
+    children.push(h2('Lesson Goal (SMART)'))
+    children.push(para(text(plan.lessonGoal, { size: 20 })))
+  }
+
+  children.push(h2('Competences'))
+  if (plan.broadCompetences?.length) {
+    children.push(para(text('Broad Competences:', { bold: true, size: 20 })))
+    children.push(...bulletList(plan.broadCompetences))
+  }
+  if (plan.expectedTargetCompetence) {
+    children.push(para(text('Expected Target Competence:', { bold: true, size: 20 })))
+    children.push(para(text(plan.expectedTargetCompetence, { size: 20 })))
+  }
+  const lc = plan.lessonCompetencies || {}
+  if (lc.competency1 || lc.competency2 || lc.competency3) {
+    children.push(para(text('Lesson Competencies:', { bold: true, size: 20 })))
+    const lcItems = [
+      lc.competency1 && `Higher-order thinking — ${lc.competency1}`,
+      lc.competency2 && `Thinking process — ${lc.competency2}`,
+      lc.competency3 && `Tangible output — ${lc.competency3}`,
+    ].filter(Boolean)
+    children.push(...numberedList(lcItems))
+  }
+
+  const m = plan.methodology || {}
+  if (m.approach || m.strategies?.length) {
+    children.push(h2('Methodology and Strategies'))
+    if (m.approach) {
+      children.push(para([
+        text('Approach: ', { bold: true, size: 20 }),
+        text(m.approach, { size: 20 }),
+      ]))
+    }
+    if (m.strategies?.length) {
+      children.push(para(text('Strategies:', { bold: true, size: 20 })))
+      children.push(...bulletList(m.strategies))
+    }
+  }
+
+  const le = plan.learningEnvironment || {}
+  if (le.category || le.specific || le.rationale) {
+    children.push(h2('Learning Environment'))
+    const catLine = [le.category ? le.category.charAt(0).toUpperCase() + le.category.slice(1) : '', le.specific].filter(Boolean).join(' — ')
+    if (catLine) children.push(para(text(catLine, { bold: true, size: 20 })))
+    if (le.rationale) children.push(para(text(le.rationale, { size: 20, italics: true, color: '6b7280' })))
+  }
+
+  if (plan.teachingLearningMaterials?.length) {
+    children.push(h2('Teaching / Learning Materials'))
+    children.push(...bulletList(plan.teachingLearningMaterials))
+  }
+  if (plan.prerequisiteKnowledge?.length) {
+    children.push(h2('Prior Knowledge'))
+    children.push(...bulletList(plan.prerequisiteKnowledge))
+  }
+  if (plan.interdisciplinaryConnections?.length) {
+    children.push(h2('Interdisciplinary Connections'))
+    const tbl = interdisciplinaryTable(plan.interdisciplinaryConnections)
+    if (tbl) children.push(tbl)
+    children.push(para([]))
+  }
+
+  children.push(h2('Lesson Progression (5E)'))
+  const lp = plan.lessonProgression || {}
+  const phaseSpecs = [
+    ['1. Engagement — Introduction', lp.engagement],
+    ['2. Exploration — Development', lp.exploration],
+    ['3. Explanation — Conceptualization', lp.explanation],
+    ['4. Synthesis — Continuity & Extension', lp.synthesis],
+    ['5. Evaluation & Reflection — Conclusion', lp.evaluation],
+  ]
+  for (const [title, phase] of phaseSpecs) {
+    const p = phase || {}
+    children.push(phaseTableV2(
+      title,
+      p.durationMinutes,
+      p.teacherActivities || [],
+      p.learnerActivities || [],
+      p.assessmentCriteria || [],
+    ))
+    children.push(para([]))
+  }
+  return children
+}
+
+function buildV1Body(plan) {
+  const children = []
   children.push(headerTable(plan.header || {}))
 
   children.push(h2('Specific Outcomes'))
@@ -237,6 +410,21 @@ export function buildLessonPlanDocument(plan) {
     concl.teacherActivities,
     concl.pupilActivities,
   ))
+  return children
+}
+
+/**
+ * Build a docx Document from a lesson plan JSON object.
+ * Detects schema version by field presence so older saved plans still export.
+ */
+export function buildLessonPlanDocument(plan) {
+  const isV2 = !!plan.lessonProgression || !!plan.lessonCompetencies || plan.schemaVersion === '2.0'
+
+  const children = []
+  children.push(h1('LESSON PLAN'))
+
+  const bodyChildren = isV2 ? buildV2Body(plan) : buildV1Body(plan)
+  children.push(...bodyChildren)
 
   children.push(h2('Assessment'))
   children.push(para(text('Formative:', { bold: true, size: 20 })))
@@ -266,6 +454,37 @@ export function buildLessonPlanDocument(plan) {
         `Estimated time: ${plan.homework.estimatedMinutes} minutes`,
         { size: 18, italics: true, color: '6b7280' },
       )))
+    }
+  }
+
+  // v2-only: Competence Continuity (Section 3 of CBC template)
+  if (isV2) {
+    const cc = plan.competenceContinuity || {}
+    const hasCC = (cc.longTermProjects?.length || 0) + (cc.homeworkExtensions?.length || 0)
+      + (cc.upcomingConnections?.length || 0) + (cc.teacherActions?.length || 0) > 0
+    if (hasCC) {
+      children.push(h2('Competence Continuity and Strategy'))
+      if (cc.longTermProjects?.length) {
+        children.push(para(text('Long-term projects:', { bold: true, size: 20 })))
+        children.push(...bulletList(cc.longTermProjects))
+      }
+      if (cc.homeworkExtensions?.length) {
+        children.push(para(text('Homework extensions:', { bold: true, size: 20 })))
+        children.push(...bulletList(cc.homeworkExtensions))
+      }
+      if (cc.upcomingConnections?.length) {
+        children.push(para(text('Upcoming connections:', { bold: true, size: 20 })))
+        children.push(...bulletList(cc.upcomingConnections))
+      }
+      if (cc.teacherActions?.length) {
+        children.push(para(text('Teacher actions:', { bold: true, size: 20 })))
+        children.push(...bulletList(cc.teacherActions))
+      }
+    }
+    // v2 places References near the bottom as a formal block
+    if (plan.references?.length) {
+      children.push(h2('References'))
+      children.push(...referencesBlock(plan.references))
     }
   }
 

@@ -46,10 +46,10 @@ function QuickAction({ to, icon, label, sub }) {
 
 export default function TeacherDashboard() {
   const { currentUser, userProfile } = useAuth()
-  const { getMyQuizzes, getMyLessons, getMyPapers } = useFirestore()
+  const { getMyQuizzes, getMyLessons } = useFirestore()
   const { isPremium, planName } = useSubscription()
 
-  const [stats, setStats]   = useState({ quizzes: 0, lessons: 0, papers: 0, pending: 0 })
+  const [stats, setStats]   = useState({ quizzes: 0, lessons: 0, pending: 0 })
   const [librarySummary, setLibrarySummary] = useState({ total: 0, byTool: {} })
   const [loading, setLoading] = useState(true)
   const [showUpgrade, setShowUpgrade] = useState(false)
@@ -57,18 +57,16 @@ export default function TeacherDashboard() {
   useEffect(() => {
     if (!currentUser) return
     async function load() {
-      const [quizzes, lessons, papers, library] = await Promise.all([
+      const [quizzes, lessons, library] = await Promise.all([
         getMyQuizzes(currentUser.uid),
         getMyLessons(currentUser.uid),
-        getMyPapers(currentUser.uid),
         getLibrarySummary(currentUser.uid).catch(() => ({ total: 0, byTool: {} })),
       ])
       const pending = [
         ...quizzes.filter(q => q.status === 'pending'),
         ...lessons.filter(l => l.status === 'pending'),
-        ...papers.filter(p => p.status === 'pending'),
       ].length
-      setStats({ quizzes: quizzes.length, lessons: lessons.length, papers: papers.length, pending })
+      setStats({ quizzes: quizzes.length, lessons: lessons.length, pending })
       setLibrarySummary(library)
       setLoading(false)
     }
@@ -110,10 +108,9 @@ export default function TeacherDashboard() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 stagger">
+      <div className="grid grid-cols-3 gap-3 stagger">
         <StatCard icon="✏️" label="My Quizzes"  value={stats.quizzes}  color="blue"   loading={loading} />
         <StatCard icon="📖" label="My Lessons"  value={stats.lessons}  color="green"  loading={loading} />
-        <StatCard icon="📄" label="My Papers"   value={stats.papers}   color="orange" loading={loading} />
         <StatCard icon="⏳" label="Pending"     value={stats.pending}  color="yellow" loading={loading} sub="awaiting review" />
       </div>
 
@@ -124,7 +121,7 @@ export default function TeacherDashboard() {
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
           {[
-            { step: '1', icon: '📝', title: 'Create',  desc: 'Create your quiz, lesson, or paper. It starts as a Draft.' },
+            { step: '1', icon: '📝', title: 'Create',  desc: 'Create your quiz or lesson. It starts as a Draft.' },
             { step: '2', icon: '📤', title: 'Submit',  desc: 'Submit it for approval when it\'s ready to publish.' },
             { step: '3', icon: '🔍', title: 'Review',  desc: 'An admin reviews and either approves or gives feedback.' },
             { step: '4', icon: '✅', title: 'Live!',   desc: 'Once approved, learners can see and use your content.' },
@@ -240,7 +237,6 @@ export default function TeacherDashboard() {
           <QuickAction to="/teacher/quizzes/new?mode=import" icon="📄" label="Import Quiz" sub="Convert Word/PDF into editable questions" />
           <QuickAction to="/teacher/quizzes/new?mode=ai" icon="✦" label="AI Quiz Generator" sub="Draft questions with Zed" />
           <QuickAction to="/teacher/lessons/new"   icon="📖" label="Create Lesson"  sub="Write lesson notes for learners" />
-          <QuickAction to="/teacher/papers/upload" icon="📤" label="Upload Paper"   sub="Upload a past exam paper (PDF)" />
           <QuickAction to="/teacher/content"       icon="📁" label="My Content"     sub="View, edit, and submit for approval" />
         </div>
       </div>

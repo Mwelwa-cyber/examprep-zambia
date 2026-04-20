@@ -13,6 +13,10 @@
 
 const admin = require("firebase-admin");
 const {TOPICS: SEED_TOPICS} = require("./cbcTopics");
+const {
+  invalidatePrivateCurriculumCache,
+  resolvePrivateCurriculumContext,
+} = require("./privateCurriculum");
 
 const KB_VERSION = "cbc-kb-2026-04-seed";
 
@@ -75,6 +79,11 @@ function topicKey(t) {
 function invalidateKbCache() {
   _cache = null;
   _cacheAt = 0;
+  try {
+    invalidatePrivateCurriculumCache();
+  } catch {
+    // Best effort only — the editable seed cache is the important part here.
+  }
 }
 
 // Legacy synchronous reference used by the older lookup functions. Now a
@@ -227,6 +236,20 @@ function renderFallbackContext({grade, subject, topic, subtopic}) {
  * or a human-readable string to surface in the UI.
  */
 async function resolveCbcContext({grade, subject, topic, subtopic}) {
+  const privateResult = await resolvePrivateCurriculumContext({
+    grade,
+    subject,
+    topic,
+    subtopic,
+  });
+  if (privateResult) {
+    return {
+      contextBlock: privateResult.contextBlock,
+      kbMatch: privateResult.match,
+      kbWarning: null,
+    };
+  }
+
   const match = await lookupTopic({grade, subject, topic});
   if (match) {
     return {

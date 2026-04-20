@@ -13,7 +13,7 @@
  */
 import { useState, useEffect, useRef }  from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { Home, PencilLine, BookOpen, FileText, BarChart3, Bell, ChevronRight, Bot, Sparkles } from 'lucide-react'
+import { Home, PencilLine, BookOpen, BarChart3, Bell, ChevronRight, Bot, Sparkles } from 'lucide-react'
 import { useAuth }              from '../../contexts/AuthContext'
 import { useFirestore }         from '../../hooks/useFirestore'
 import { useBadges }            from '../../hooks/useBadges'
@@ -114,7 +114,6 @@ function GradeCard({ grade, meta, active, onClick, quizCount = 0 }) {
 function SubjectCard({ subject, grade }) {
   const quizPath    = `/quizzes?grade=${grade}&subject=${subject.id}`
   const lessonPath  = `/lessons?grade=${grade}&subject=${subject.id}`
-  const paperPath   = `/papers?grade=${grade}&subject=${subject.id}`
 
   return (
     <div className={`theme-card rounded-2xl border-2 ${subject.tailwind.border} p-4 hover:shadow-sm transition-all`}>
@@ -141,12 +140,6 @@ function SubjectCard({ subject, grade }) {
           className="flex-1 text-center text-xs font-bold py-1.5 rounded-lg theme-bg-subtle theme-text-muted hover:opacity-80 transition-opacity"
         >
           📖 Notes
-        </Link>
-        <Link
-          to={paperPath}
-          className="flex-1 text-center text-xs font-bold py-1.5 rounded-lg theme-bg-subtle theme-text-muted hover:opacity-80 transition-opacity"
-        >
-          📄 Papers
         </Link>
       </div>
     </div>
@@ -196,7 +189,6 @@ function MobileNav() {
     { to: '/dashboard', icon: Home,       label: 'Home',    end: true },
     { to: '/quizzes',   icon: PencilLine, label: 'Quizzes', end: false },
     { to: '/lessons',   icon: BookOpen,   label: 'Lessons', end: false },
-    { to: '/papers',    icon: FileText,   label: 'Papers',  end: false },
     { to: '/my-results',icon: BarChart3,  label: 'Results', end: false },
     { to: '/study',     icon: Bot,        label: 'Zed',     end: false },
   ]

@@ -59,6 +59,12 @@ const {
 const {
   importBuiltInCbcTopics,
 } = require("./teacherTools/importBuiltInCbcTopics");
+// CBC knowledge base — used to ground AI quiz questions in the Zambian
+// syllabus. resolveCbcContext returns a rendered <cbc_context> block plus
+// a human-readable warning if the topic wasn't found in the verified KB.
+const {
+  resolveCbcContext,
+} = require("./teacherTools/cbcKnowledge");
 
 const anthropicApiKey = defineSecret("ANTHROPIC_API_KEY");
 const mtnApiUser = defineSecret("MTN_API_USER");
@@ -156,6 +162,73 @@ async function getUserProfileOrThrow(uid) {
   return snap.data();
 }
 
+function getAdminEmails() {
+  return (process.env.ADMIN_EMAILS || "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function resolveInitialUserRole(email) {
+  const normalizedEmail = cleanString(email, 254).toLowerCase();
+  return getAdminEmails().includes(normalizedEmail) ? "admin" : "learner";
+}
+
+function buildBootstrappedUserProfile({
+  authUser,
+  tokenRole,
+  teacherApplication,
+}) {
+  const email = cleanString(authUser?.email || "", 254);
+  const fallbackName =
+    email.includes("@") ? email.split("@")[0] : "ZedExams User";
+  const displayName = cleanString(
+    authUser?.displayName || fallbackName,
+    120,
+  ) || "ZedExams User";
+  const teacherStatus = cleanString(teacherApplication?.status || "", 30);
+  const baseRole = tokenRole === "admin" ?
+    "admin" :
+    resolveInitialUserRole(email);
+  const role = baseRole === "admin" ?
+    "admin" :
+    teacherStatus === "approved" ? "teacher" : "learner";
+
+  const profile = {
+    displayName,
+    email,
+    role,
+    grade: null,
+    school: cleanString(teacherApplication?.schoolName || "", 160),
+    plan: "free",
+    premium: false,
+    isPremium: false,
+    paymentStatus: "inactive",
+    subscriptionStatus: "inactive",
+    subscriptionPlan: "free",
+    subscriptionExpiry: null,
+    subscriptionActivatedBy: null,
+    subscriptionActivatedAt: null,
+    subscriptionProvider: null,
+    subscriptionPaymentId: null,
+    subscriptionPhoneNumber: null,
+    premiumActivatedAt: null,
+    dailyAttempts: 0,
+    lastAttemptDate: "",
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+
+  if (teacherStatus) {
+    profile.teacherApplicationStatus = teacherStatus;
+    profile.teacherApplicationId = authUser.uid;
+    if (teacherApplication?.submittedAt) {
+      profile.teacherApplicationSubmittedAt = teacherApplication.submittedAt;
+    }
+  }
+
+  return profile;
+}
+
 function toDate(value) {
   if (!value) return null;
   if (typeof value?.toDate === "function") {
@@ -166,17 +239,52 @@ function toDate(value) {
 }
 
 exports.setUserRole = functions.auth.user().onCreate(async (user) => {
-  const adminEmails = (process.env.ADMIN_EMAILS || "")
-    .split(",")
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
-  const email = (user.email || "").toLowerCase();
-  const role = adminEmails.includes(email) ? "admin" : "learner";
+  const role = resolveInitialUserRole(user.email || "");
 
   await admin.auth().setCustomUserClaims(user.uid, {role});
 
   return null;
 });
+
+exports.bootstrapUserProfile = onCall(
+  {region: "us-central1", timeoutSeconds: 20},
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Please sign in first.");
+    }
+
+    const uid = request.auth.uid;
+    const userRef = admin.firestore().doc(`users/${uid}`);
+    const existingSnap = await userRef.get();
+    if (existingSnap.exists) {
+      return {created: false, profile: {id: uid, ...existingSnap.data()}};
+    }
+
+    try {
+      const [authUser, teacherApplicationSnap] = await Promise.all([
+        admin.auth().getUser(uid),
+        admin.firestore().doc(`teacherApplications/${uid}`).get(),
+      ]);
+      const profile = buildBootstrappedUserProfile({
+        authUser,
+        tokenRole: cleanString(request.auth.token?.role || "", 30),
+        teacherApplication:
+          teacherApplicationSnap.exists ? teacherApplicationSnap.data() : null,
+      });
+
+      await userRef.set(profile);
+
+      const repairedSnap = await userRef.get();
+      return {created: true, profile: {id: uid, ...repairedSnap.data()}};
+    } catch (error) {
+      console.error("bootstrapUserProfile:", error);
+      throw new HttpsError(
+        "internal",
+        "We could not restore your profile right now. Please try again.",
+      );
+    }
+  },
+);
 
 exports.aiChat = onCall(
   {secrets: [anthropicApiKey], region: "us-central1", timeoutSeconds: 30},
@@ -755,23 +863,47 @@ exports.generateQuizQuestions = onCall(
     }
 
     await assertDailyLimit(request.auth.uid, role, "generateQuiz");
+
+    // Resolve the authoritative CBC context for this (grade, subject, topic).
+    // Matches the pipeline the other teacher tools use — pulls verified
+    // sub-topics, Specific Outcomes, Key Competencies and Values from the
+    // Firestore KB and in-code seed. Falls back to a grounded "use your CBC
+    // knowledge" note if the topic isn't catalogued yet. kbWarning is a
+    // human-readable heads-up (e.g. "Nearest verified topics: X, Y") that
+    // the UI can surface to the teacher.
+    const subtopic = cleanAiString(request.data?.subtopic, LIMITS.topic);
+    const {contextBlock, kbWarning} = await resolveCbcContext({
+      grade,
+      subject,
+      topic,
+      subtopic,
+    });
+
     const {messages: rawMessages} = buildQuizMessages({
       ...request.data,
       subject,
       grade,
       topic,
+      subtopic,
+      cbcContextBlock: contextBlock,
     });
     const {systemPrompt, messages} = toAnthropicShape(rawMessages);
     const raw = await callAnthropic(getAnthropicApiKey(anthropicApiKey), {
       systemPrompt,
       messages,
       maxTokens: 2000,
-      temperature: 0.45,
+      temperature: 0.3,
       json: true,
     });
 
     return {
-      questions: parseGeneratedQuiz(raw, topic),
+      questions: parseGeneratedQuiz(raw, topic, {
+        topic,
+        subject,
+        grade,
+        subtopic,
+      }),
+      warning: kbWarning || null,
     };
   },
 );

@@ -35,7 +35,7 @@ export default function TableModal({ editor, onClose }) {
                   key={`${r}-${c}`}
                   className={`tpcell${r < hover[0] && c < hover[1] ? ' hi' : ''}`}
                   onMouseEnter={() => setHover([r + 1, c + 1])}
-                  onClick={() => doInsert(hover[0], hover[1])}
+                  onClick={() => doInsert(r + 1, c + 1)}
                 />
               ))
             )}

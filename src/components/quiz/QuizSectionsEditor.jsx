@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { QUESTION_LETTERS } from '../../utils/quizSections.js'
+import { clampInt } from '../../utils/inputs.js'
 // Tiptap-based rich field (new). Accepts HTML strings or Tiptap JSON on the
 // way in (legacy quizzes render fine) and emits Tiptap JSON. Saving passes
 // the JSON straight through to Firestore.
@@ -375,7 +376,7 @@ function StandaloneQuestionCard({
               min={1}
               max={10}
               value={question.marks}
-              onChange={event => set('marks', Number(event.target.value) || 1)}
+              onChange={event => set('marks', clampInt(event.target.value, 1, 10, 1))}
               className="theme-text w-10 bg-transparent text-center text-xs font-black outline-none"
             />
           </div>
@@ -497,7 +498,7 @@ function PassageQuestionCard({
             min={1}
             max={10}
             value={question.marks}
-            onChange={event => set('marks', Number(event.target.value) || 1)}
+            onChange={event => set('marks', clampInt(event.target.value, 1, 10, 1))}
             className="theme-text w-10 bg-transparent text-center text-xs font-black outline-none"
           />
         </div>

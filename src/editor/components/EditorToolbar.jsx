@@ -3,19 +3,17 @@
  *
  * Full editor toolbar + contextual table strip.
  * Visual design: identical to the working demo.
- * Commands: all Tiptap chain commands — zero execCommand.
+ * Commands: all Tiptap chain commands - zero execCommand.
  *
  * Props:
  *   editor    {object|null}   The Tiptap editor instance from useEditor()
  *   onMath    {function}      Open the math modal
  *   onTable   {function}      Open the table modal
  *
- * Re-renders automatically because:
- *   - editor.isActive() reads from editor.state
- *   - RichEditor increments a tick counter on every Tiptap transaction
- *   - tick is passed as a prop, causing a re-render on each state change
+ * Re-renders automatically through useEditorState subscriptions.
  */
 
+import { useEditorState } from '@tiptap/react'
 import { useState } from 'react'
 
 const TX_COLORS = [
@@ -27,30 +25,90 @@ const HL_COLORS = [
   '#fce7f3', '#fee2e2', '#fed7aa', '#e0f2fe',
 ]
 
-/**
- * A single toolbar button. Handles the active (on) state check.
- */
-function TBtn({
-  editor, cmd, args, title, active, children, extraClass = '', onMouseDown,
-}) {
-  // Check active state unless overridden by the `active` prop
-  const isActive = active !== undefined
-    ? active
-    : (cmd ? (() => { try { return editor.isActive(cmd, args) } catch { return false } })() : false)
+const EMPTY_TOOLBAR_STATE = {
+  inTable: false,
+  bold: false,
+  italic: false,
+  underline: false,
+  strike: false,
+  superscript: false,
+  subscript: false,
+  bulletList: false,
+  orderedList: false,
+  alignLeft: false,
+  alignCenter: false,
+  alignRight: false,
+  heading1: false,
+  heading2: false,
+  headerCell: false,
+  canUndo: false,
+  canRedo: false,
+  canAddRowBefore: false,
+  canAddRowAfter: false,
+  canDeleteRow: false,
+  canAddColumnBefore: false,
+  canAddColumnAfter: false,
+  canDeleteColumn: false,
+  canMergeCells: false,
+  canSplitCell: false,
+  canToggleHeaderRow: false,
+  canDeleteTable: false,
+}
 
+function safeIsActive(editor, ...args) {
+  try {
+    return Boolean(editor?.isActive?.(...args))
+  } catch {
+    return false
+  }
+}
+
+function canRun(editor, cmd, args) {
+  if (!editor || !cmd) return false
+
+  try {
+    const chain = editor.can().chain().focus()
+    return args === undefined
+      ? chain[cmd]().run()
+      : chain[cmd](args).run()
+  } catch {
+    return false
+  }
+}
+
+function runCommand(editor, cmd, args) {
+  if (!editor || !cmd) return
+
+  try {
+    const chain = editor.chain().focus()
+    if (args === undefined) chain[cmd]().run()
+    else chain[cmd](args).run()
+  } catch {
+    // Ignore invalid commands for the current selection.
+  }
+}
+
+function TBtn({
+  editor, cmd, args, title, active = false, disabled = false, children, extraClass = '', onMouseDown,
+}) {
   const handleMouseDown = (e) => {
-    e.preventDefault()  // prevent focus loss from editor
-    if (onMouseDown) { onMouseDown(e); return }
-    if (cmd) editor.chain().focus()[cmd](args ?? undefined).run()
+    e.preventDefault()
+    if (disabled) return
+    if (onMouseDown) {
+      onMouseDown(e)
+      return
+    }
+    runCommand(editor, cmd, args)
   }
 
   return (
     <button
       type="button"
-      className={`tbb${isActive ? ' on' : ''}${extraClass ? ' ' + extraClass : ''}`}
+      className={`tbb${active ? ' on' : ''}${extraClass ? ' ' + extraClass : ''}`}
       title={title}
       onMouseDown={handleMouseDown}
-      aria-pressed={isActive}
+      aria-pressed={active}
+      disabled={disabled}
     >
       {children}
     </button>
@@ -60,64 +118,103 @@ function TBtn({
 export default function EditorToolbar({ editor, onMath, onTable }) {
   const [showTxColor, setShowTxColor] = useState(false)
   const [showHlColor, setShowHlColor] = useState(false)
+  const toolbarState = useEditorState({
+    editor,
+    selector: ({ editor: currentEditor }) => {
+      if (!currentEditor) return EMPTY_TOOLBAR_STATE
 
-  // Return a minimal placeholder while the editor is initialising
+      return {
+        inTable: safeIsActive(currentEditor, 'table'),
+        bold: safeIsActive(currentEditor, 'bold'),
+        italic: safeIsActive(currentEditor, 'italic'),
+        underline: safeIsActive(currentEditor, 'underline'),
+        strike: safeIsActive(currentEditor, 'strike'),
+        superscript: safeIsActive(currentEditor, 'superscript'),
+        subscript: safeIsActive(currentEditor, 'subscript'),
+        bulletList: safeIsActive(currentEditor, 'bulletList'),
+        orderedList: safeIsActive(currentEditor, 'orderedList'),
+        alignLeft: safeIsActive(currentEditor, { textAlign: 'left' }),
+        alignCenter: safeIsActive(currentEditor, { textAlign: 'center' }),
+        alignRight: safeIsActive(currentEditor, { textAlign: 'right' }),
+        heading1: safeIsActive(currentEditor, 'heading', { level: 1 }),
+        heading2: safeIsActive(currentEditor, 'heading', { level: 2 }),
+        headerCell: safeIsActive(currentEditor, 'tableHeader'),
+        canUndo: canRun(currentEditor, 'undo'),
+        canRedo: canRun(currentEditor, 'redo'),
+        canAddRowBefore: canRun(currentEditor, 'addRowBefore'),
+        canAddRowAfter: canRun(currentEditor, 'addRowAfter'),
+        canDeleteRow: canRun(currentEditor, 'deleteRow'),
+        canAddColumnBefore: canRun(currentEditor, 'addColumnBefore'),
+        canAddColumnAfter: canRun(currentEditor, 'addColumnAfter'),
+        canDeleteColumn: canRun(currentEditor, 'deleteColumn'),
+        canMergeCells: canRun(currentEditor, 'mergeCells'),
+        canSplitCell: canRun(currentEditor, 'splitCell'),
+        canToggleHeaderRow: canRun(currentEditor, 'toggleHeaderRow'),
+        canDeleteTable: canRun(currentEditor, 'deleteTable'),
+      }
+    },
+  }) || EMPTY_TOOLBAR_STATE
+
   if (!editor) return <div className="toolbar" />
 
-  const inTable = (() => { try { return editor.isActive('table') } catch { return false } })()
-
-  const run = (cmd) => (...args) => editor.chain().focus()[cmd](...args).run()
+  const run = (cmd, args) => runCommand(editor, cmd, args)
 
   return (
     <>
       <div className="toolbar">
 
-        {/* ── History ── */}
-        <TBtn editor={editor} title="Undo (Ctrl+Z)"
-          onMouseDown={(e) => { e.preventDefault(); run('undo')() }}>↩</TBtn>
-        <TBtn editor={editor} title="Redo (Ctrl+Y)"
-          onMouseDown={(e) => { e.preventDefault(); run('redo')() }}>↪</TBtn>
+        {/* -- History -- */}
+        <TBtn
+          editor={editor}
+          title="Undo (Ctrl+Z)"
+          disabled={!toolbarState.canUndo}
+          onMouseDown={(e) => { e.preventDefault(); run('undo') }}
+        >
+          ↩
+        </TBtn>
+        <TBtn
+          editor={editor}
+          title="Redo (Ctrl+Y)"
+          disabled={!toolbarState.canRedo}
+          onMouseDown={(e) => { e.preventDefault(); run('redo') }}
+        >
+          ↪
+        </TBtn>
         <div className="tbsep" />
 
-        {/* ── Text format ── */}
-        <TBtn editor={editor} cmd="toggleBold"      title="Bold (Ctrl+B)">
+        {/* -- Text format -- */}
+        <TBtn editor={editor} cmd="toggleBold" active={toolbarState.bold} title="Bold (Ctrl+B)">
           <b style={{ fontWeight: 900, fontSize: '13px' }}>B</b>
         </TBtn>
-        <TBtn editor={editor} cmd="toggleItalic"    title="Italic (Ctrl+I)">
+        <TBtn editor={editor} cmd="toggleItalic" active={toolbarState.italic} title="Italic (Ctrl+I)">
           <i style={{ fontSize: '13px' }}>I</i>
         </TBtn>
-        <TBtn editor={editor} cmd="toggleUnderline" title="Underline (Ctrl+U)"><u>U</u></TBtn>
-        <TBtn editor={editor} cmd="toggleStrike"    title="Strikethrough"><s>S</s></TBtn>
+        <TBtn editor={editor} cmd="toggleUnderline" active={toolbarState.underline} title="Underline (Ctrl+U)"><u>U</u></TBtn>
+        <TBtn editor={editor} cmd="toggleStrike" active={toolbarState.strike} title="Strikethrough"><s>S</s></TBtn>
         <div className="tbsep" />
 
-        {/* ── Super / Sub — proper Tiptap extensions ── */}
-        <TBtn editor={editor} cmd="toggleSuperscript" title="Superscript">x²</TBtn>
-        <TBtn editor={editor} cmd="toggleSubscript"   title="Subscript">x₂</TBtn>
+        {/* -- Super / Sub -- */}
+        <TBtn editor={editor} cmd="toggleSuperscript" active={toolbarState.superscript} title="Superscript">x²</TBtn>
+        <TBtn editor={editor} cmd="toggleSubscript" active={toolbarState.subscript} title="Subscript">x₂</TBtn>
         <div className="tbsep" />
 
-        {/* ── Lists ── */}
-        <TBtn editor={editor} cmd="toggleBulletList"  title="Bullet list">• ≡</TBtn>
-        <TBtn editor={editor} cmd="toggleOrderedList" title="Numbered list">1.≡</TBtn>
+        {/* -- Lists -- */}
+        <TBtn editor={editor} cmd="toggleBulletList" active={toolbarState.bulletList} title="Bullet list">• ≡</TBtn>
+        <TBtn editor={editor} cmd="toggleOrderedList" active={toolbarState.orderedList} title="Numbered list">1.≡</TBtn>
         <div className="tbsep" />
 
-        {/* ── Alignment ── */}
-        <TBtn editor={editor} cmd="setTextAlign" args="left"
-          active={(() => { try { return editor.isActive({ textAlign: 'left' }) } catch { return false } })()}
-          title="Align left">⬅≡</TBtn>
-        <TBtn editor={editor} cmd="setTextAlign" args="center"
-          active={(() => { try { return editor.isActive({ textAlign: 'center' }) } catch { return false } })()}
-          title="Centre">≡</TBtn>
-        <TBtn editor={editor} cmd="setTextAlign" args="right"
-          active={(() => { try { return editor.isActive({ textAlign: 'right' }) } catch { return false } })()}
-          title="Align right">≡➡</TBtn>
+        {/* -- Alignment -- */}
+        <TBtn editor={editor} cmd="setTextAlign" args="left" active={toolbarState.alignLeft} title="Align left">⬅≡</TBtn>
+        <TBtn editor={editor} cmd="setTextAlign" args="center" active={toolbarState.alignCenter} title="Centre">≡</TBtn>
+        <TBtn editor={editor} cmd="setTextAlign" args="right" active={toolbarState.alignRight} title="Align right">≡➡</TBtn>
         <div className="tbsep" />
 
-        {/* ── Headings ── */}
-        <TBtn editor={editor} cmd="toggleHeading" args={{ level: 1 }} title="Heading 1">H1</TBtn>
-        <TBtn editor={editor} cmd="toggleHeading" args={{ level: 2 }} title="Heading 2">H2</TBtn>
+        {/* -- Headings -- */}
+        <TBtn editor={editor} cmd="toggleHeading" args={{ level: 1 }} active={toolbarState.heading1} title="Heading 1">H1</TBtn>
+        <TBtn editor={editor} cmd="toggleHeading" args={{ level: 2 }} active={toolbarState.heading2} title="Heading 2">H2</TBtn>
         <div className="tbsep" />
 
-        {/* ── Text colour ── */}
+        {/* -- Text colour -- */}
         <div className="crel">
           <button
             type="button" className="tbb" title="Text colour"
@@ -144,7 +241,7 @@ export default function EditorToolbar({ editor, onMath, onTable }) {
           )}
         </div>
 
-        {/* ── Highlight ── */}
+        {/* -- Highlight -- */}
         <div className="crel">
           <button
             type="button" className="tbb" title="Highlight"
@@ -169,7 +266,7 @@ export default function EditorToolbar({ editor, onMath, onTable }) {
         </div>
         <div className="tbsep" />
 
-        {/* ── Math + Table ── */}
+        {/* -- Math + Table -- */}
         <button
           type="button" className="tbb tbm" title="Insert Math (∑)"
           onMouseDown={(e) => { e.preventDefault(); onMath() }}
@@ -184,58 +281,108 @@ export default function EditorToolbar({ editor, onMath, onTable }) {
         </button>
       </div>
 
-      {/* ── Contextual table controls — appear when cursor is inside a table ── */}
-      {inTable && (
+      {/* -- Contextual table controls -- */}
+      {toolbarState.inTable && (
         <div className="tblstrip">
           <span className="tblslbl">Table:</span>
 
-          <button type="button" className="tbb"
-            onMouseDown={(e) => { e.preventDefault(); run('addRowBefore')() }} title="Add row before">
+          <button
+            type="button"
+            className="tbb"
+            disabled={!toolbarState.canAddRowBefore}
+            onMouseDown={(e) => { e.preventDefault(); run('addRowBefore') }}
+            title="Add row before"
+          >
             +Row↑
           </button>
-          <button type="button" className="tbb"
-            onMouseDown={(e) => { e.preventDefault(); run('addRowAfter')() }} title="Add row after">
+          <button
+            type="button"
+            className="tbb"
+            disabled={!toolbarState.canAddRowAfter}
+            onMouseDown={(e) => { e.preventDefault(); run('addRowAfter') }}
+            title="Add row after"
+          >
             +Row↓
           </button>
-          <button type="button" className="tbb tbd"
-            onMouseDown={(e) => { e.preventDefault(); run('deleteRow')() }} title="Delete row">
+          <button
+            type="button"
+            className="tbb tbd"
+            disabled={!toolbarState.canDeleteRow}
+            onMouseDown={(e) => { e.preventDefault(); run('deleteRow') }}
+            title="Delete row"
+          >
             −Row
           </button>
 
           <div className="tbsep" />
 
-          <button type="button" className="tbb"
-            onMouseDown={(e) => { e.preventDefault(); run('addColumnBefore')() }} title="Add column before">
+          <button
+            type="button"
+            className="tbb"
+            disabled={!toolbarState.canAddColumnBefore}
+            onMouseDown={(e) => { e.preventDefault(); run('addColumnBefore') }}
+            title="Add column before"
+          >
             +Col←
           </button>
-          <button type="button" className="tbb"
-            onMouseDown={(e) => { e.preventDefault(); run('addColumnAfter')() }} title="Add column after">
+          <button
+            type="button"
+            className="tbb"
+            disabled={!toolbarState.canAddColumnAfter}
+            onMouseDown={(e) => { e.preventDefault(); run('addColumnAfter') }}
+            title="Add column after"
+          >
             +Col→
           </button>
-          <button type="button" className="tbb tbd"
-            onMouseDown={(e) => { e.preventDefault(); run('deleteColumn')() }} title="Delete column">
+          <button
+            type="button"
+            className="tbb tbd"
+            disabled={!toolbarState.canDeleteColumn}
+            onMouseDown={(e) => { e.preventDefault(); run('deleteColumn') }}
+            title="Delete column"
+          >
             −Col
           </button>
 
           <div className="tbsep" />
 
-          <button type="button" className="tbb"
-            onMouseDown={(e) => { e.preventDefault(); run('mergeCells')() }} title="Merge selected cells">
+          <button
+            type="button"
+            className="tbb"
+            disabled={!toolbarState.canMergeCells}
+            onMouseDown={(e) => { e.preventDefault(); run('mergeCells') }}
+            title="Merge selected cells"
+          >
             ⊞Merge
           </button>
-          <button type="button" className="tbb"
-            onMouseDown={(e) => { e.preventDefault(); run('splitCell')() }} title="Split merged cell">
+          <button
+            type="button"
+            className="tbb"
+            disabled={!toolbarState.canSplitCell}
+            onMouseDown={(e) => { e.preventDefault(); run('splitCell') }}
+            title="Split merged cell"
+          >
             ⊡Split
           </button>
-          <button type="button" className="tbb"
-            onMouseDown={(e) => { e.preventDefault(); run('toggleHeaderRow')() }} title="Toggle header row">
+          <button
+            type="button"
+            className={`tbb${toolbarState.headerCell ? ' on' : ''}`}
+            disabled={!toolbarState.canToggleHeaderRow}
+            onMouseDown={(e) => { e.preventDefault(); run('toggleHeaderRow') }}
+            title="Toggle header row"
+          >
             Header
           </button>
 
           <div className="tbsep" />
 
-          <button type="button" className="tbb tbd"
-            onMouseDown={(e) => { e.preventDefault(); run('deleteTable')() }} title="Delete this table">
+          <button
+            type="button"
+            className="tbb tbd"
+            disabled={!toolbarState.canDeleteTable}
+            onMouseDown={(e) => { e.preventDefault(); run('deleteTable') }}
+            title="Delete this table"
+          >
             ✕ Table
           </button>
         </div>

@@ -1,0 +1,38 @@
+#!/usr/bin/env sh
+# Pre-commit hook — file-integrity check only.
+#
+# We deliberately do NOT run lint-staged here. lint-staged works by
+# stashing the working tree, linting only what's staged, then restoring
+# the stash. On a Windows filesystem that occasionally corrupts bytes
+# mid-write (which this repo has been hit by multiple times), the
+# stash/restore cycle can lose uncommitted work. We've already had one
+# near-miss where hours of unstaged edits vanished.
+#
+# What this hook does:
+#   1. Ask git for the list of staged files (names only, no content is
+#      stashed or moved).
+#   2. Pass them to scripts/check-file-integrity.mjs, which blocks the
+#      commit if any staged file has trailing NUL bytes, a truncated
+#      JSX tag, invalid JSON, or fails to parse.
+#
+# What this hook does NOT do:
+#   - It does not run eslint. Run `npm run lint` manually before
+#     committing if you want style/correctness feedback.
+#   - It does not modify, stash, or move your files. If the integrity
+#     check passes, commit proceeds. If it fails, nothing on disk
+#     changes — just fix the reported files and try again.
+#
+# To audit the whole tree on demand: `npm run check:integrity`.
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+
+# Nothing staged (e.g. `git commit --allow-empty`). Let it through.
+if [ -z "$staged" ]; then
+  exit 0
+fi
+
+# Pass staged file paths as arguments. check-file-integrity.mjs handles
+# non-existent paths (deleted files) silently, so we don't have to filter.
+# Use xargs to handle huge numbers of staged files without blowing out
+# the command-line length.
+printf '%s\n' "$staged" | xargs -r node scripts/check-file-integrity.mjs

@@ -4,7 +4,6 @@ import {
   Home,
   BookOpen,
   PencilLine,
-  FileText,
   BarChart3,
   Bot,
   GraduationCap,
@@ -33,7 +32,6 @@ export default function Navbar() {
     ...(!isAdmin && !isTeacher ? [{ to: homePath, label: 'Home', icon: Home }] : []),
     { to: '/lessons',    label: 'Lessons',     icon: BookOpen },
     { to: '/quizzes',    label: 'Quizzes',     icon: PencilLine },
-    { to: '/papers',     label: 'Past Papers', icon: FileText },
     { to: '/my-results', label: 'Results',     icon: BarChart3 },
     { to: '/study',      label: 'Zed',         icon: Bot },
   ]

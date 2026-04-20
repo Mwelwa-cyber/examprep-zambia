@@ -6,7 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "test:importer": "node src/components/quiz/documentQuizParserCore.test.js",
+    "test:importer": "node src/components/quiz/documentQuizParserCore.test.js && node src/components/quiz/documentQuizTableBlocks.test.js",
+    "check:integrity": "node scripts/check-file-integrity.mjs",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "prepare": "husky",
     "deploy": "npm run deploy:netlify",
     "deploy:netlify": "npm run build && npx -y netlify-cli deploy --prod --dir=dist --site=5a7c0fa9-62b2-4137-a109-8a7478bf6148",
     "deploy:netlify:preview": "npm run build && npx -y netlify-cli deploy --dir=dist --site=5a7c0fa9-62b2-4137-a109-8a7478bf6148",
@@ -14,6 +18,10 @@
     "deploy:firebase:functions": "npx -y firebase-tools@latest deploy --only functions",
     "deploy:firebase:firestore": "npx -y firebase-tools@latest deploy --only firestore",
     "preview": "vite preview"
+  },
+  "lint-staged": {
+    "src/**/*.{js,jsx}": "eslint --fix",
+    "*.{js,jsx,mjs,cjs,ts,tsx,json,md,mdx,html,css,scss}": "node scripts/check-file-integrity.mjs"
   },
   "dependencies": {
     "@tiptap/core": "^3.22.3",
@@ -44,8 +52,16 @@
     "react-router-dom": "^6.20.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "@vitejs/plugin-react": "^4.2.0",
     "autoprefixer": "^10.4.16",
+    "eslint": "^9.39.4",
+    "eslint-plugin-promise": "^7.2.1",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^15.15.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
     "postcss": "^8.4.32",
     "tailwindcss": "^3.3.6",
     "vite": "^5.0.0"

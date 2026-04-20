@@ -14,10 +14,11 @@ const FRIENDLY = {
   'auth/too-many-requests':      'Too many attempts — please wait a few minutes.',
   'auth/invalid-email':          'Please enter a valid email address.',
   'auth/network-request-failed': 'Network error. Please check your connection.',
+  'auth/operation-not-allowed':  'Email and password sign-in is not available right now.',
 }
 
 export default function Login() {
-  const { login, resetPassword, userProfile, fetchUserProfile } = useAuth()
+  const { login, logout, resetPassword, ensureUserProfile } = useAuth()
   const navigate = useNavigate()
 
   const [email, setEmail]         = useState('')
@@ -39,7 +40,12 @@ export default function Login() {
     setLoading(true)
     try {
       const cred = await login(email.trim(), password)
-      const profile = userProfile ?? await fetchUserProfile(cred.user.uid)
+      const profile = await ensureUserProfile(cred.user)
+      if (!profile) {
+        try { await logout() } catch { /* ignore secondary failure */ }
+        setError('Your account signed in, but we could not finish restoring your ZedExams profile. Please try again or contact support.')
+        return
+      }
       navigate(getRoleLandingPath(profile, '/'), { replace: true })
     } catch (err) {
       setError(FRIENDLY[err.code] ?? 'Login failed. Please try again.')

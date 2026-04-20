@@ -6,7 +6,9 @@
     "shell": "firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
-    "logs": "firebase functions:log"
+    "logs": "firebase functions:log",
+    "cbc:verify": "node ./scripts/ingest-private-cbc.mjs --verify",
+    "cbc:ingest": "node ./scripts/ingest-private-cbc.mjs"
   },
   "engines": {
     "node": "22"

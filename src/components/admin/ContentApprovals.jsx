@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react'
 import { useFirestore } from '../../hooks/useFirestore'
 import { useAuth } from '../../contexts/AuthContext'
 import StatusBadge from '../ui/StatusBadge'
+import Button from '../ui/Button'
+import Skeleton from '../ui/Skeleton'
 
-const TYPE_ICONS = { quiz: '✏️', lesson: '📖', paper: '📄' }
+const TYPE_ICONS = { quiz: '✏️', lesson: '📖' }
 
 function ApprovalCard({ item, onApprove, onReject, busy }) {
   const [rejecting, setRejecting] = useState(false)
@@ -48,17 +50,14 @@ function ApprovalCard({ item, onApprove, onReject, busy }) {
             className="w-full border border-red-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-red-400 resize-none"
           />
           <div className="flex gap-2">
-            <button
-              onClick={() => { onReject(item, reason); setRejecting(false); setReason('') }}
-              disabled={busy}
-              className="flex-1 bg-red-600 hover:bg-red-700 text-white font-black text-xs py-2 rounded-xl disabled:opacity-50 min-h-0 transition-colors">
+            <Button variant="danger" size="sm" disabled={busy} className="flex-1"
+              onClick={() => { onReject(item, reason); setRejecting(false); setReason('') }}>
               Confirm Reject
-            </button>
-            <button
-              onClick={() => { setRejecting(false); setReason('') }}
-              className="flex-1 border border-gray-200 text-gray-600 font-black text-xs py-2 rounded-xl min-h-0 hover:bg-gray-50 transition-colors">
+            </Button>
+            <Button variant="secondary" size="sm" className="flex-1"
+              onClick={() => { setRejecting(false); setReason('') }}>
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -66,18 +65,13 @@ function ApprovalCard({ item, onApprove, onReject, busy }) {
       {/* Action buttons */}
       {!rejecting && (
         <div className="flex gap-2">
-          <button
-            onClick={() => onApprove(item)}
-            disabled={busy}
-            className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-black text-sm py-2.5 rounded-xl min-h-0 transition-colors">
+          <Button variant="primary" size="md" disabled={busy} className="flex-1" onClick={() => onApprove(item)}>
             ✅ Approve & Publish
-          </button>
-          <button
-            onClick={() => setRejecting(true)}
-            disabled={busy}
-            className="flex-1 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 font-black text-sm py-2.5 rounded-xl min-h-0 transition-colors">
+          </Button>
+          <Button variant="secondary" size="md" disabled={busy} className="flex-1 !text-danger hover:!border-[color:var(--danger-fg)]"
+            onClick={() => setRejecting(true)}>
             ❌ Reject
-          </button>
+          </Button>
         </div>
       )}
     </div>
@@ -151,14 +145,14 @@ export default function ContentApprovals() {
       {loading ? (
         <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 animate-pulse h-28" />
+            <Skeleton key={i} height={112} className="!rounded-2xl" />
           ))}
         </div>
       ) : items.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 py-16 text-center">
-          <div className="text-5xl mb-3">🎉</div>
-          <p className="font-black text-gray-700">All caught up!</p>
-          <p className="text-gray-400 text-sm mt-1">No content waiting for review.</p>
+        <div className="theme-card border theme-border rounded-2xl py-16 text-center shadow-elev-sm">
+          <div className="text-5xl mb-3" aria-hidden="true">🎉</div>
+          <p className="font-black theme-text">All caught up!</p>
+          <p className="theme-text-muted text-sm mt-1">No content waiting for review.</p>
         </div>
       ) : (
         <div className="space-y-3">

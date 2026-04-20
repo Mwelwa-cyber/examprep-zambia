@@ -5,6 +5,7 @@ import {
   metadataFromText as buildImportMetadata,
   processImportedQuestionBlocks,
 } from './documentQuizParserCore.js'
+import { buildDocxTableBlocks } from './documentQuizTableBlocks.js'
 
 let pdfjsLoader = null
 
@@ -453,6 +454,52 @@ function paragraphImages(paragraph, relationships, zipEntries, warnings) {
     .filter(Boolean)
 }
 
+function tableCellContent(cell, relationships, zipEntries, warnings) {
+  const parts = []
+  const assets = []
+
+  Array.from(cell?.children || []).forEach(child => {
+    if (child.localName === 'p') {
+      const text = paragraphText(child)
+      if (text) parts.push(text)
+      const paragraphAssets = paragraphImages(child, relationships, zipEntries, warnings)
+      if (paragraphAssets.length) assets.push(...paragraphAssets)
+      return
+    }
+
+    if (child.localName === 'tbl') {
+      const nestedText = descendantsByLocalName(child, 't')
+        .map(node => cleanText(node.textContent))
+        .filter(Boolean)
+        .join('\n')
+      if (nestedText) parts.push(nestedText)
+    }
+  })
+
+  if (!parts.length && !assets.length) {
+    const fallbackText = descendantsByLocalName(cell, 't')
+      .map(node => cleanText(node.textContent))
+      .filter(Boolean)
+      .join('\n')
+    if (fallbackText) parts.push(fallbackText)
+  }
+
+  return {
+    text: parts.join('\n'),
+    assets,
+  }
+}
+
+function tableRows(table, relationships, zipEntries, warnings) {
+  return Array.from(table?.children || [])
+    .filter(child => child.localName === 'tr')
+    .map(row => ({
+      cells: Array.from(row.children || [])
+        .filter(child => child.localName === 'tc')
+        .map(cell => tableCellContent(cell, relationships, zipEntries, warnings)),
+    }))
+}
+
 async function extractDocx(file) {
   const warnings = []
   const buffer = await file.arrayBuffer()
@@ -491,14 +538,13 @@ async function extractDocx(file) {
     }
 
     if (child.localName === 'tbl') {
-      const text = descendantsByLocalName(child, 't')
-        .map(node => cleanText(node.textContent))
-        .filter(Boolean)
-        .join('\n')
-      if (text) {
-        blocks.push({ text, assets: [], source: 'docx-table' })
-        warnings.push('A table was flattened into text. Review those questions before publishing.')
+      const rows = tableRows(child, relationships, zipEntries, warnings)
+      const { blocks: tableBlocks, warnings: tableWarnings } = buildDocxTableBlocks(rows)
+      if (tableBlocks.length) {
+        blocks.push(...tableBlocks)
+        imageAssets.push(...tableBlocks.flatMap(block => block.assets || []))
       }
+      if (tableWarnings.length) warnings.push(...tableWarnings)
     }
   })
 

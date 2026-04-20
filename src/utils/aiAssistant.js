@@ -238,6 +238,14 @@ export async function explainQuizAnswer(payload) {
   }
 }
 
+// Returns { questions, warning } where warning is a human-readable note
+// from the CBC knowledge-base resolver (e.g. "topic not verified — nearest
+// topics for this grade+subject: X, Y, Z") or null when the topic matched
+// a verified KB entry. The UI can surface the warning so teachers know
+// when Zed fell back to general CBC knowledge.
+//
+// Local-fallback path (network/timeout/soft errors) always returns
+// warning: null because we can't surface a KB miss from the client.
 export async function generateAIQuizQuestions(payload) {
   try {
     const response = await withTimeout(
@@ -245,10 +253,12 @@ export async function generateAIQuizQuestions(payload) {
       AI_QUIZ_TIMEOUT_MS,
       'Zed is taking too long, so a quick editable draft was created.',
     )
-    return Array.isArray(response.data?.questions) ? response.data.questions : []
+    const questions = Array.isArray(response.data?.questions) ? response.data.questions : []
+    const warning = typeof response.data?.warning === 'string' ? response.data.warning : null
+    return { questions, warning }
   } catch (error) {
     if (!isHardAIError(error)) {
-      return makeLocalQuizQuestions(payload)
+      return { questions: makeLocalQuizQuestions(payload), warning: null }
     }
     throw new Error(messageFromError(error))
   }

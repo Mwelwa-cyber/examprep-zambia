@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useFirestore } from '../../hooks/useFirestore'
 import StatusBadge from '../ui/StatusBadge'
+import Button from '../ui/Button'
 
-const TYPE_LABELS = { quiz: '✏️ Quiz', lesson: '📖 Lesson', paper: '📄 Paper' }
+const TYPE_LABELS = { quiz: '✏️ Quiz', lesson: '📖 Lesson' }
 
 function ContentRow({ item, onSubmit, onWithdraw, onDelete, busy }) {
   const itemId = item.id || item._id || ''
@@ -61,27 +62,30 @@ function ContentRow({ item, onSubmit, onWithdraw, onDelete, busy }) {
       {/* Actions */}
       <div className="flex gap-2 flex-wrap">
         {canEdit && (
-          <Link
+          <Button
+            as={Link}
             to={item.contentType === 'lesson' ? `/teacher/lessons/${itemId}/edit` : `/teacher/quizzes/${itemId}/edit`}
-            className="bg-gray-100 hover:bg-gray-200 border border-gray-200 text-gray-700 font-black text-xs px-4 py-2 rounded-xl min-h-0 transition-colors">
+            variant="secondary"
+            size="sm"
+          >
             ✏️ Edit {item.contentType === 'lesson' ? 'Lesson' : 'Quiz'}
-          </Link>
+          </Button>
         )}
         {canSubmit && (
-          <button
-            onClick={() => onSubmit(item)}
-            disabled={busy}
-            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-black text-xs px-4 py-2 rounded-xl min-h-0 transition-colors">
+          <Button variant="primary" size="sm" disabled={busy} onClick={() => onSubmit(item)}>
             📤 Submit for Approval
-          </button>
+          </Button>
         )}
         {canWithdraw && (
-          <button
-            onClick={() => onWithdraw(item)}
+          <Button
+            variant="secondary"
+            size="sm"
             disabled={busy}
-            className="bg-yellow-500 hover:bg-yellow-600 disabled:opacity-50 text-white font-black text-xs px-4 py-2 rounded-xl min-h-0 transition-colors">
+            onClick={() => onWithdraw(item)}
+            className="!text-warning hover:!border-[color:var(--warning-fg)]"
+          >
             ↩ Withdraw
-          </button>
+          </Button>
         )}
         {canDelete && (
           <button
@@ -101,7 +105,7 @@ function ContentRow({ item, onSubmit, onWithdraw, onDelete, busy }) {
 
 export default function TeacherContent() {
   const { currentUser } = useAuth()
-  const { getMyQuizzes, getMyLessons, getMyPapers, submitForApproval, withdrawFromApproval, deleteQuiz, deleteLesson, deletePaper } = useFirestore()
+  const { getMyQuizzes, getMyLessons, submitForApproval, withdrawFromApproval, deleteQuiz, deleteLesson } = useFirestore()
 
   const [items, setItems]     = useState([])
   const [loading, setLoading] = useState(true)
@@ -113,15 +117,13 @@ export default function TeacherContent() {
 
   async function load() {
     if (!currentUser) return
-    const [quizzes, lessons, papers] = await Promise.all([
+    const [quizzes, lessons] = await Promise.all([
       getMyQuizzes(currentUser.uid),
       getMyLessons(currentUser.uid),
-      getMyPapers(currentUser.uid),
     ])
     const merged = [
       ...quizzes.map(q => ({ ...q, contentType: 'quiz' })),
       ...lessons.map(l => ({ ...l, contentType: 'lesson' })),
-      ...papers.map(p => ({ ...p, contentType: 'paper' })),
     ].sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0))
     setItems(merged)
     setLoading(false)
@@ -155,7 +157,6 @@ export default function TeacherContent() {
     try {
       if (item.contentType === 'quiz')   await deleteQuiz(item.id)
       if (item.contentType === 'lesson') await deleteLesson(item.id)
-      if (item.contentType === 'paper')  await deletePaper(item.id)
       show('🗑 Deleted.')
       await load()
     } catch (e) { show('❌ ' + e.message) }
@@ -179,21 +180,12 @@ export default function TeacherContent() {
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl font-black text-gray-800">📁 My Content</h1>
-          <p className="text-gray-500 text-sm mt-0.5">Manage and submit your quizzes, lessons, and papers</p>
+          <p className="text-gray-500 text-sm mt-0.5">Manage and submit your quizzes and lessons</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Link to="/teacher/quizzes/new"
-            className="bg-blue-600 hover:bg-blue-700 text-white font-black text-sm px-4 py-2 rounded-xl transition-colors">
-            + Quiz
-          </Link>
-          <Link to="/teacher/quizzes/new?mode=import"
-            className="border-2 border-emerald-600 text-emerald-700 font-black text-sm px-4 py-2 rounded-xl hover:bg-emerald-50 transition-colors">
-            Import Quiz
-          </Link>
-          <Link to="/teacher/lessons/new"
-            className="border-2 border-blue-600 text-blue-700 font-black text-sm px-4 py-2 rounded-xl hover:bg-blue-50 transition-colors">
-            + Lesson
-          </Link>
+          <Button as={Link} to="/teacher/quizzes/new" variant="primary" size="sm">+ Quiz</Button>
+          <Button as={Link} to="/teacher/quizzes/new?mode=import" variant="secondary" size="sm">Import Quiz</Button>
+          <Button as={Link} to="/teacher/lessons/new" variant="secondary" size="sm">+ Lesson</Button>
         </div>
       </div>
 
@@ -228,7 +220,7 @@ export default function TeacherContent() {
             {filter === 'all' ? 'No content yet' : `No ${filter} content`}
           </p>
           <p className="text-gray-400 text-sm mt-1">
-            {filter === 'all' ? 'Create a quiz, lesson, or paper to get started.' : 'Try a different filter.'}
+            {filter === 'all' ? 'Create a quiz or lesson to get started.' : 'Try a different filter.'}
           </p>
         </div>
       ) : (

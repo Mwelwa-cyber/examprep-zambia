@@ -5,6 +5,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { normalizeRichTextPayload } from '../utils/quizRichText.js'
+import { deleteQuizWithQuestions } from '../utils/deleteQuizWithQuestions.js'
 
 function normalizeQuestionPayload(q, order) {
   const type = q.type || 'mcq'
@@ -45,7 +46,7 @@ export function useFirestore() {
   // ── Quizzes ──────────────────────────────────────────────────
   async function getQuizzes(filters = {}) {
     try {
-      let c = [where('isPublished', '==', true)]
+      const c = [where('isPublished', '==', true)]
       if (filters.grade)    c.push(where('grade',   '==', filters.grade))
       if (filters.subject)  c.push(where('subject', '==', filters.subject))
       if (filters.term)     c.push(where('term',    '==', filters.term))
@@ -88,7 +89,7 @@ export function useFirestore() {
   }
 
   async function deleteQuiz(quizId) {
-    await deleteDoc(doc(db, 'quizzes', quizId))
+    await deleteQuizWithQuestions(db, quizId)
   }
 
   // ── Questions ────────────────────────────────────────────────
@@ -100,12 +101,17 @@ export function useFirestore() {
   }
 
   async function saveQuestions(quizId, questions) {
-    const batch = writeBatch(db)
-    questions.forEach((q, idx) => {
-      const ref = doc(collection(db, 'quizzes', quizId, 'questions'))
-      batch.set(ref, normalizeQuestionPayload(q, idx + 1))
-    })
-    await batch.commit()
+    // Firestore caps writeBatch at 500 operations. Chunk to stay well under it.
+    const chunkSize = 490
+    for (let i = 0; i < questions.length; i += chunkSize) {
+      const chunk = questions.slice(i, i + chunkSize)
+      const batch = writeBatch(db)
+      chunk.forEach((q, offset) => {
+        const ref = doc(collection(db, 'quizzes', quizId, 'questions'))
+        batch.set(ref, normalizeQuestionPayload(q, i + offset + 1))
+      })
+      await batch.commit()
+    }
   }
 
   // ── Results ──────────────────────────────────────────────────
@@ -159,31 +165,6 @@ export function useFirestore() {
         .sort((a, b) => a.percentage - b.percentage)
     } catch (e) { console.error('getWeaknessAnalysis:', e); return [] }
   }
-
-  // ── Papers ───────────────────────────────────────────────────
-  async function getPapers(filters = {}) {
-    try {
-      let c = []
-      if (filters.grade)   c.push(where('grade',   '==', filters.grade))
-      if (filters.subject) c.push(where('subject', '==', filters.subject))
-      if (filters.term)    c.push(where('term',    '==', filters.term))
-      if (filters.year)    c.push(where('year',    '==', filters.year))
-      c.push(orderBy('uploadedAt', 'desc'))
-      const snap = await getDocs(query(collection(db, 'papers'), ...c))
-      return snap.docs.map(d => ({ id: d.id, ...d.data() }))
-    } catch (e) { console.error('getPapers:', e); return [] }
-  }
-
-  async function createPaper(data) {
-    const ref = await addDoc(collection(db, 'papers'), { ...data, downloadCount: 0, uploadedAt: serverTimestamp() })
-    return ref.id
-  }
-
-  async function incrementDownload(paperId) {
-    try { await updateDoc(doc(db, 'papers', paperId), { downloadCount: increment(1) }) } catch (e) { console.error(e) }
-  }
-
-  async function deletePaper(paperId) { await deleteDoc(doc(db, 'papers', paperId)) }
 
   // ── Users ────────────────────────────────────────────────────
   async function getAllUsers() {
@@ -400,7 +381,7 @@ export function useFirestore() {
   // ── Lessons ──────────────────────────────────────────────────
   async function getLessons(filters = {}) {
     try {
-      let c = [where('isPublished', '==', true)]
+      const c = [where('isPublished', '==', true)]
       if (filters.grade)   c.push(where('grade',   '==', filters.grade))
       if (filters.subject) c.push(where('subject', '==', filters.subject))
       c.push(orderBy('createdAt', 'desc'))
@@ -451,63 +432,45 @@ export function useFirestore() {
     } catch (e) { console.error('getMyLessons:', e); return [] }
   }
 
-  async function getMyPapers(uid) {
-    try {
-      const snap = await getDocs(query(collection(db, 'papers'), where('uploadedBy', '==', uid), orderBy('uploadedAt', 'desc')))
-      return snap.docs.map(d => ({ id: d.id, ...d.data() }))
-    } catch (e) { console.error('getMyPapers:', e); return [] }
-  }
-
   async function getPendingApprovals() {
     try {
-      const [qSnap, lSnap, pSnap] = await Promise.all([
+      const [qSnap, lSnap] = await Promise.all([
         getDocs(query(collection(db, 'quizzes'), where('status', '==', 'pending'), orderBy('submittedAt', 'desc'))),
         getDocs(query(collection(db, 'lessons'), where('status', '==', 'pending'), orderBy('submittedAt', 'desc'))),
-        getDocs(query(collection(db, 'papers'),  where('status', '==', 'pending'), orderBy('submittedAt', 'desc'))),
       ])
       return [
         ...qSnap.docs.map(d => ({ id: d.id, contentType: 'quiz',   ...d.data() })),
         ...lSnap.docs.map(d => ({ id: d.id, contentType: 'lesson', ...d.data() })),
-        ...pSnap.docs.map(d => ({ id: d.id, contentType: 'paper',  ...d.data() })),
       ].sort((a, b) => (b.submittedAt?.toMillis?.() ?? 0) - (a.submittedAt?.toMillis?.() ?? 0))
     } catch (e) { console.error('getPendingApprovals:', e); return [] }
   }
 
+  function _approvalCol(contentType) {
+    if (contentType === 'quiz')   return 'quizzes'
+    if (contentType === 'lesson') return 'lessons'
+    throw new Error(`Unknown contentType: ${contentType}`)
+  }
+
   async function submitForApproval(contentType, id) {
-    const col = contentType === 'quiz' ? 'quizzes' : contentType === 'lesson' ? 'lessons' : 'papers'
-    await updateDoc(doc(db, col, id), { status: 'pending', submittedAt: serverTimestamp() })
+    await updateDoc(doc(db, _approvalCol(contentType), id), { status: 'pending', submittedAt: serverTimestamp() })
   }
 
   async function withdrawFromApproval(contentType, id) {
-    const col = contentType === 'quiz' ? 'quizzes' : contentType === 'lesson' ? 'lessons' : 'papers'
-    await updateDoc(doc(db, col, id), { status: 'draft', submittedAt: null })
+    await updateDoc(doc(db, _approvalCol(contentType), id), { status: 'draft', submittedAt: null })
   }
 
   async function approveContent(contentType, id, adminId) {
-    const col = contentType === 'quiz' ? 'quizzes' : contentType === 'lesson' ? 'lessons' : 'papers'
-    await updateDoc(doc(db, col, id), {
+    await updateDoc(doc(db, _approvalCol(contentType), id), {
       status: 'published', isPublished: true,
       approvedBy: adminId, approvedAt: serverTimestamp(),
     })
   }
 
   async function rejectContent(contentType, id, adminId, reason = '') {
-    const col = contentType === 'quiz' ? 'quizzes' : contentType === 'lesson' ? 'lessons' : 'papers'
-    await updateDoc(doc(db, col, id), {
+    await updateDoc(doc(db, _approvalCol(contentType), id), {
       status: 'rejected', isPublished: false,
       rejectionReason: reason, rejectedBy: adminId, rejectedAt: serverTimestamp(),
     })
-  }
-
-  async function getAllPapers() {
-    try {
-      const snap = await getDocs(query(collection(db, 'papers'), orderBy('uploadedAt', 'desc')))
-      return snap.docs.map(d => ({ id: d.id, ...d.data() }))
-    } catch (e) { console.error('getAllPapers:', e); return [] }
-  }
-
-  async function updatePaper(paperId, data) {
-    await updateDoc(doc(db, 'papers', paperId), data)
   }
 
   // ── Quiz editing ─────────────────────────────────────────────
@@ -564,15 +527,14 @@ export function useFirestore() {
     getQuizzes, getAllQuizzes, getQuizzesByTeacher, getQuizById, createQuiz, updateQuiz, deleteQuiz,
     getQuestions, saveQuestions,
     saveResult, getResultById, getUserResults, getResultsForQuiz, getAllResults, getWeaknessAnalysis,
-    getPapers, createPaper, incrementDownload, deletePaper,
     getAllUsers, updateUserRole,
     submitTeacherApplication, getPendingTeacherApplications, getTeacherApplication, approveTeacherApplication, rejectTeacherApplication,
     checkAndConsumeAttempt,
     submitPaymentRequest, getPendingPayments, getAllPayments, confirmPayment, rejectPayment, grantPremium, revokePremium,
     getLessons, getAllLessons, getLessonById, createLesson, updateLesson, deleteLesson,
-    getMyQuizzes, getMyLessons, getMyPapers,
+    getMyQuizzes, getMyLessons,
     getPendingApprovals, submitForApproval, withdrawFromApproval, approveContent, rejectContent,
-    getAllPapers, updatePaper,
     deleteQuestion, updateQuizWithQuestions,
   }), [])
 }
+

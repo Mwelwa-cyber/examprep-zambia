@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -7,11 +7,14 @@ import {
   updateProfile,
   sendPasswordResetEmail,
 } from 'firebase/auth'
+import { getFunctions, httpsCallable } from 'firebase/functions'
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp, onSnapshot } from 'firebase/firestore'
-import { auth, db } from '../firebase/config'
+import app, { auth, db } from '../firebase/config'
 import { ROLES, hasPremiumAccess } from '../utils/subscriptionConfig'
 
 const AuthContext = createContext(null)
+const functions = getFunctions(app, 'us-central1')
+const bootstrapUserProfileCallable = httpsCallable(functions, 'bootstrapUserProfile')
 
 export function useAuth() {
   const ctx = useContext(AuthContext)
@@ -19,10 +22,16 @@ export function useAuth() {
   return ctx
 }
 
+function toUserProfile(uid, data) {
+  return data ? { id: uid, ...data } : null
+}
+
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null)
   const [userProfile, setUserProfile] = useState(null)
   const [loading, setLoading]         = useState(true)
+  const [profileIssue, setProfileIssue] = useState(null)
+  const bootstrapInFlightRef = useRef(new Map())
 
   async function register(email, password, displayName, grade, school, role = ROLES.LEARNER) {
     const wantsTeacherAccess = role === ROLES.TEACHER
@@ -64,23 +73,72 @@ export function AuthProvider({ children }) {
 
   async function logout() {
     setUserProfile(null)
+    setProfileIssue(null)
     return signOut(auth)
   }
 
-  const fetchUserProfile = useCallback(async (uid) => {
+  const fetchUserProfile = useCallback(async (uid, { updateState = true } = {}) => {
     try {
       const snap = await getDoc(doc(db, 'users', uid))
       if (snap.exists()) {
-        const profile = { id: uid, ...snap.data() }
-        setUserProfile(profile)
+        const profile = toUserProfile(uid, snap.data())
+        if (updateState) {
+          setUserProfile(profile)
+          setProfileIssue(null)
+        }
         return profile
       }
-    } catch (e) { console.error('fetchUserProfile:', e) }
+    } catch (e) {
+      console.error('fetchUserProfile:', e)
+      if (updateState) setProfileIssue('unreadable')
+    }
     return null
   }, [])
 
+  const bootstrapMissingProfile = useCallback(async (user) => {
+    const uid = user?.uid
+    if (!uid) return null
+
+    const inFlight = bootstrapInFlightRef.current.get(uid)
+    if (inFlight) return inFlight
+
+    const request = (async () => {
+      try {
+        const result = await bootstrapUserProfileCallable()
+        const profileData = result?.data?.profile
+        if (profileData) {
+          const profile = toUserProfile(uid, profileData)
+          setUserProfile(profile)
+          setProfileIssue(null)
+          return profile
+        }
+        return await fetchUserProfile(uid)
+      } catch (e) {
+        console.error('bootstrapUserProfile:', e)
+        return null
+      } finally {
+        bootstrapInFlightRef.current.delete(uid)
+      }
+    })()
+
+    bootstrapInFlightRef.current.set(uid, request)
+    return request
+  }, [fetchUserProfile])
+
+  const ensureUserProfile = useCallback(async (user = auth.currentUser, options = {}) => {
+    const targetUser = user?.uid ? user : auth.currentUser
+    if (!targetUser?.uid) return null
+
+    const profile = await fetchUserProfile(targetUser.uid)
+    if (profile || options.allowBootstrap === false) return profile
+
+    const repairedProfile = await bootstrapMissingProfile(targetUser)
+    if (!repairedProfile) setProfileIssue('missing')
+    return repairedProfile
+  }, [bootstrapMissingProfile, fetchUserProfile])
+
   async function refreshProfile() {
-    if (currentUser) return fetchUserProfile(currentUser.uid)
+    if (currentUser) return ensureUserProfile(currentUser)
   }
 
   async function updateProfileFields(fields) {
@@ -100,11 +158,14 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     let unsubProfile = null
+    let disposed = false
     // Watchdog: if Firebase auth + Firestore profile snapshot don't resolve
     // within this window, drop the loading gate so the user sees *something*.
     // 5 s gives slower Zambian networks enough time to complete the round-trip
     // before we fall back to the generic "loading your workspace…" screen.
-    const timeout = setTimeout(() => setLoading(false), 5000)
+    const timeout = setTimeout(() => {
+      if (!disposed) setLoading(false)
+    }, 5000)
     const unsub = onAuthStateChanged(auth, (user) => {
       clearTimeout(timeout)
       if (unsubProfile) {
@@ -112,36 +173,60 @@ export function AuthProvider({ children }) {
         unsubProfile = null
       }
       setCurrentUser(user)
+      setProfileIssue(null)
       if (user) {
+        setLoading(true)
         unsubProfile = onSnapshot(
           doc(db, 'users', user.uid),
           (snap) => {
-            setUserProfile(snap.exists() ? { id: user.uid, ...snap.data() } : null)
-            setLoading(false)
+            if (disposed) return
+            if (snap.exists()) {
+              setUserProfile(toUserProfile(user.uid, snap.data()))
+              setProfileIssue(null)
+              setLoading(false)
+              return
+            }
+
+            void (async () => {
+              const repairedProfile = await bootstrapMissingProfile(user)
+              if (disposed) return
+              if (repairedProfile) {
+                setUserProfile(repairedProfile)
+                setProfileIssue(null)
+              } else {
+                setUserProfile(null)
+                setProfileIssue('missing')
+              }
+              setLoading(false)
+            })()
           },
           (e) => {
             console.error('profile subscription:', e)
+            if (disposed) return
             setUserProfile(null)
+            setProfileIssue('unreadable')
             setLoading(false)
           },
         )
       } else {
         setUserProfile(null)
+        setProfileIssue(null)
         setLoading(false)
       }
     })
     return () => {
+      disposed = true
       clearTimeout(timeout)
       if (unsubProfile) unsubProfile()
       unsub()
     }
-  }, [])
+  }, [bootstrapMissingProfile])
 
   return (
     <AuthContext.Provider value={{
-      currentUser, userProfile, loading,
+      currentUser, userProfile, loading, profileIssue,
       login, register, logout, resetPassword,
-      fetchUserProfile, refreshProfile, updateProfileFields,
+      fetchUserProfile, ensureUserProfile, refreshProfile, updateProfileFields,
       isLearner, isTeacher, isAdmin, isPremium, isPaidTeacher, canAccessFullContent,
     }}>
       {!loading && children}

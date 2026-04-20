@@ -1,4 +1,7 @@
-import { collection, doc, setDoc, writeBatch, serverTimestamp } from 'firebase/firestore'
+import { collection, doc, getDocs, query, where, writeBatch, serverTimestamp } from 'firebase/firestore'
+import { deleteQuizWithQuestions } from './deleteQuizWithQuestions.js'
+
+const SEED_BATCH_ID = 'admin-sample-quizzes-v1'
 
 const grade5Math = {
   title: 'Grade 5 Mathematics - Term 1',
@@ -210,68 +213,73 @@ const grade6ScienceQs = [
   { text: 'The absence of starch in a leaf is shown when iodine solution turns ...', options: ['black.','purple.','brown.','colourless.'], correctAnswer: 2, topic: 'Plants', marks: 1 },
 ]
 
+const SEEDED_QUIZZES = [
+  { id: 'grade5-mathematics-term1', meta: grade5Math, questions: grade5MathQs },
+  { id: 'grade6-english-term1', meta: grade6English, questions: grade6EnglishQs },
+  { id: 'grade6-english-grammar-practice', meta: grade6EnglishGrammar, questions: grade6EnglishGrammarQs },
+  { id: 'grade6-english-2023-paper1', meta: grade6English2023, questions: grade6English2023Qs },
+  { id: 'grade6-integrated-science-past-paper', meta: grade6Science, questions: grade6ScienceQs },
+]
+
+function seedSignature(quiz = {}) {
+  return [
+    String(quiz.title ?? '').trim(),
+    String(quiz.subject ?? '').trim(),
+    String(quiz.grade ?? '').trim(),
+    String(quiz.term ?? '').trim(),
+    String(quiz.year ?? '').trim(),
+    Number(quiz.totalMarks) || 0,
+    Number(quiz.questionCount) || 0,
+    String(quiz.type ?? '').trim(),
+  ].join('||')
+}
+
+const SEEDED_SIGNATURES = new Set(SEEDED_QUIZZES.map(item => seedSignature(item.meta)))
+
+function isSeededQuiz(data = {}) {
+  if (data.seedBatch === SEED_BATCH_ID) return true
+  return SEEDED_SIGNATURES.has(seedSignature(data))
+}
+
 export async function seedFirestore(db, uid) {
-  // Quiz 1
-  const q1Ref = doc(collection(db, 'quizzes'))
-  const batch1 = writeBatch(db)
-  batch1.set(q1Ref, { ...grade5Math, createdBy: uid, createdAt: serverTimestamp() })
-  grade5MathQs.forEach((q, i) => {
-    const qRef = doc(collection(db, 'quizzes', q1Ref.id, 'questions'))
-    batch1.set(qRef, { ...q, order: i + 1 })
-  })
-  await batch1.commit()
+  for (const item of SEEDED_QUIZZES) {
+    const quizRef = doc(collection(db, 'quizzes'))
+    const questionChunks = item.questions.length > 40
+      ? [item.questions.slice(0, 40), item.questions.slice(40)]
+      : [item.questions]
 
-  // Quiz 2
-  const q2Ref = doc(collection(db, 'quizzes'))
-  const batch2 = writeBatch(db)
-  batch2.set(q2Ref, { ...grade6English, createdBy: uid, createdAt: serverTimestamp() })
-  grade6EnglishQs.forEach((q, i) => {
-    const qRef = doc(collection(db, 'quizzes', q2Ref.id, 'questions'))
-    batch2.set(qRef, { ...q, order: i + 1 })
-  })
-  await batch2.commit()
+    for (const [chunkIndex, questionChunk] of questionChunks.entries()) {
+      const batch = writeBatch(db)
 
-  // Quiz 3 — Grade 6 English Grammar
-  const q3Ref = doc(collection(db, 'quizzes'))
-  const batch3 = writeBatch(db)
-  batch3.set(q3Ref, { ...grade6EnglishGrammar, createdBy: uid, createdAt: serverTimestamp() })
-  grade6EnglishGrammarQs.forEach((q, i) => {
-    const qRef = doc(collection(db, 'quizzes', q3Ref.id, 'questions'))
-    batch3.set(qRef, { ...q, order: i + 1 })
-  })
-  await batch3.commit()
+      if (chunkIndex === 0) {
+        batch.set(quizRef, {
+          ...item.meta,
+          createdBy: uid,
+          createdAt: serverTimestamp(),
+          seedBatch: SEED_BATCH_ID,
+          seedSampleId: item.id,
+        })
+      }
 
-  // Quiz 4 — Grade 6 English 2023 Paper 1 (60 questions, split across 2 batches)
-  const q4Ref = doc(collection(db, 'quizzes'))
-  const batch4a = writeBatch(db)
-  batch4a.set(q4Ref, { ...grade6English2023, createdBy: uid, createdAt: serverTimestamp() })
-  grade6English2023Qs.slice(0, 40).forEach((q, i) => {
-    const qRef = doc(collection(db, 'quizzes', q4Ref.id, 'questions'))
-    batch4a.set(qRef, { ...q, order: i + 1 })
-  })
-  await batch4a.commit()
+      questionChunk.forEach((question, offset) => {
+        const questionRef = doc(collection(db, 'quizzes', quizRef.id, 'questions'))
+        batch.set(questionRef, { ...question, order: chunkIndex * 40 + offset + 1 })
+      })
 
-  const batch4b = writeBatch(db)
-  grade6English2023Qs.slice(40).forEach((q, i) => {
-    const qRef = doc(collection(db, 'quizzes', q4Ref.id, 'questions'))
-    batch4b.set(qRef, { ...q, order: i + 41 })
-  })
-  await batch4b.commit()
+      await batch.commit()
+    }
+  }
+}
 
-  // Quiz 5 — Grade 6 Integrated Science Past Paper (50 questions, split across 2 batches)
-  const q5Ref = doc(collection(db, 'quizzes'))
-  const batch5a = writeBatch(db)
-  batch5a.set(q5Ref, { ...grade6Science, createdBy: uid, createdAt: serverTimestamp() })
-  grade6ScienceQs.slice(0, 25).forEach((q, i) => {
-    const qRef = doc(collection(db, 'quizzes', q5Ref.id, 'questions'))
-    batch5a.set(qRef, { ...q, order: i + 1 })
-  })
-  await batch5a.commit()
+export async function clearSeedFirestore(db, uid) {
+  const quizzesSnap = await getDocs(query(collection(db, 'quizzes'), where('createdBy', '==', uid)))
+  const seededQuizzes = quizzesSnap.docs.filter(quizDoc => isSeededQuiz(quizDoc.data()))
 
-  const batch5b = writeBatch(db)
-  grade6ScienceQs.slice(25).forEach((q, i) => {
-    const qRef = doc(collection(db, 'quizzes', q5Ref.id, 'questions'))
-    batch5b.set(qRef, { ...q, order: i + 26 })
-  })
-  await batch5b.commit()
+  for (const quizDoc of seededQuizzes) {
+    await deleteQuizWithQuestions(db, quizDoc.id)
+  }
+
+  return {
+    quizzesDeleted: seededQuizzes.length,
+  }
 }
