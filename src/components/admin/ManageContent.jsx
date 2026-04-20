@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import { Search, Plus, Download, X, ChevronRight } from 'lucide-react'
 import { useFirestore } from '../../hooks/useFirestore'
 import Button from '../ui/Button'
@@ -35,7 +35,6 @@ const SUBJECTS = [
   'Technology Studies', 'Home Economics', 'Expressive Arts',
 ]
 
-const STATUSES = ['', 'published', 'pending', 'draft', 'rejected']
 
 function Pill({ children, color }) {
   return <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${color}`}>{children}</span>
@@ -51,55 +50,144 @@ function StatusPill({ status }) {
   )
 }
 
-// ── Quiz row ───────────────────────────────────────────────────────────────
-function QuizRow({ quiz, onTogglePublish, onDelete, deleting }) {
-  const quizId = quiz.id || quiz._id || ''
-  const status = quiz.status ?? (quiz.isPublished ? 'published' : 'draft')
+// ── Schedule Daily Exam modal ──────────────────────────────────────────────
+// ── Assign-to-Daily-Exam modal ─────────────────────────────────────────────
+function DailyExamModal({ quiz, onSave, onClose }) {
+  const today = new Date().toISOString().slice(0, 10)
+  const [date,     setDate]     = useState(quiz.dailyExamDate || today)
+  const [duration, setDuration] = useState(quiz.durationMinutes || quiz.duration || 45)
+  const [saving,   setSaving]   = useState(false)
+
+  async function handleSave() {
+    setSaving(true)
+    await onSave(quiz, { date, duration: Number(duration) })
+    setSaving(false)
+    onClose()
+  }
+
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-start gap-3 hover:shadow-sm transition-shadow">
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 ${
-        SUBJECT_COLORS[quiz.subject] ?? 'bg-gray-100 text-gray-500'
-      }`}>
-        📝
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="font-black text-gray-800 text-sm leading-snug line-clamp-2">{quiz.title}</p>
-        <div className="flex gap-1.5 mt-1.5 flex-wrap items-center">
-          <Pill color={SUBJECT_COLORS[quiz.subject] ?? 'bg-gray-100 text-gray-700'}>{quiz.subject}</Pill>
-          <Pill color="bg-indigo-100 text-indigo-700">G{quiz.grade}</Pill>
-          <Pill color="bg-gray-100 text-gray-600">T{quiz.term}</Pill>
-          <Pill color="bg-gray-50 text-gray-500">{quiz.questionCount ?? '?'}Q · {quiz.duration}m</Pill>
-          {quiz.mode === 'imported_document' && (
-            <Pill color={quiz.importStatus === 'needs_review' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}>
-              Imported
-            </Pill>
-          )}
-          <StatusPill status={status} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={onClose}>
+      <div className="bg-white rounded-3xl shadow-xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-black text-gray-800 text-base">🏆 Set as Daily Exam</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
         </div>
-        {quiz.rejectionReason && (
-          <p className="text-xs text-red-500 mt-1 italic">Rejected: {quiz.rejectionReason}</p>
-        )}
-      </div>
-      <div className="flex flex-col sm:flex-row gap-1.5 flex-shrink-0 mt-0.5">
-        <Link to={quizId ? `/admin/quizzes/${quizId}/edit` : '/admin/content'}
-          aria-disabled={!quizId}
-          className="text-xs font-black px-3 py-1.5 rounded-full border-2 border-blue-300 text-blue-700 hover:bg-blue-50 transition-colors">
-          ✏️ Edit
-        </Link>
-        <button onClick={() => onTogglePublish(quiz)}
-          className={`text-xs font-bold px-3 py-1.5 rounded-full border min-h-0 transition-colors ${
-            status === 'published'
-              ? 'border-yellow-300 text-yellow-700 hover:bg-yellow-50'
-              : 'border-green-300 text-green-700 hover:bg-green-50'
-          }`}>
-          {status === 'published' ? 'Unpublish' : 'Publish'}
-        </button>
-        <button onClick={() => onDelete(quiz)} disabled={deleting === quiz.id}
-          className="text-xs font-bold px-3 py-1.5 rounded-full border border-red-200 text-red-500 hover:bg-red-50 min-h-0 disabled:opacity-40 transition-colors">
-          {deleting === quiz.id ? '…' : 'Delete'}
-        </button>
+        <p className="text-xs text-gray-500 mb-4 font-bold line-clamp-2">{quiz.title}</p>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-black text-gray-600 mb-1">Exam Date</label>
+            <input type="date" value={date} min={today}
+              onChange={e => setDate(e.target.value)}
+              className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm focus:border-amber-500 focus:outline-none" />
+          </div>
+          <div>
+            <label className="block text-xs font-black text-gray-600 mb-1">Duration (minutes)</label>
+            <input type="number" value={duration} min={5} max={180}
+              onChange={e => setDuration(e.target.value)}
+              className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm focus:border-amber-500 focus:outline-none" />
+            <p className="text-xs text-gray-400 mt-1">Tip: 45–60 min for 50+ question papers</p>
+          </div>
+        </div>
+        <div className="flex gap-2 mt-5">
+          <button onClick={handleSave} disabled={saving || !date}
+            className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-black text-sm rounded-xl py-2.5 disabled:opacity-50 transition-colors">
+            {saving ? 'Saving…' : '🏆 Confirm Daily Exam'}
+          </button>
+          <button onClick={onClose}
+            className="px-4 py-2.5 rounded-xl border-2 border-gray-200 text-gray-600 text-sm font-bold hover:bg-gray-50">
+            Cancel
+          </button>
+        </div>
       </div>
     </div>
+  )
+}
+
+// ── Quiz row ───────────────────────────────────────────────────────────────
+function QuizRow({ quiz, onSetPractice, onSetDailyExam, onUnassign, onDelete, deleting }) {
+  const quizId   = quiz.id || quiz._id || ''
+  const quizType = quiz.quizType  // 'practice' | 'daily_exam' | undefined
+  const [showDailyModal, setShowDailyModal] = useState(false)
+
+  const typeIcon  = quizType === 'daily_exam' ? '🏆' : quizType === 'practice' ? '📝' : '📦'
+  const qCount    = quiz.questionCount ?? '?'
+  const duration  = quiz.durationMinutes || quiz.duration || '?'
+
+  return (
+    <>
+      {showDailyModal && (
+        <DailyExamModal quiz={quiz} onSave={onSetDailyExam} onClose={() => setShowDailyModal(false)} />
+      )}
+      <div className={`bg-white rounded-2xl border p-4 flex items-start gap-3 hover:shadow-sm transition-shadow ${
+        quizType === 'daily_exam' ? 'border-amber-200' : quizType === 'practice' ? 'border-green-100' : 'border-gray-100 opacity-75'
+      }`}>
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 ${
+          SUBJECT_COLORS[quiz.subject] ?? 'bg-gray-100 text-gray-500'
+        }`}>
+          {typeIcon}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <p className="font-black text-gray-800 text-sm leading-snug line-clamp-2">{quiz.title}</p>
+          <div className="flex gap-1.5 mt-1.5 flex-wrap items-center">
+            <Pill color={SUBJECT_COLORS[quiz.subject] ?? 'bg-gray-100 text-gray-700'}>{quiz.subject}</Pill>
+            <Pill color="bg-indigo-100 text-indigo-700">G{quiz.grade}</Pill>
+            <Pill color="bg-gray-100 text-gray-600">T{quiz.term}</Pill>
+            <Pill color="bg-gray-50 text-gray-500">{qCount}Q · {duration}m</Pill>
+            {quiz.mode === 'imported_document' && (
+              <Pill color={quiz.importStatus === 'needs_review' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}>
+                Imported
+              </Pill>
+            )}
+            {quizType === 'daily_exam' && (
+              <Pill color="bg-amber-100 text-amber-700">🏆 Daily Exam · {quiz.dailyExamDate}</Pill>
+            )}
+            {quizType === 'practice' && (
+              <Pill color="bg-green-100 text-green-700">📝 Practice Quiz</Pill>
+            )}
+            {!quizType && (
+              <Pill color="bg-gray-100 text-gray-500">⚠ Unassigned</Pill>
+            )}
+          </div>
+          {quiz.rejectionReason && (
+            <p className="text-xs text-red-500 mt-1 italic">Rejected: {quiz.rejectionReason}</p>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1.5 flex-shrink-0 mt-0.5">
+          <Link to={quizId ? `/admin/quizzes/${quizId}/edit` : '/admin/content'}
+            aria-disabled={!quizId}
+            className="text-xs font-black px-3 py-1.5 rounded-full border-2 border-blue-300 text-blue-700 hover:bg-blue-50 transition-colors text-center">
+            ✏️ Edit
+          </Link>
+
+          {/* Assignment controls */}
+          {quizType !== 'practice' && (
+            <button onClick={() => onSetPractice(quiz)}
+              className="text-xs font-bold px-3 py-1.5 rounded-full border border-green-300 text-green-700 hover:bg-green-50 min-h-0 transition-colors">
+              📝 Practice
+            </button>
+          )}
+          {quizType !== 'daily_exam' && (
+            <button onClick={() => setShowDailyModal(true)}
+              className="text-xs font-bold px-3 py-1.5 rounded-full border border-amber-300 text-amber-700 hover:bg-amber-50 min-h-0 transition-colors">
+              🏆 Daily Exam
+            </button>
+          )}
+          {quizType && (
+            <button onClick={() => onUnassign(quiz)}
+              className="text-xs font-bold px-3 py-1.5 rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50 min-h-0 transition-colors">
+              Unassign
+            </button>
+          )}
+
+          <button onClick={() => onDelete(quiz)} disabled={deleting === quiz.id}
+            className="text-xs font-bold px-3 py-1.5 rounded-full border border-red-200 text-red-500 hover:bg-red-50 min-h-0 disabled:opacity-40 transition-colors">
+            {deleting === quiz.id ? '…' : 'Delete'}
+          </button>
+        </div>
+      </div>
+    </>
   )
 }
 
@@ -146,7 +234,6 @@ function LessonRow({ lesson, onTogglePublish, onDelete, deleting }) {
 // ── Main ───────────────────────────────────────────────────────────────────
 export default function ManageContent() {
   const { getAllLessons, updateLesson, deleteLesson, getAllQuizzes, updateQuiz, deleteQuiz } = useFirestore()
-  const navigate = useNavigate()
 
   const [tab,     setTab]     = useState('quizzes')
   const [lessons, setLessons] = useState([])
@@ -155,10 +242,10 @@ export default function ManageContent() {
   const [toast,   setToast]   = useState(null)
 
   // Filters
-  const [search,    setSearch]    = useState('')
-  const [gradeF,    setGradeF]    = useState('')
-  const [subjectF,  setSubjectF]  = useState('')
-  const [statusF,   setStatusF]   = useState('')
+  const [search,     setSearch]     = useState('')
+  const [gradeF,     setGradeF]     = useState('')
+  const [subjectF,   setSubjectF]   = useState('')
+  const [quizTypeF,  setQuizTypeF]  = useState('')
 
   const [deleting, setDeleting] = useState(null)
   // { kind: 'quiz' | 'lesson', item: Record } | null
@@ -208,16 +295,48 @@ export default function ManageContent() {
     }
   }
 
-  // ── Quiz actions ───────────────────────────────────────────────────────
-  async function toggleQuizPublish(quiz) {
-    const next = quiz.status !== 'published'
+  // ── Quiz assignment actions ────────────────────────────────────────────
+  async function setAsPractice(quiz) {
     await updateQuiz(quiz.id, {
-      isPublished: next,
-      status: next ? 'published' : 'draft',
+      quizType: 'practice',
+      isPublished: true,
+      status: 'published',
+      isDailyExam: false,
+      dailyExamDate: null,
     })
     setQuizzes(qs => qs.map(q => q.id === quiz.id
-      ? { ...q, isPublished: next, status: next ? 'published' : 'draft' } : q))
-    show(next ? '✅ Quiz published!' : '📦 Quiz unpublished.')
+      ? { ...q, quizType: 'practice', isPublished: true, status: 'published', isDailyExam: false, dailyExamDate: null }
+      : q))
+    show('📝 Set as Practice Quiz — students can access it now.')
+  }
+
+  async function setAsDailyExam(quiz, { date, duration }) {
+    await updateQuiz(quiz.id, {
+      quizType: 'daily_exam',
+      isDailyExam: true,
+      dailyExamDate: date,
+      durationMinutes: duration,
+      isPublished: true,
+      status: 'published',
+    })
+    setQuizzes(qs => qs.map(q => q.id === quiz.id
+      ? { ...q, quizType: 'daily_exam', isDailyExam: true, dailyExamDate: date, durationMinutes: duration, isPublished: true, status: 'published' }
+      : q))
+    show(`🏆 Set as Daily Exam on ${date}`)
+  }
+
+  async function unassignQuiz(quiz) {
+    await updateQuiz(quiz.id, {
+      quizType: null,
+      isPublished: false,
+      status: 'draft',
+      isDailyExam: false,
+      dailyExamDate: null,
+    })
+    setQuizzes(qs => qs.map(q => q.id === quiz.id
+      ? { ...q, quizType: null, isPublished: false, status: 'draft', isDailyExam: false, dailyExamDate: null }
+      : q))
+    show('⚠ Quiz unassigned — students can no longer access it.')
   }
 
   function handleDeleteQuiz(quiz) {
@@ -243,12 +362,12 @@ export default function ManageContent() {
   const term = search.toLowerCase()
 
   const filteredQuizzes = quizzes.filter(q => {
-    const qs = q.status ?? (q.isPublished ? 'published' : 'draft')
+    const qt = q.quizType ?? ''
     return (
-      (!gradeF   || q.grade   === gradeF) &&
-      (!subjectF || q.subject === subjectF) &&
-      (!statusF  || qs        === statusF) &&
-      (!term     || q.title?.toLowerCase().includes(term) || q.subject?.toLowerCase().includes(term))
+      (!gradeF      || q.grade   === gradeF) &&
+      (!subjectF    || q.subject === subjectF) &&
+      (!quizTypeF   || (quizTypeF === 'unassigned' ? !q.quizType : qt === quizTypeF)) &&
+      (!term        || q.title?.toLowerCase().includes(term) || q.subject?.toLowerCase().includes(term))
     )
   })
 
@@ -262,10 +381,10 @@ export default function ManageContent() {
     )
   })
 
-  const totalQuizzes   = quizzes.length
-  const publishedCount = quizzes.filter(q => q.isPublished).length
-  const pendingCount   = quizzes.filter(q => q.status === 'pending').length
-  const draftCount     = quizzes.filter(q => (q.status ?? 'draft') === 'draft').length
+  const totalQuizzes    = quizzes.length
+  const practiceCount   = quizzes.filter(q => q.quizType === 'practice').length
+  const dailyExamCount  = quizzes.filter(q => q.quizType === 'daily_exam').length
+  const unassignedCount = quizzes.filter(q => !q.quizType).length
 
   return (
     <div className="space-y-5">
@@ -342,10 +461,10 @@ export default function ManageContent() {
       {tab === 'quizzes' && !loading && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 stagger">
           {[
-            { label: 'Total',     value: totalQuizzes,   color: 'bg-gray-50  border-gray-200', text: 'text-gray-700' },
-            { label: 'Published', value: publishedCount, color: 'bg-green-50 border-green-200',text: 'text-green-700' },
-            { label: 'Pending',   value: pendingCount,   color: 'bg-yellow-50 border-yellow-200',text: 'text-yellow-700' },
-            { label: 'Drafts',    value: draftCount,     color: 'bg-blue-50 border-blue-200',  text: 'text-blue-700' },
+            { label: 'Total',      value: totalQuizzes,   color: 'bg-gray-50   border-gray-200',   text: 'text-gray-700'  },
+            { label: '📝 Practice', value: practiceCount,  color: 'bg-green-50  border-green-200',  text: 'text-green-700' },
+            { label: '🏆 Daily',    value: dailyExamCount, color: 'bg-amber-50  border-amber-200',  text: 'text-amber-700' },
+            { label: '⚠ Unassigned',value: unassignedCount,color: 'bg-red-50    border-red-200',    text: 'text-red-600'   },
           ].map(s => (
             <div key={s.label} className={`${s.color} border rounded-2xl p-3 text-center shadow-elev-sm animate-slide-in-soft`}>
               <p className={`text-display-md ${s.text}`} style={{ fontSize: 22 }}>{s.value}</p>
@@ -396,15 +515,18 @@ export default function ManageContent() {
           className="border-2 border-gray-200 rounded-xl px-3 py-2 text-sm focus:border-green-500 focus:outline-none">
           {SUBJECTS.map(s => <option key={s} value={s}>{s || 'All Subjects'}</option>)}
         </select>
-        <select value={statusF} onChange={e => setStatusF(e.target.value)}
+        <select value={quizTypeF} onChange={e => setQuizTypeF(e.target.value)}
           className="border-2 border-gray-200 rounded-xl px-3 py-2 text-sm focus:border-green-500 focus:outline-none">
-          {STATUSES.map(s => <option key={s} value={s}>{s ? s.charAt(0).toUpperCase() + s.slice(1) : 'All Status'}</option>)}
+          <option value="">All Types</option>
+          <option value="practice">📝 Practice</option>
+          <option value="daily_exam">🏆 Daily Exam</option>
+          <option value="unassigned">⚠ Unassigned</option>
         </select>
-        {(search || gradeF || subjectF || statusF) && (
+        {(search || gradeF || subjectF || quizTypeF) && (
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => { setSearch(''); setGradeF(''); setSubjectF(''); setStatusF('') }}
+            onClick={() => { setSearch(''); setGradeF(''); setSubjectF(''); setQuizTypeF('') }}
             leadingIcon={<Icon as={X} size="sm" />}
           >
             Clear
@@ -440,7 +562,9 @@ export default function ManageContent() {
               <QuizRow
                 key={quiz.id}
                 quiz={quiz}
-                onTogglePublish={toggleQuizPublish}
+                onSetPractice={setAsPractice}
+                onSetDailyExam={setAsDailyExam}
+                onUnassign={unassignQuiz}
                 onDelete={handleDeleteQuiz}
                 deleting={deleting}
               />

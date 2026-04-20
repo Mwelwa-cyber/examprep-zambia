@@ -46,11 +46,11 @@ export function useFirestore() {
   // ── Quizzes ──────────────────────────────────────────────────
   async function getQuizzes(filters = {}) {
     try {
-      const c = [where('isPublished', '==', true)]
+      // Only quizzes explicitly assigned as practice by admin are visible to students
+      const c = [where('quizType', '==', 'practice')]
       if (filters.grade)    c.push(where('grade',   '==', filters.grade))
       if (filters.subject)  c.push(where('subject', '==', filters.subject))
       if (filters.term)     c.push(where('term',    '==', filters.term))
-      // When isDemoOnly=true, only return quizzes marked as demo
       if (filters.isDemoOnly) c.push(where('isDemo', '==', true))
       c.push(orderBy('createdAt', 'desc'))
       const snap = await getDocs(query(collection(db, 'quizzes'), ...c))
