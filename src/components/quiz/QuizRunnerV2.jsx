@@ -12,6 +12,7 @@ import { checkAnswerWithAI } from '../../utils/geminiChecker'
 // extracts plain text from either format. Legacy richTextToPlainText is
 // only HTML-aware, so we prefer getRichPlainText wherever we have a choice.
 import RichContent, { getRichPlainText } from '../../editor/RichContent'
+import { saveQuizSession, loadQuizSession, clearQuizSession } from '../../hooks/useQuizPersistence'
 
 function fmt(seconds) {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
@@ -131,6 +132,9 @@ export default function QuizRunnerV2() {
   const [flagged, setFlagged] = useState({})
   const [revealed, setRevealed] = useState({})
   const [timeLeft, setTimeLeft] = useState(0)
+  // endTime is a Unix-ms timestamp; timeLeft is always derived from it so
+  // a page refresh can't reset the clock.
+  const [endTime, setEndTime] = useState(null)
   const [startTime, setStartTime] = useState(null)
   const [showSubmit, setShowSubmit] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -162,43 +166,101 @@ export default function QuizRunnerV2() {
       setQuiz(quizDoc)
       setSections(built.sections)
       setQuestions(built.questions)
+
+      // Auto-resume any in-progress session saved in localStorage
+      if (currentUser) {
+        const saved = loadQuizSession(quizId, currentUser.uid)
+        if (saved) {
+          setMode(saved.mode)
+          setAnswers(saved.answers || {})
+          setFlagged(saved.flagged || {})
+          setRevealed(saved.revealed || {})
+          setShortText(saved.shortText || {})
+          setAiResults(saved.aiResults || {})
+          setActiveSectionIndex(Math.min(saved.activeSectionIndex || 0, built.sections.length - 1))
+          if (saved.endTime) setEndTime(saved.endTime)
+          setStartTime(saved.startTime || Date.now())
+          setStarted(true)
+        }
+      }
+
       setLoading(false)
     }
 
     load()
     return () => clearInterval(timerRef.current)
-  }, [quizId, getQuizById, getQuestions, canAccessFullContent, navigate])
+  }, [quizId, getQuizById, getQuestions, canAccessFullContent, navigate, currentUser])
 
   function handleStart(nextMode) {
     if (nextMode === 'exam' && !canUseExamMode) {
       setShowUpgrade(true)
       return
     }
+    const now = Date.now()
     setMode(nextMode)
     setStarted(true)
-    setStartTime(Date.now())
-    if (nextMode === 'exam') setTimeLeft((quiz.duration || 30) * 60)
+    setStartTime(now)
+    if (nextMode === 'exam') {
+      // Store a fixed deadline so a refresh can never extend the countdown.
+      const deadline = now + (quiz.duration || 30) * 60 * 1000
+      setEndTime(deadline)
+    }
   }
 
   useEffect(() => {
-    if (!started || mode !== 'exam' || timeLeft <= 0) return
+    if (!started || mode !== 'exam' || !endTime) return
 
-    timerRef.current = setInterval(() => {
-      setTimeLeft(current => {
-        if (current <= 1) {
-          clearInterval(timerRef.current)
-          if (!autoRef.current) {
-            autoRef.current = true
-            submitRef.current?.(true)
-          }
-          return 0
+    // Tick every 500 ms so the displayed second never lags more than half a beat.
+    // timeLeft is always re-computed from the fixed endTime, never decremented,
+    // so a page refresh can't add time back.
+    const tick = () => {
+      const remaining = Math.max(0, Math.round((endTime - Date.now()) / 1000))
+      setTimeLeft(remaining)
+      if (remaining <= 0) {
+        clearInterval(timerRef.current)
+        if (!autoRef.current) {
+          autoRef.current = true
+          submitRef.current?.(true)
         }
-        return current - 1
-      })
-    }, 1000)
+      }
+    }
 
+    tick() // apply immediately on mount / resume
+    timerRef.current = setInterval(tick, 500)
     return () => clearInterval(timerRef.current)
-  }, [started, mode, timeLeft])
+  }, [started, mode, endTime])
+
+  // Persist state whenever anything meaningful changes.
+  // endTime / startTime are stable after the session starts, so we omit them
+  // from deps — they're captured in the closure and written as part of the payload.
+  useEffect(() => {
+    if (!started || !currentUser) return
+    saveQuizSession(quizId, currentUser.uid, {
+      mode,
+      answers,
+      flagged,
+      revealed,
+      shortText,
+      aiResults,
+      activeSectionIndex,
+      endTime,
+      startTime,
+      savedAt: Date.now(),
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answers, flagged, revealed, shortText, aiResults, activeSectionIndex, started])
+
+  // Warn the user before they navigate away mid-exam.
+  useEffect(() => {
+    if (!started || mode !== 'exam') return
+    const onBeforeUnload = (e) => {
+      e.preventDefault()
+      e.returnValue = 'Your exam is in progress — leaving will not stop the timer.'
+      return e.returnValue
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [started, mode])
 
   function pick(questionId, optionIndex) {
     setAnswers(current => ({ ...current, [questionId]: optionIndex }))
@@ -290,6 +352,8 @@ export default function QuizRunnerV2() {
         topicScores,
         timeSpent,
       })
+      // Clear saved session now that results are safely in Firestore
+      clearQuizSession(quizId, currentUser.uid)
       navigate(`/results/${resultId}`)
     } catch (error) {
       console.error(error)
@@ -672,7 +736,13 @@ export default function QuizRunnerV2() {
                   <button
                     key={section.id}
                     type="button"
-                    onClick={() => setActiveSectionIndex(index)}
+                    onClick={() => {
+                      if (index > activeSectionIndex && !sectionAnswered(activeSection)) {
+                        setActionError('Please answer the current question before jumping ahead.')
+                        return
+                      }
+                      setActiveSectionIndex(index)
+                    }}
                     title={`Section ${index + 1}${complete ? ' ✓' : ''}${flaggedSection ? ' 🚩' : ''}`}
                     className="min-h-0 flex-1 rounded-full transition-all"
                     style={{
@@ -696,7 +766,17 @@ export default function QuizRunnerV2() {
               ← Prev
             </button>
             {activeSectionIndex < sections.length - 1 ? (
-              <button type="button" onClick={() => setActiveSectionIndex(index => index + 1)} className="theme-accent-fill theme-on-accent rounded-2xl px-7 py-2.5 text-sm font-black shadow-[0_4px_14px_var(--shadow)]">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!sectionAnswered(activeSection)) {
+                    setActionError('Please answer this question before moving to the next one.')
+                    return
+                  }
+                  setActiveSectionIndex(index => index + 1)
+                }}
+                className="theme-accent-fill theme-on-accent rounded-2xl px-7 py-2.5 text-sm font-black shadow-[0_4px_14px_var(--shadow)]"
+              >
                 Next →
               </button>
             ) : (
