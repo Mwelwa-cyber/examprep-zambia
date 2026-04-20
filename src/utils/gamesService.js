@@ -21,13 +21,14 @@
 
 import {
   collection, doc, getDoc, getDocs, query, where, orderBy, limit as fsLimit,
-  addDoc, serverTimestamp, setDoc, Timestamp,
+  addDoc, serverTimestamp, setDoc, Timestamp, onSnapshot,
 } from 'firebase/firestore'
 import { db, auth } from '../firebase/config'
 
 /* ─────────────────────────────────────────────────────────────────
  *  Taxonomy used by the Grade → Subject → Games list UI
  * ───────────────────────────────────────────────────────────────── */
+// Zambian CBC primary scope — Grades 1-6 only.
 export const GRADES = [
   { value: 1, label: 'Grade 1', band: 'lower' },
   { value: 2, label: 'Grade 2', band: 'lower' },
@@ -35,12 +36,6 @@ export const GRADES = [
   { value: 4, label: 'Grade 4', band: 'middle' },
   { value: 5, label: 'Grade 5', band: 'middle' },
   { value: 6, label: 'Grade 6', band: 'middle' },
-  { value: 7, label: 'Grade 7', band: 'upper' },
-  { value: 8, label: 'Grade 8', band: 'upper' },
-  { value: 9, label: 'Grade 9', band: 'upper' },
-  { value: 10, label: 'Grade 10', band: 'secondary' },
-  { value: 11, label: 'Grade 11', band: 'secondary' },
-  { value: 12, label: 'Grade 12', band: 'secondary' },
 ]
 
 // Keep subject slugs stable — they become URL segments.
@@ -200,6 +195,68 @@ export async function upsertGame(gameId, payload) {
     { merge: true },
   )
   return { ok: true, id: gameId }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+ *  Live Global Leaderboard — real-time subscription via onSnapshot
+ *
+ *  Used by /games/leaderboard. Three time windows: 'today' | 'week' | 'all'.
+ *  Returns top-N scores across all games, ordered by score descending.
+ * ───────────────────────────────────────────────────────────────── */
+
+export function subscribeToGlobalLeaderboard({ window: win = 'all', max = 25 }, onUpdate) {
+  let q
+  if (win === 'today') {
+    const start = startOfTodayUTC()
+    q = query(
+      collection(db, 'scores'),
+      where('playedAt', '>=', start),
+      orderBy('playedAt', 'desc'),
+      orderBy('score', 'desc'),
+      fsLimit(max),
+    )
+  } else if (win === 'week') {
+    const start = startOfWeekAgo()
+    q = query(
+      collection(db, 'scores'),
+      where('playedAt', '>=', start),
+      orderBy('playedAt', 'desc'),
+      orderBy('score', 'desc'),
+      fsLimit(max),
+    )
+  } else {
+    q = query(
+      collection(db, 'scores'),
+      orderBy('score', 'desc'),
+      fsLimit(max),
+    )
+  }
+
+  const unsub = onSnapshot(
+    q,
+    (snap) => {
+      const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+      // For windowed queries we ordered by playedAt first to satisfy the
+      // index — re-sort by score on the client to get top scores at top.
+      if (win !== 'all') rows.sort((a, b) => (b.score || 0) - (a.score || 0))
+      onUpdate({ rows, error: null })
+    },
+    (err) => {
+      console.warn('global leaderboard subscription error', err)
+      onUpdate({ rows: [], error: err?.code || err?.message || 'subscription_failed' })
+    },
+  )
+  return unsub
+}
+
+function startOfTodayUTC() {
+  const now = new Date()
+  const start = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  return Timestamp.fromMillis(start)
+}
+
+function startOfWeekAgo() {
+  return Timestamp.fromMillis(Date.now() - 7 * 24 * 60 * 60 * 1000)
 }
 
 /* ─────────────────────────────────────────────────────────────────

@@ -471,7 +471,7 @@ const INTEGERS_G7 = {
   description: 'Positives, negatives, and everything in between.',
   timer: 90,
   points: 12,
-  active: true,
+  active: false, // outside Zambian CBC primary scope (G1-G6)
   cbc_topic: 'Integers',
   questions: [
     { question: '(−5) + 3 = ?',      options: ['−8', '−2', '2', '8'],    answer: '−2' },
@@ -495,7 +495,7 @@ const VOCAB_SPRINT_G8 = {
   description: 'Pick the word with the matching meaning.',
   timer: 90,
   points: 12,
-  active: true,
+  active: false, // outside Zambian CBC primary scope (G1-G6)
   cbc_topic: 'Vocabulary',
   questions: [
     { question: 'What does "abundant" mean?',     options: ['rare', 'plenty', 'sad',   'angry'],  answer: 'plenty'  },
@@ -519,7 +519,7 @@ const CELLS_G8 = {
   description: 'The building blocks of living things.',
   timer: 90,
   points: 12,
-  active: true,
+  active: false, // outside Zambian CBC primary scope (G1-G6)
   cbc_topic: 'Cells',
   questions: [
     { question: 'The basic unit of life is the…',  options: ['Atom', 'Cell', 'Molecule', 'Organ'], answer: 'Cell' },
@@ -542,7 +542,7 @@ const ALGEBRA_G9 = {
   description: 'Solve for x — basic linear equations.',
   timer: 100,
   points: 15,
-  active: true,
+  active: false, // outside Zambian CBC primary scope (G1-G6)
   cbc_topic: 'Algebra',
   questions: [
     { question: 'Solve: x + 5 = 12',   options: ['5', '7', '12', '17'],  answer: '7' },
@@ -583,31 +583,263 @@ const WORD_BUILDER_G3 = {
   ],
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+ *  SPELL IT RIGHT — progressive difficulty across G1–G6
+ *  G4 already defined above as SPELL_IT_RIGHT_G4.
+ * ═══════════════════════════════════════════════════════════════════ */
+
+const SPELL_IT_RIGHT_G1 = {
+  id: 'english_spell_it_right_g1',
+  title: 'Spell It Right',
+  subject: 'english',
+  grade: 1,
+  type: 'timed_quiz',
+  difficulty: 'easy',
+  description: 'Pick the correct spelling of simple everyday words.',
+  timer: 60,
+  points: 10,
+  active: true,
+  cbc_topic: 'Spelling',
+  questions: [
+    { question: 'Choose the correct spelling:', options: ['kat',  'cat',  'cet',  'cot'],  answer: 'cat'  },
+    { question: 'Choose the correct spelling:', options: ['dog',  'dag',  'dug',  'dogg'], answer: 'dog'  },
+    { question: 'Choose the correct spelling:', options: ['sen',  'son',  'sun',  'sune'], answer: 'sun'  },
+    { question: 'Choose the correct spelling:', options: ['hat',  'het',  'hatt', 'hot'],  answer: 'hat'  },
+    { question: 'Choose the correct spelling:', options: ['pen',  'pan',  'pin',  'penn'], answer: 'pen'  },
+    { question: 'Choose the correct spelling:', options: ['bug',  'bag',  'bog',  'baag'], answer: 'bag'  },
+    { question: 'Choose the correct spelling:', options: ['cup',  'cop',  'kup',  'cupp'], answer: 'cup'  },
+    { question: 'Choose the correct spelling:', options: ['bad',  'bed',  'bede', 'bid'],  answer: 'bed'  },
+    { question: 'Choose the correct spelling:', options: ['boi',  'boye', 'boy',  'bou'],  answer: 'boy'  },
+    { question: 'Choose the correct spelling:', options: ['mam',  'man',  'min',  'mane'], answer: 'man'  },
+    { question: 'Choose the correct spelling:', options: ['phis', 'fhis', 'fish', 'phis'], answer: 'fish' },
+    { question: 'Choose the correct spelling:', options: ['book', 'buk',  'booc', 'booke'], answer: 'book' },
+    { question: 'Choose the correct spelling:', options: ['tri',  'tree', 'trea', 'tre'],  answer: 'tree' },
+    { question: 'Choose the correct spelling:', options: ['star', 'stur', 'stir', 'stare'], answer: 'star' },
+    { question: 'Choose the correct spelling:', options: ['mun',  'moon', 'mon',  'moone'], answer: 'moon' },
+  ],
+}
+
+const SPELL_IT_RIGHT_G2 = {
+  id: 'english_spell_it_right_g2',
+  title: 'Spell It Right',
+  subject: 'english',
+  grade: 2,
+  type: 'timed_quiz',
+  difficulty: 'easy',
+  description: 'Pick the correct spelling of common words.',
+  timer: 75,
+  points: 10,
+  active: true,
+  cbc_topic: 'Spelling',
+  questions: [
+    { question: 'Choose the correct spelling:', options: ['saim', 'same', 'saem', 'sam'],   answer: 'same' },
+    { question: 'Choose the correct spelling:', options: ['hlep', 'help', 'halp', 'helpp'], answer: 'help' },
+    { question: 'Choose the correct spelling:', options: ['plai', 'plae', 'pley', 'play'],  answer: 'play' },
+    { question: 'Choose the correct spelling:', options: ['jomp', 'jamp', 'jump', 'jumb'],  answer: 'jump' },
+    { question: 'Choose the correct spelling:', options: ['red',  'rad',  'rede', 'rid'],   answer: 'red'  },
+    { question: 'Choose the correct spelling:', options: ['blu',  'blue', 'bluee','blew'],  answer: 'blue' },
+    { question: 'Choose the correct spelling:', options: ['fast', 'fest', 'fasst','phast'], answer: 'fast' },
+    { question: 'Choose the correct spelling:', options: ['wolk', 'walk', 'walck','walkk'], answer: 'walk' },
+    { question: 'Choose the correct spelling:', options: ['et',   'eate', 'eat',  'eet'],   answer: 'eat'  },
+    { question: 'Choose the correct spelling:', options: ['big',  'bigg', 'bag',  'bgi'],   answer: 'big'  },
+    { question: 'Choose the correct spelling:', options: ['smol', 'smale','smahl','small'], answer: 'small' },
+    { question: 'Choose the correct spelling:', options: ['aple', 'apple','appel','apul'],  answer: 'apple' },
+    { question: 'Choose the correct spelling:', options: ['hapy', 'happy','hapee','happpy'], answer: 'happy' },
+    { question: 'Choose the correct spelling:', options: ['wotr', 'watter','water','wator'], answer: 'water' },
+    { question: 'Choose the correct spelling:', options: ['bird', 'burd', 'birde','beard'], answer: 'bird' },
+  ],
+}
+
+const SPELL_IT_RIGHT_G3 = {
+  id: 'english_spell_it_right_g3',
+  title: 'Spell It Right',
+  subject: 'english',
+  grade: 3,
+  type: 'timed_quiz',
+  difficulty: 'easy',
+  description: 'Digraphs and blends — which spelling is right?',
+  timer: 75,
+  points: 10,
+  active: true,
+  cbc_topic: 'Spelling',
+  questions: [
+    { question: 'Choose the correct spelling:', options: ['frend',  'freind', 'friend',  'friendd'], answer: 'friend' },
+    { question: 'Choose the correct spelling:', options: ['white',  'whyte',  'wite',    'whight'],  answer: 'white'  },
+    { question: 'Choose the correct spelling:', options: ['nite',   'night',  'nighte',  'nyght'],   answer: 'night'  },
+    { question: 'Choose the correct spelling:', options: ['lite',   'lighth', 'light',   'lyght'],   answer: 'light'  },
+    { question: 'Choose the correct spelling:', options: ['right',  'rite',   'rihgt',   'rigth'],   answer: 'right'  },
+    { question: 'Choose the correct spelling:', options: ['phone',  'fone',   'phoene',  'foune'],   answer: 'phone'  },
+    { question: 'Choose the correct spelling:', options: ['kwick',  'quick',  'quik',    'qwick'],   answer: 'quick'  },
+    { question: 'Choose the correct spelling:', options: ['thenk',  'thanck', 'thank',   'thanc'],   answer: 'thank'  },
+    { question: 'Choose the correct spelling:', options: ['bekause','becuse', 'becauze', 'because'], answer: 'because' },
+    { question: 'Choose the correct spelling:', options: ['litle',  'little', 'littel',  'lettle'],  answer: 'little' },
+    { question: 'Choose the correct spelling:', options: ['beech',  'beach',  'beche',   'bech'],    answer: 'beach'  },
+    { question: 'Choose the correct spelling:', options: ['chess',  'chase',  'chace',   'cheas'],   answer: 'chase'  },
+    { question: 'Choose the correct spelling:', options: ['train',  'trane',  'trayn',   'trein'],   answer: 'train'  },
+    { question: 'Choose the correct spelling:', options: ['shurch', 'church', 'churhc',  'churce'],  answer: 'church' },
+    { question: 'Choose the correct spelling:', options: ['brown',  'brwon',  'broun',   'broon'],   answer: 'brown'  },
+  ],
+}
+
+const SPELL_IT_RIGHT_G5 = {
+  id: 'english_spell_it_right_g5',
+  title: 'Spell It Right',
+  subject: 'english',
+  grade: 5,
+  type: 'timed_quiz',
+  difficulty: 'medium',
+  description: 'Multi-syllable words — pick the correct spelling.',
+  timer: 90,
+  points: 12,
+  active: true,
+  cbc_topic: 'Spelling',
+  questions: [
+    { question: 'Choose the correct spelling:', options: ['beutiful',  'beautiful', 'beautifull', 'beautifel'], answer: 'beautiful'  },
+    { question: 'Choose the correct spelling:', options: ['sudenly',   'suddently', 'suddenly',   'suddaly'],   answer: 'suddenly'   },
+    { question: 'Choose the correct spelling:', options: ['favourite', 'favorit',   'favourit',   'favoutie'],  answer: 'favourite'  },
+    { question: 'Choose the correct spelling:', options: ['togethir',  'together',  'togather',   'tugether'],  answer: 'together'   },
+    { question: 'Choose the correct spelling:', options: ['interested','interesed', 'intrested',  'intreseted'], answer: 'interested' },
+    { question: 'Choose the correct spelling:', options: ['importent', 'important', 'importint',  'impertant'], answer: 'important'  },
+    { question: 'Choose the correct spelling:', options: ['diffrent',  'different', 'diferent',   'differnt'],  answer: 'different'  },
+    { question: 'Choose the correct spelling:', options: ['propably',  'probably',  'probbably',  'probly'],    answer: 'probably'   },
+    { question: 'Choose the correct spelling:', options: ['exersize',  'exercize',  'execise',    'exercise'],  answer: 'exercise'   },
+    { question: 'Choose the correct spelling:', options: ['opposit',   'oposite',   'opposite',   'opossite'],  answer: 'opposite'   },
+    { question: 'Choose the correct spelling:', options: ['bycicle',   'bicicle',   'bicycle',    'bicycal'],   answer: 'bicycle'    },
+    { question: 'Choose the correct spelling:', options: ['finaly',    'finnally',  'finally',    'finely'],    answer: 'finally'    },
+    { question: 'Choose the correct spelling:', options: ['morninng',  'morrning',  'moring',     'morning'],   answer: 'morning'    },
+    { question: 'Choose the correct spelling:', options: ['vegetible', 'vegtable',  'vegetable',  'vegitable'], answer: 'vegetable'  },
+    { question: 'Choose the correct spelling:', options: ['contineu',  'continu',   'continue',   'conteinue'], answer: 'continue'   },
+  ],
+}
+
+const SPELL_IT_RIGHT_G6 = {
+  id: 'english_spell_it_right_g6',
+  title: 'Spell It Right',
+  subject: 'english',
+  grade: 6,
+  type: 'timed_quiz',
+  difficulty: 'hard',
+  description: 'Advanced spellings — silent letters, double consonants, tricky endings.',
+  timer: 100,
+  points: 15,
+  active: true,
+  cbc_topic: 'Spelling',
+  questions: [
+    { question: 'Choose the correct spelling:', options: ['seperate',    'separete',    'seprate',     'separate'],    answer: 'separate'    },
+    { question: 'Choose the correct spelling:', options: ['definately',  'definitely',  'definitly',   'definetly'],   answer: 'definitely'  },
+    { question: 'Choose the correct spelling:', options: ['niehbour',    'neighbour',   'neibour',     'nieghbour'],   answer: 'neighbour'   },
+    { question: 'Choose the correct spelling:', options: ['rhythm',      'rythm',       'rhytm',       'rythem'],      answer: 'rhythm'      },
+    { question: 'Choose the correct spelling:', options: ['neccessary',  'necesary',    'necessary',   'necessery'],   answer: 'necessary'   },
+    { question: 'Choose the correct spelling:', options: ['acheivement', 'achievement', 'achievment',  'achevement'],  answer: 'achievement' },
+    { question: 'Choose the correct spelling:', options: ['goverment',   'government',  'govenment',   'governmint'],  answer: 'government'  },
+    { question: 'Choose the correct spelling:', options: ['interupt',    'intirupt',    'interrupt',   'interrup'],    answer: 'interrupt'   },
+    { question: 'Choose the correct spelling:', options: ['occured',     'ocurred',     'occurred',    'occored'],     answer: 'occurred'    },
+    { question: 'Choose the correct spelling:', options: ['recomend',    'recommend',   'reccommend',  'recomendd'],   answer: 'recommend'   },
+    { question: 'Choose the correct spelling:', options: ['embarass',    'embarras',    'embarrass',   'embarris'],    answer: 'embarrass'   },
+    { question: 'Choose the correct spelling:', options: ['independant', 'independent', 'indapendent', 'indpendent'],  answer: 'independent' },
+    { question: 'Choose the correct spelling:', options: ['priviledge',  'privilege',   'privlege',    'priviage'],    answer: 'privilege'   },
+    { question: 'Choose the correct spelling:', options: ['existance',   'existense',   'existence',   'existance'],   answer: 'existence'   },
+    { question: 'Choose the correct spelling:', options: ['argueing',    'argueing',    'arguing',     'arguin'],      answer: 'arguing'     },
+  ],
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+ *  ZAMBIA GENERAL KNOWLEDGE — G5 + G6 (G4 ZAMBIA_BASICS_G4 stays above)
+ * ═══════════════════════════════════════════════════════════════════ */
+
+const ZAMBIA_PROVINCES_G5 = {
+  id: 'social_zambia_provinces_g5',
+  title: 'Zambia\u2019s Provinces',
+  subject: 'social',
+  grade: 5,
+  type: 'timed_quiz',
+  difficulty: 'medium',
+  description: 'Provinces, capitals, borders and natural features of Zambia.',
+  timer: 90,
+  points: 12,
+  active: true,
+  cbc_topic: 'Zambia',
+  questions: [
+    { question: 'How many provinces does Zambia have?',                    options: ['8', '9', '10', '11'],                                                 answer: '10' },
+    { question: 'Which province was created most recently (2011)?',        options: ['Muchinga', 'Luapula', 'Southern', 'Copperbelt'],                      answer: 'Muchinga' },
+    { question: 'Which province is famous for copper mining?',             options: ['Lusaka', 'Central', 'Copperbelt', 'Southern'],                        answer: 'Copperbelt' },
+    { question: 'Victoria Falls is in which province?',                    options: ['Southern', 'Western', 'Lusaka', 'Eastern'],                            answer: 'Southern' },
+    { question: 'The capital of Eastern Province is…',                     options: ['Kabwe', 'Chipata', 'Mongu', 'Kasama'],                                 answer: 'Chipata' },
+    { question: 'The capital of Western Province is…',                     options: ['Mongu', 'Solwezi', 'Choma', 'Mansa'],                                 answer: 'Mongu' },
+    { question: 'Lake Tanganyika lies in which province?',                 options: ['Northern', 'Luapula', 'Muchinga', 'North-Western'],                    answer: 'Northern' },
+    { question: 'The capital of Copperbelt Province is…',                  options: ['Kitwe', 'Ndola', 'Chingola', 'Mufulira'],                              answer: 'Ndola' },
+    { question: 'Which province borders Mozambique and Malawi?',           options: ['Eastern', 'Southern', 'Muchinga', 'Luapula'],                          answer: 'Eastern' },
+    { question: 'Lake Bangweulu is mostly in which province?',             options: ['Luapula', 'Northern', 'Central', 'Muchinga'],                           answer: 'Luapula' },
+    { question: 'Solwezi is the capital of which province?',               options: ['North-Western', 'Western', 'Central', 'Copperbelt'],                   answer: 'North-Western' },
+    { question: 'The capital of Central Province is…',                     options: ['Kabwe', 'Kafue', 'Mkushi', 'Serenje'],                                 answer: 'Kabwe' },
+  ],
+}
+
+const ZAMBIA_HISTORY_G6 = {
+  id: 'social_zambia_history_g6',
+  title: 'Zambia — History & Heroes',
+  subject: 'social',
+  grade: 6,
+  type: 'timed_quiz',
+  difficulty: 'medium',
+  description: 'Independence, leaders, symbols and milestones.',
+  timer: 90,
+  points: 12,
+  active: true,
+  cbc_topic: 'Zambia',
+  questions: [
+    { question: 'Zambia became independent on…',                          options: ['24 October 1964', '1 January 1964', '11 November 1965', '18 April 1980'], answer: '24 October 1964' },
+    { question: 'Before independence, Zambia was known as…',              options: ['Nyasaland', 'Northern Rhodesia', 'Bechuanaland', 'Tanganyika'],            answer: 'Northern Rhodesia' },
+    { question: 'Zambia\u2019s first president was…',                     options: ['Frederick Chiluba', 'Levy Mwanawasa', 'Kenneth Kaunda', 'Rupiah Banda'],   answer: 'Kenneth Kaunda' },
+    { question: 'Zambia\u2019s national motto is…',                       options: ['Unity & Work', 'One Zambia, One Nation', 'Peace & Progress', 'Freedom'],   answer: 'One Zambia, One Nation' },
+    { question: 'Zambia\u2019s national animal is the…',                  options: ['Lion', 'Fish Eagle', 'Elephant', 'Leopard'],                                answer: 'Fish Eagle' },
+    { question: 'Which colour is NOT on the Zambian flag?',               options: ['Green', 'Red', 'Black', 'Blue'],                                            answer: 'Blue' },
+    { question: 'Zambia\u2019s independence leader (UNIP) was founded by…', options: ['Simon Kapwepwe', 'Kenneth Kaunda', 'Harry Nkumbula', 'Alice Lenshina'],    answer: 'Kenneth Kaunda' },
+    { question: 'The main river forming Zambia\u2019s southern border is…', options: ['Luangwa', 'Kafue', 'Zambezi', 'Chambeshi'],                                answer: 'Zambezi' },
+    { question: 'Zambia returned to multi-party democracy in…',           options: ['1972', '1980', '1991', '2001'],                                             answer: '1991' },
+    { question: 'Who was Zambia\u2019s president who died in office in 2008?', options: ['Frederick Chiluba', 'Levy Mwanawasa', 'Rupiah Banda', 'Michael Sata'],  answer: 'Levy Mwanawasa' },
+    { question: 'Zambia\u2019s main cash crop in rural areas is…',        options: ['Cocoa', 'Maize', 'Rice', 'Cotton'],                                         answer: 'Maize' },
+    { question: 'The official language used in Zambian schools is…',      options: ['English', 'French', 'Portuguese', 'Swahili'],                                answer: 'English' },
+    { question: 'Zambia has how many official vernacular languages?',     options: ['5', '7', '10', '13'],                                                       answer: '7' },
+  ],
+}
+
 /* ────────────────────────────────────────────────────────────────────
  *  Manifest
  * ──────────────────────────────────────────────────────────────────── */
 export const GAMES_SEED = [
-  // Middle primary (already had content here)
+  // ── Lower primary (G1-G3) ──
+  COUNTING_G1,
+  ABC_WORDS_G1,
+  SPELL_IT_RIGHT_G1,
+  ADD_SUB_G2,
+  SIGHT_WORDS_G2,
+  SPELL_IT_RIGHT_G2,
+  TIMES_TABLES_G3,
+  WORD_BUILDER_G3,
+  SPELL_IT_RIGHT_G3,
+
+  // ── Middle primary (G4-G6) ──
+  // G4
   SPEED_TABLES_G4,
   FRACTION_MATCH_G4,
   SPELL_IT_RIGHT_G4,
-  HUMAN_BODY_G5,
-  MATH_MEMORY_G6,
-  // Lower primary
-  COUNTING_G1,
-  ABC_WORDS_G1,
-  ADD_SUB_G2,
-  SIGHT_WORDS_G2,
-  TIMES_TABLES_G3,
-  WORD_BUILDER_G3,
-  // More middle primary
   PLANT_PARTS_G4,
   ZAMBIA_BASICS_G4,
+  // G5
+  HUMAN_BODY_G5,
   DECIMALS_G5,
-  AFRICA_CAPITALS_G5,
+  SPELL_IT_RIGHT_G5,
+  ZAMBIA_PROVINCES_G5,
+  AFRICA_CAPITALS_G5,        // active:false in the const above (deactivated)
+  // G6
+  MATH_MEMORY_G6,
   PERCENT_G6,
   GRAMMAR_G6,
-  // Upper primary
+  SPELL_IT_RIGHT_G6,
+  ZAMBIA_HISTORY_G6,
+
+  // ── Outside primary CBC scope — kept in seed so admin can flip active=true if needed ──
   INTEGERS_G7,
   VOCAB_SPRINT_G8,
   CELLS_G8,

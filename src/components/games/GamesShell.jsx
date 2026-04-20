@@ -21,6 +21,10 @@ export default function GamesShell({ crumbs = [], children, maxW = 'max-w-5xl' }
             </span>
           </Link>
           <div className="flex items-center gap-2 sm:gap-3">
+            <Link to="/games/leaderboard" className="text-xs sm:text-sm font-black text-amber-700 hover:text-amber-900 inline-flex items-center gap-1">
+              <span aria-hidden="true">🏆</span>
+              <span className="hidden sm:inline">Leaderboard</span>
+            </Link>
             <MuteToggle />
             <Link to="/teachers" className="hidden sm:block text-sm font-bold text-slate-700 hover:text-slate-900">For Teachers</Link>
             <Link to="/login" className="hidden sm:block text-sm font-bold text-slate-700 hover:text-slate-900">Sign in</Link>
