@@ -300,6 +300,14 @@ function FieldTextarea({ label, value, onChange, placeholder, maxLength }) {
 }
 
 function FieldSelect({ label, value, options, onChange }) {
+  const groups = []
+  let cur = null
+  for (const o of options) {
+    if (o.group !== undefined) { if (cur) groups.push(cur); cur = { label: o.group, items: [] } }
+    else { if (!cur) cur = { label: null, items: [] }; cur.items.push(o) }
+  }
+  if (cur) groups.push(cur)
+  const flat = groups.length === 1 && !groups[0].label
   return (
     <div>
       <FieldLabel>{label}</FieldLabel>
@@ -308,9 +316,13 @@ function FieldSelect({ label, value, options, onChange }) {
         onChange={(e) => onChange(e.target.value)}
         className="w-full px-3 py-2 rounded-lg border theme-border bg-transparent theme-text focus:outline-none focus:ring-2 focus:ring-indigo-500"
       >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
-        ))}
+        {flat
+          ? groups[0].items.map(o => <option key={o.value} value={o.value}>{o.label}</option>)
+          : groups.map((g, i) => g.label
+              ? <optgroup key={i} label={g.label}>{g.items.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</optgroup>
+              : g.items.map(o => <option key={o.value} value={o.value}>{o.label}</option>)
+          )
+        }
       </select>
     </div>
   )

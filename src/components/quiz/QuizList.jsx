@@ -12,7 +12,7 @@ import Icon from '../ui/Icon'
 import Skeleton from '../ui/Skeleton'
 
 // ── Design tokens ──────────────────────────────────────────────────────────
-const GRADES = ['4', '5', '6', '7']
+const GRADES = ['4', '5', '6']
 const TERMS  = ['1', '2', '3']
 
 const SUBJECTS = [
@@ -40,7 +40,6 @@ const GRADE_STYLES = {
   '4': { badge: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' },
   '5': { badge: 'bg-blue-100 text-blue-700',       dot: 'bg-blue-500'    },
   '6': { badge: 'bg-orange-100 text-orange-700',   dot: 'bg-orange-500'  },
-  '7': { badge: 'bg-purple-100 text-purple-700',   dot: 'bg-purple-500'  },
 }
 
 function getSubjectMeta(subjectId) {
@@ -283,7 +282,7 @@ export default function QuizList() {
               <p className="theme-hero-muted text-body-sm mt-1">
                 {isDemoOnly
                   ? `${demoCount} demo quiz${demoCount !== 1 ? 'zes' : ''} available · Upgrade for full access`
-                  : `${quizzes.length} quizzes · Grades 4–7 — CBC aligned`
+                  : `${quizzes.length} quizzes · Grades 4–6 — CBC aligned`
                 }
               </p>
             </div>

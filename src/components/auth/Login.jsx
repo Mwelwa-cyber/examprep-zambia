@@ -85,7 +85,7 @@ export default function Login() {
             <Logo variant="full" size="xl" />
           </div>
           <p className="theme-text-muted text-sm font-bold tracking-wide mt-1">
-            Grade 4–7 Exam Preparation
+            Grade 4–6 Exam Preparation
           </p>
         </div>
 

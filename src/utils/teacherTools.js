@@ -26,38 +26,53 @@ const generateRubricCallable = httpsCallable(functions, 'generateRubric', {
   timeout: 90_000, // server: 90s
 })
 
+// Grades grouped by Zambia CBC phase.
+// Items with `group` (no `value`) render as <optgroup> labels in FieldSelect.
 export const TEACHER_GRADES = [
-  { value: 'ECE', label: 'Early Childhood Education' },
+  { group: 'Pre-Primary' },
+  { value: 'ECE', label: 'ECE — Early Childhood Education' },
+  { group: 'Lower Primary (Grades 1–3)' },
   { value: 'G1', label: 'Grade 1' },
   { value: 'G2', label: 'Grade 2' },
   { value: 'G3', label: 'Grade 3' },
+  { group: 'Upper Primary (Grades 4–6)' },
   { value: 'G4', label: 'Grade 4' },
   { value: 'G5', label: 'Grade 5' },
   { value: 'G6', label: 'Grade 6' },
-  { value: 'G7', label: 'Grade 7' },
-  { value: 'G8', label: 'Grade 8' },
-  { value: 'G9', label: 'Grade 9' },
-  { value: 'G10', label: 'Grade 10' },
-  { value: 'G11', label: 'Grade 11' },
-  { value: 'G12', label: 'Grade 12' },
+  { group: 'Junior Secondary' },
+  { value: 'F1', label: 'Form 1' },
+  { value: 'F2', label: 'Form 2' },
+  { group: 'Senior Secondary' },
+  { value: 'F3', label: 'Form 3' },
+  { value: 'F4', label: 'Form 4' },
 ]
 
+// Subjects grouped by curriculum area across all CBC phases.
 export const TEACHER_SUBJECTS = [
-  { value: 'mathematics', label: 'Mathematics' },
-  { value: 'english', label: 'English' },
-  { value: 'integrated_science', label: 'Integrated Science' },
-  { value: 'social_studies', label: 'Social Studies' },
-  { value: 'literacy', label: 'Literacy' },
+  { group: 'Languages' },
+  { value: 'english',          label: 'English' },
+  { value: 'literacy',         label: 'Literacy' },
   { value: 'zambian_language', label: 'Zambian Language' },
-  { value: 'creative_and_technology_studies', label: 'Creative & Technology Studies' },
-  { value: 'physical_education', label: 'Physical Education' },
+  { group: 'STEM' },
+  { value: 'mathematics',          label: 'Mathematics' },
+  { value: 'numeracy',             label: 'Numeracy' },
+  { value: 'integrated_science',   label: 'Integrated Science' },
+  { value: 'environmental_science',label: 'Environmental Science' },
+  { value: 'biology',              label: 'Biology' },
+  { value: 'chemistry',            label: 'Chemistry' },
+  { value: 'physics',              label: 'Physics' },
+  { group: 'Humanities' },
+  { value: 'social_studies',   label: 'Social Studies' },
+  { value: 'history',          label: 'History' },
+  { value: 'geography',        label: 'Geography' },
+  { value: 'civic_education',  label: 'Civic Education' },
   { value: 'religious_education', label: 'Religious Education' },
-  { value: 'civic_education', label: 'Civic Education' },
-  { value: 'biology', label: 'Biology' },
-  { value: 'chemistry', label: 'Chemistry' },
-  { value: 'physics', label: 'Physics' },
-  { value: 'geography', label: 'Geography' },
-  { value: 'history', label: 'History' },
+  { group: 'Technical & Creative' },
+  { value: 'technology_studies',              label: 'Technology Studies' },
+  { value: 'creative_and_technology_studies', label: 'Creative & Technology Studies' },
+  { value: 'home_economics',   label: 'Home Economics' },
+  { value: 'expressive_arts',  label: 'Expressive Arts' },
+  { value: 'physical_education', label: 'Physical Education' },
 ]
 
 export const TEACHER_LANGUAGES = [
