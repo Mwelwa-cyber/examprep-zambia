@@ -109,13 +109,6 @@ function TeacherRoute({ children }) {
   )
 }
 
-function LocalPreviewRoute({ children }) {
-  const host = typeof window === 'undefined' ? '' : window.location.hostname
-  const isLocalPreview = host === 'localhost' || host === '127.0.0.1'
-
-  return isLocalPreview ? children : <Navigate to="/" replace />
-}
-
 function MissingProfileRecovery() {
   const { currentUser, profileIssue, ensureUserProfile, logout } = useAuth()
   const [working, setWorking] = useState(false)
@@ -218,7 +211,7 @@ export default function App() {
           {/* ── Learner routes ─────────────────────────────────── */}
           {/* GradeHub is the new CBC-aligned primary dashboard */}
           <Route path="/dashboard"         element={<ProtectedRoute><GradeHub /></ProtectedRoute>} />
-          <Route path="/dashboard-preview" element={<LocalPreviewRoute><GradeHub /></LocalPreviewRoute>} />
+          <Route path="/dashboard-preview" element={<GradeHub />} />
           {/* Legacy stats page (kept for admin/teacher reference) */}
           <Route path="/my-stats"          element={<ProtectedRoute><Navbar /><StudentDashboard /></ProtectedRoute>} />
           <Route path="/exams"                        element={<ProtectedRoute><DailyExamsHub /></ProtectedRoute>} />

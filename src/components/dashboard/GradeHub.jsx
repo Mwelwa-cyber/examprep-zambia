@@ -411,14 +411,36 @@ export default function GradeHub() {
   const notificationUserId = currentUser?.uid || userProfile?.id || 'guest'
 
   useEffect(() => {
-    if (!currentUser) return
+    document.title = currentUser ? 'Dashboard — ZedExams' : 'Dashboard Preview — ZedExams'
+  }, [currentUser])
+
+  useEffect(() => {
+    if (!currentUser) {
+      setRecentResults([])
+      setStats({ quizzes: 0, streak: 0 })
+      setLoading(false)
+      return undefined
+    }
+
+    let cancelled = false
+    setLoading(true)
+
     getUserResults(currentUser.uid, 5).then(results => {
+      if (cancelled) return
       setRecentResults(results)
       // Calculate streak from lastActiveDate pattern
       const streak = userProfile?.currentStreak ?? 0
       setStats({ quizzes: results.length, streak })
       setLoading(false)
+    }).catch(err => {
+      if (cancelled) return
+      console.error('GradeHub results:', err)
+      setRecentResults([])
+      setStats({ quizzes: 0, streak: 0 })
+      setLoading(false)
     })
+
+    return () => { cancelled = true }
   }, [currentUser, userProfile])
 
   useEffect(() => {
