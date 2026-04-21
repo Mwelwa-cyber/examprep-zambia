@@ -458,7 +458,7 @@ const GRAMMAR_G6 = {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
- *  UPPER PRIMARY — Grades 7 to 9
+ *  UPPER PRIMARY — Grades 7+ (outside CBC upper primary scope)
  * ═══════════════════════════════════════════════════════════════════ */
 
 const INTEGERS_G7 = {

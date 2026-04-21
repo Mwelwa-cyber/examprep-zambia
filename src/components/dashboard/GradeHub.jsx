@@ -852,7 +852,7 @@ export default function GradeHub() {
               <div>
                 <p className="font-black theme-text text-sm">Select your grade above</p>
                 <p className="theme-text-muted text-xs mt-0.5">
-                  Choose Grade 4, 5, 6, or 7 to see your subjects and start practising.
+                  Choose Grade 4, 5, or 6 to see your subjects and start practising.
                 </p>
               </div>
             </div>
