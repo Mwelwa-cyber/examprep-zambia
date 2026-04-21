@@ -58,7 +58,7 @@ function Chip({ label, active, onClick, icon }) {
       }`}>
       {icon && (
         <span className="text-xs">
-          {typeof icon === 'function' ? <Icon as={icon} size="xs" strokeWidth={2.1} /> : icon}
+          {typeof icon === 'string' ? icon : <Icon as={icon} size="xs" strokeWidth={2.1} />}
         </span>
       )}
       {label}
