@@ -607,6 +607,15 @@ function Field({ label, value, onChange, placeholder, max, type = 'text', requir
 }
 
 function FieldSelect({ label, value, options, onChange }) {
+  // Items with `group` (no `value`) render as <optgroup> labels.
+  const groups = []
+  let cur = null
+  for (const o of options) {
+    if (o.group !== undefined) { if (cur) groups.push(cur); cur = { label: o.group, items: [] } }
+    else { if (!cur) cur = { label: null, items: [] }; cur.items.push(o) }
+  }
+  if (cur) groups.push(cur)
+  const flat = groups.length === 1 && !groups[0].label
   return (
     <div>
       <label className="block text-xs font-black uppercase tracking-wide text-slate-600 mb-1">
@@ -617,9 +626,13 @@ function FieldSelect({ label, value, options, onChange }) {
         onChange={(e) => onChange(e.target.value)}
         className="w-full px-3 py-2 rounded-lg border-2 border-slate-200 focus:outline-none focus:border-emerald-400 bg-white"
       >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
-        ))}
+        {flat
+          ? groups[0].items.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)
+          : groups.map((g, i) => g.label
+              ? <optgroup key={i} label={g.label}>{g.items.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</optgroup>
+              : g.items.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)
+          )
+        }
       </select>
     </div>
   )
