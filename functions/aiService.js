@@ -207,7 +207,17 @@ async function callAnthropic(apiKey, {
         model: ANTHROPIC_MODEL,
         max_tokens: maxTokens,
         temperature,
-        ...(systemPrompt ? {system: systemPrompt} : {}),
+        // System prompt as a cacheable block. Anthropic silently ignores
+        // cache_control on blocks under the 1024-token minimum, so this is
+        // always safe; large prompts (QUIZ_SYSTEM_PROMPT, etc.) get cached
+        // for 5 min, cutting repeat-call latency and input token cost.
+        ...(systemPrompt ? {
+          system: [{
+            type: "text",
+            text: systemPrompt,
+            cache_control: {type: "ephemeral"},
+          }],
+        } : {}),
         messages,
       }),
     });

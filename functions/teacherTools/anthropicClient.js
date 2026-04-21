@@ -34,7 +34,18 @@ async function callClaude(apiKey, {
         model,
         max_tokens: maxTokens,
         temperature,
-        ...(systemPrompt ? {system: systemPrompt} : {}),
+        // System prompt as a cacheable block. Anthropic silently ignores
+        // cache_control on blocks under the 1024-token minimum, so this is
+        // always safe. On cache hits (same system prompt, within 5 min TTL)
+        // Anthropic skips re-processing ~the entire system prompt, which is
+        // the biggest latency win for repeat generator use.
+        ...(systemPrompt ? {
+          system: [{
+            type: "text",
+            text: systemPrompt,
+            cache_control: {type: "ephemeral"},
+          }],
+        } : {}),
         messages,
       }),
     });
