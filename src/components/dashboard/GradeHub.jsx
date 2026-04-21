@@ -53,10 +53,10 @@ import { useSubscription }      from '../../hooks/useSubscription'
 
 const NOTIFICATION_STORAGE_PREFIX = 'zedexams:notifications:seen:v1'
 const DASHBOARD_CHARACTERS = {
-  hero: '/images/characters/zed-zara-reading.png',
-  exams: '/images/characters/lina-study.png',
-  games: '/images/characters/max-gaming.png',
-  zed: '/images/characters/zedbot-help.png',
+  hero: '/images/characters/zed-zara-reading.png?v=transparent-1',
+  exams: '/images/characters/lina-study.png?v=transparent-1',
+  games: '/images/characters/max-gaming.png?v=transparent-1',
+  zed: '/images/characters/zedbot-help.png?v=transparent-1',
 }
 
 function getNotificationStorageKey(userId) {
