@@ -46,6 +46,9 @@ import { sanitizePastedHTML } from '../utils/sanitize.js'
 import EditorToolbar from './EditorToolbar.jsx'
 import MathModal from './modals/MathModal.jsx'
 import TableModal from './modals/TableModal.jsx'
+// KaTeX stylesheet — side-effect import kept at the component level so the
+// extensions factory stays pure-JS (importable by Node migration scripts).
+import 'katex/dist/katex.min.css'
 
 export default function RichEditor({
   label,

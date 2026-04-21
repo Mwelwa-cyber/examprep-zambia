@@ -22,6 +22,9 @@ import katex from 'katex'
 import { renderExtensions } from '../extensions/buildExtensions.js'
 import { sanitizeHTML } from './sanitize.js'
 import { isTiptapJSON } from './migration.js'
+// KaTeX stylesheet — side-effect import at the render layer so the Tiptap
+// extensions factory can be imported by Node scripts without a CSS loader.
+import 'katex/dist/katex.min.css'
 
 /**
  * Convert Tiptap JSON (or legacy HTML/text string) to a safe HTML string.
@@ -78,16 +81,26 @@ export function toHTML(content) {
  */
 export function hydrateKatex(container) {
   if (!container) return
-  const nodes = container.querySelectorAll('span[data-math-latex]')
+  // Match every shape a math span could have in stored HTML:
+  //   - Canonical: <span class="mnode" data-latex="…">
+  //   - Legacy Tiptap: <span class="mnode" data-math-latex="…">
+  //   - Class-only fallback (some old imports dropped the attribute)
+  const nodes = container.querySelectorAll(
+    'span[data-latex], span[data-math-latex], span.mnode'
+  )
   nodes.forEach((span) => {
     // Skip if already hydrated (has a .katex child)
     if (span.querySelector('.katex')) return
-    const latex = span.getAttribute('data-math-latex')
+    const latex =
+      span.getAttribute('data-latex') ||
+      span.getAttribute('data-math-latex') ||
+      ''
     if (!latex) return
     try {
       katex.render(latex, span, { throwOnError: false, displayMode: false })
     } catch {
-      // Keep the text fallback
+      // Leave the span empty rather than leaking raw LaTeX as visible text.
+      span.textContent = ''
     }
   })
 }

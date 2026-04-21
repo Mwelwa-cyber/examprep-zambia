@@ -35,10 +35,11 @@ import Superscript     from '@tiptap/extension-superscript'
 import Subscript       from '@tiptap/extension-subscript'
 import { Placeholder } from '@tiptap/extension-placeholder'
 import { MathInline }  from './MathInline.js'
-// KaTeX stylesheet is loaded here (instead of the app root) so it only ships
-// in the editor/viewer chunks that actually render math. Every path that
-// renders a MathInline node goes through this module.
-import 'katex/dist/katex.min.css'
+// KaTeX CSS is a pure side-effect import — it belongs on the editor/viewer
+// chunks, not the extension factory. Pulling it into this file made the
+// module un-importable from Node scripts (test:schema, migrate-questions).
+// The CSS is now imported by RichEditor.jsx and safeRender.js — every
+// production render path still ships it.
 
 /**
  * @param {object} options

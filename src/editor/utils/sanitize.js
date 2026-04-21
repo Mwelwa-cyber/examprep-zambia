@@ -21,8 +21,16 @@ const EDITOR_ALLOWED_TAGS = [
 
 const EDITOR_ALLOWED_ATTR = [
   'colspan', 'rowspan',
+  // Accept both attribute names so Tiptap JSON that round-trips through
+  // generateHTML survives regardless of which serialiser wrote it.
+  'data-latex',
   'data-math-latex',
+  'data-display',
   'class',
+  // Inline style is narrowed upstream to text-align / color / background-color
+  // by cleanStyleAttribute — DOMPurify just has to permit the attribute to
+  // reach that stage without being stripped.
+  'style',
 ]
 
 export function sanitizeHTML(html) {
@@ -65,12 +73,23 @@ const QUIZ_RICH_ALLOWED_TAGS = [
   'ul', 'ol', 'li',
   'span',
   'table', 'thead', 'tbody', 'tr', 'th', 'td',
+  // Keep in sync with ALLOWED_TAGS in src/utils/quizRichText.js — otherwise
+  // headings pass the upstream DOM walker only to be stripped here on the
+  // final defensive pass, which is exactly the "past papers flatten after
+  // editing" bug.
+  'h1', 'h2', 'h3',
+  'blockquote',
 ]
 
 const QUIZ_RICH_ALLOWED_ATTR = [
   'class',
   'style',           // already narrowed upstream to text-align / color / background-color
   'data-latex',
+  // Defensive: a math span from the Tiptap editor may still carry
+  // `data-math-latex` if it ever skips the normaliser. Upstream logic now
+  // rewrites it to `data-latex`, but we keep this on the allow-list so a
+  // leaked attribute doesn't drop the entire math node's attributes.
+  'data-math-latex',
   'data-display',
   'colspan', 'rowspan',
 ]

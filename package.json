@@ -7,6 +7,11 @@
     "dev": "vite",
     "build": "vite build",
     "test:importer": "node src/components/quiz/documentQuizParserCore.test.js && node src/components/quiz/documentQuizTableBlocks.test.js",
+    "test:sanitize": "node scripts/test-rich-text-sanitize.mjs",
+    "test:schema": "node scripts/test-question-schema.mjs",
+    "test:all": "npm run test:importer && npm run test:sanitize && npm run test:schema",
+    "migrate:questions:dry": "node scripts/migrate-questions-to-v3.mjs",
+    "migrate:questions:live": "node scripts/migrate-questions-to-v3.mjs --live",
     "check:integrity": "node scripts/check-file-integrity.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -49,7 +54,8 @@
     "pdfjs-dist": "^4.10.38",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.20.0"
+    "react-router-dom": "^6.20.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
@@ -61,6 +67,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "globals": "^15.15.0",
     "husky": "^9.1.7",
+    "jsdom": "^29.0.2",
     "lint-staged": "^15.5.2",
     "postcss": "^8.4.32",
     "tailwindcss": "^3.3.6",
