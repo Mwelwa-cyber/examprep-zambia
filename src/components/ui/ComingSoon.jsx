@@ -48,9 +48,9 @@ export default function ComingSoon({
       <div className="theme-card border theme-border rounded-3xl shadow-elev-sm w-full max-w-sm p-8 text-center">
 
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl theme-accent-bg theme-accent-text animate-bounce-slow">
-          {typeof icon === 'function'
-            ? <Icon as={icon} size="xl" strokeWidth={2.1} />
-            : icon}
+          {typeof icon === 'string' || !icon
+            ? icon
+            : <Icon as={icon} size="xl" strokeWidth={2.1} />}
         </div>
 
         {/* Decorative dots */}

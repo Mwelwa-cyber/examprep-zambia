@@ -58,9 +58,12 @@ export default function SubjectScroller({
                 }`}
                 aria-hidden="true"
               >
-                {typeof SubjectIcon === 'function'
-                  ? <Icon as={SubjectIcon} size="md" strokeWidth={2.1} />
-                  : SubjectIcon}
+                {/* String icons are emoji (subject.icon = "➗" etc). Component
+                    icons can be plain function components OR forwardRef objects
+                    (lucide/heroicons); both render via the <Icon> wrapper. */}
+                {typeof SubjectIcon === 'string' || !SubjectIcon
+                  ? SubjectIcon
+                  : <Icon as={SubjectIcon} size="md" strokeWidth={2.1} />}
               </span>
               <span className="min-w-0">
                 <span className="block truncate text-sm font-black leading-tight">
