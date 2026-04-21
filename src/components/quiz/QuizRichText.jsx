@@ -870,7 +870,13 @@ export function RichTextEditor({
   function runCommand(command, valueArg = null) {
     if (!editorRef.current) return
     restoreSelection(editorRef.current, savedRangeRef.current)
-    document.execCommand('styleWithCSS', false, true)
+    // styleWithCSS:false → bold/italic/underline produce <strong>/<em>/<u>
+    // (semantic tags the sanitiser keeps) instead of <span style="font-weight:bold">
+    // (style stripped by cleanStyleAttribute → formatting lost on save).
+    // foreColor / hiliteColor are handled below with their own styleWithCSS switch
+    // so they keep emitting inline style, which IS whitelisted.
+    const needsStyle = command === 'foreColor' || command === 'hiliteColor'
+    document.execCommand('styleWithCSS', false, needsStyle)
     document.execCommand(command, false, valueArg)
     editorRef.current.focus()
     syncFromEditor()

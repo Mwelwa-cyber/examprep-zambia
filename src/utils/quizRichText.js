@@ -21,6 +21,13 @@ const ALLOWED_TAGS = new Set([
   'TR',
   'TH',
   'TD',
+  // Headings & blockquote — common in pasted past-paper content. Before this
+  // was added, paste would unwrap <h1>/<h2>/<h3>/<blockquote> (text survives,
+  // structure is lost) causing past papers to visibly flatten after edits.
+  'H1',
+  'H2',
+  'H3',
+  'BLOCKQUOTE',
 ])
 const TAG_ALIASES = {
   B: 'strong',
@@ -28,7 +35,7 @@ const TAG_ALIASES = {
   STRIKE: 's',
   FONT: 'span',
 }
-const BLOCK_TAGS = new Set(['P', 'DIV', 'UL', 'OL', 'LI', 'TABLE', 'THEAD', 'TBODY', 'TR'])
+const BLOCK_TAGS = new Set(['P', 'DIV', 'UL', 'OL', 'LI', 'TABLE', 'THEAD', 'TBODY', 'TR', 'H1', 'H2', 'H3', 'BLOCKQUOTE'])
 const SAFE_TEXT_ALIGN = new Set(['left', 'center', 'right'])
 const SAFE_CLASS_NAMES = new Set(['mnode', 'etable'])
 const COLOR_RE = /^(#[0-9a-f]{3,8}|rgb(a)?\([\d\s,.%]+\)|hsl(a)?\([\d\s,.%]+\)|transparent|currentcolor|inherit)$/i
@@ -178,7 +185,15 @@ function sanitizeElementAttributes(element) {
       return
     }
 
-    if (tagName === 'SPAN' && (hasMathClass || value) && name === 'data-latex') {
+    // Accept both `data-latex` (legacy editor) and `data-math-latex`
+    // (Tiptap MathInline extension). Normalise to `data-latex` so the rest
+    // of the pipeline — renderMathInElement, serializeEditorElement,
+    // sanitizeQuizRichHTML — sees a single canonical form.
+    if (
+      tagName === 'SPAN' &&
+      (hasMathClass || value) &&
+      (name === 'data-latex' || name === 'data-math-latex')
+    ) {
       element.setAttribute('data-latex', value)
       return
     }
@@ -349,8 +364,26 @@ export function serializeEditorElement(editorElement) {
   if (!editorElement) return ''
   const clone = editorElement.cloneNode(true)
 
+  // Math nodes: the ONLY authoritative source of the node's content is the
+  // `data-latex` / `data-math-latex` attribute, never `textContent`. After
+  // KaTeX renders, textContent becomes the rendered glyphs (Σ, π, →, arrows,
+  // fraction chars). Falling back to textContent when the attribute is empty
+  // was how those glyphs leaked back into question text as literal characters
+  // on every save-reload cycle. A math node with no LaTeX is broken data —
+  // delete it rather than immortalising the rendered glyph.
   clone.querySelectorAll('.mnode').forEach(node => {
-    const latex = node.getAttribute('data-latex') || node.textContent || ''
+    const latex = (
+      node.getAttribute('data-latex') ||
+      node.getAttribute('data-math-latex') ||
+      ''
+    ).trim()
+    if (!latex) {
+      node.remove()
+      return
+    }
+    // Normalise to the canonical attribute name going forward.
+    node.setAttribute('data-latex', latex)
+    node.removeAttribute('data-math-latex')
     node.textContent = latex
     node.removeAttribute('contenteditable')
     node.removeAttribute('spellcheck')
@@ -401,11 +434,24 @@ export function renderMathInElement(container) {
 
   const katex = window.katex
   container.querySelectorAll('.mnode').forEach(node => {
-    const latex = node.getAttribute('data-latex') || node.textContent || ''
+    // Only trust the attribute. Falling back to textContent re-ingests the
+    // already-rendered KaTeX glyphs (Σ, π, arrows, etc.) as "LaTeX" and
+    // immortalises them in the next save. If the attribute is missing or
+    // empty, the node is broken — leave it empty.
+    const latex = (
+      node.getAttribute('data-latex') ||
+      node.getAttribute('data-math-latex') ||
+      ''
+    ).trim()
     const displayMode = node.getAttribute('data-display') === 'true'
 
     node.setAttribute('contenteditable', 'false')
     node.setAttribute('spellcheck', 'false')
+
+    if (!latex) {
+      node.textContent = ''
+      return
+    }
 
     if (katex?.render) {
       try {

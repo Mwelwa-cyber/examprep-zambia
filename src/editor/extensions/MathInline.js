@@ -40,31 +40,42 @@ export const MathInline = Node.create({
     return {
       latex: {
         default: '',
-        // How to read the attribute from pasted/loaded HTML
-        parseHTML: (el) => el.getAttribute('data-math-latex') ?? '',
-        // How to write it when serialising to HTML (for clipboard, generateHTML)
-        renderHTML: (attrs) => ({ 'data-math-latex': attrs.latex }),
+        // Read either attribute name. The legacy QuizRichText editor writes
+        // `data-latex`; earlier versions of this extension wrote
+        // `data-math-latex`. Accept both so stored content always parses
+        // back into a real math node on edit.
+        parseHTML: (el) =>
+          el.getAttribute('data-latex') ??
+          el.getAttribute('data-math-latex') ??
+          '',
+        // Emit the canonical `data-latex` that the rest of the pipeline uses.
+        renderHTML: (attrs) =>
+          attrs.latex ? { 'data-latex': attrs.latex } : {},
       },
     }
   },
 
   parseHTML() {
-    // Recognise our rendered spans in pasted or stored HTML
-    return [{ tag: 'span[data-math-latex]' }]
+    // Match every shape a math span could have taken across editor versions.
+    return [
+      { tag: 'span[data-latex]' },
+      { tag: 'span[data-math-latex]' },
+      { tag: 'span.mnode' },
+    ]
   },
 
-  renderHTML({ node, HTMLAttributes }) {
+  renderHTML({ HTMLAttributes }) {
     // Static HTML for clipboard, generateHTML(), and server rendering.
-    // Does NOT include the KaTeX render — that happens in the NodeView.
-    // For the learner viewer (which uses generateHTML), we hydrate KaTeX
-    // separately in QuizViewer via hydrateKatex().
+    // The live KaTeX render happens in the NodeView; the learner viewer
+    // hydrates KaTeX separately via hydrateKatex() / renderMathInElement().
+    //
+    // Deliberately NO text fallback — if the attribute is ever stripped,
+    // empty is strictly better than leaking raw LaTeX (which showed up as
+    // "Σ", "\frac{…}", arrows, etc. in question text on reload).
     return [
       'span',
-      mergeAttributes(HTMLAttributes, {
-        class: 'mnode',
-        'data-math-latex': node.attrs.latex,
-      }),
-      node.attrs.latex,  // fallback text content for non-JS environments
+      mergeAttributes(HTMLAttributes, { class: 'mnode' }),
+      '',
     ]
   },
 

@@ -136,12 +136,35 @@ service cloud.firestore {
         && (!('isPublished' in incoming()) || incoming().isPublished is bool);
     }
 
+    // Defence-in-depth on rich-text fields. Limits mirror the Zod schema in
+    // src/editor/schema/question.js. Legacy records without the JSON mirrors
+    // stay valid because all the new checks are gated on field presence.
     function validQuestionFields() {
       return (!('type' in incoming()) || _validQuestionType(incoming().type))
         && (!('marks' in incoming()) || (incoming().marks is int && incoming().marks >= 1 && incoming().marks <= 10))
         && (!('options' in incoming()) || (incoming().options is list && incoming().options.size() <= 20))
-        && (!('order' in incoming()) || (incoming().order is int && incoming().order >= 0 && incoming().order <= 1000))
-        && (!('topic' in incoming()) || (incoming().topic is string && incoming().topic.size() <= 200));
+        && (!('order' in incoming()) || (incoming().order is int && incoming().order >= 0 && incoming().order <= 10000))
+        && (!('topic' in incoming()) || (incoming().topic is string && incoming().topic.size() <= 200))
+        // HTML rich-text fields: stay as strings, enforce size caps.
+        && (!('text' in incoming()) || (incoming().text is string && incoming().text.size() <= 100000))
+        && (!('explanation' in incoming()) || (incoming().explanation is string && incoming().explanation.size() <= 100000))
+        && (!('sharedInstruction' in incoming()) || (incoming().sharedInstruction is string && incoming().sharedInstruction.size() <= 100000))
+        && (!('passage' in incoming()) || (incoming().passage is string && incoming().passage.size() <= 200000))
+        // Tiptap JSON mirrors: must be a map (Firestore object) or null.
+        // A string here would mean someone is double-stringifying JSON — reject.
+        && (!('textJSON' in incoming()) || incoming().textJSON == null || incoming().textJSON is map)
+        && (!('explanationJSON' in incoming()) || incoming().explanationJSON == null || incoming().explanationJSON is map)
+        && (!('sharedInstructionJSON' in incoming()) || incoming().sharedInstructionJSON == null || incoming().sharedInstructionJSON is map)
+        && (!('passageJSON' in incoming()) || incoming().passageJSON == null || incoming().passageJSON is map)
+        // Content-version marker: may be absent (legacy) or an int in {1,2,3}.
+        && (!('contentVersion' in incoming()) || (incoming().contentVersion is int && incoming().contentVersion >= 1 && incoming().contentVersion <= 3))
+        // Diagram / image metadata.
+        && (!('diagramText' in incoming()) || incoming().diagramText == null || (incoming().diagramText is string && incoming().diagramText.size() <= 2000))
+        && (!('imageUrl' in incoming()) || incoming().imageUrl == null || (incoming().imageUrl is string && incoming().imageUrl.size() <= 2000))
+        // Review flags (written by the AI importer).
+        && (!('requiresReview' in incoming()) || incoming().requiresReview is bool)
+        && (!('reviewNotes' in incoming()) || (incoming().reviewNotes is list && incoming().reviewNotes.size() <= 50))
+        && (!('importWarnings' in incoming()) || (incoming().importWarnings is list && incoming().importWarnings.size() <= 50));
     }
 
     function validLessonFields() {

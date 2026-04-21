@@ -6,7 +6,39 @@ import {
 import { db } from '../firebase/config'
 import { normalizeRichTextPayload } from '../utils/quizRichText.js'
 import { deleteQuizWithQuestions } from '../utils/deleteQuizWithQuestions.js'
+import { migrateContent } from '../editor/utils/migration.js'
+import { questionWriteSchema } from '../editor/schema/question.js'
 
+/**
+ * Convert a rich-text field to its Tiptap JSON representation for persistence.
+ *
+ * Accepts anything the editor or the legacy pipeline might hand us:
+ *   - null / undefined / '' → null
+ *   - Tiptap JSON object     → returned as-is
+ *   - HTML string            → parsed via migrateContent()
+ *   - Plain text             → wrapped into a paragraph node
+ *
+ * migrateContent() already handles every case defensively; this is just a
+ * named wrapper so the intent ("turn this into JSON for Firestore") is
+ * visible at the call site.
+ */
+function toRichTextJSON(value) {
+  if (value == null) return null
+  if (typeof value === 'string' && !value.trim()) return null
+  return migrateContent(value)
+}
+
+/**
+ * Normalise a question for Firestore, emitting the dual HTML+JSON format
+ * (contentVersion: 3).
+ *
+ * Readers that only know about HTML fields keep working unchanged.
+ * New readers can prefer the *JSON fields for lossless rendering.
+ *
+ * Zod validates the complete record before we hand it to Firestore so a typo
+ * in a field name, an over-size payload, or an invalid question type fails
+ * loudly on the client instead of silently writing garbage.
+ */
 function normalizeQuestionPayload(q, order) {
   const type = q.type || 'mcq'
   const isShortAnswer = type === 'short_answer' || type === 'diagram'
@@ -16,7 +48,7 @@ function normalizeQuestionPayload(q, order) {
       ? q.options.map(opt => String(opt ?? '').trim())
       : []
 
-  return {
+  const candidate = {
     sharedInstruction: normalizeRichTextPayload(q.sharedInstruction),
     options,
     passageId:     q.passageId || null,
@@ -38,7 +70,35 @@ function normalizeQuestionPayload(q, order) {
     importWarnings: Array.isArray(q.importWarnings) ? q.importWarnings.map(note => String(note ?? '').trim()).filter(Boolean) : [],
     sourcePage:    q.sourcePage || null,
     order,
+
+    // ── Tiptap JSON mirrors (canonical source going forward) ──
+    // If the caller already had JSON in hand (e.g. the Tiptap QuizEditor),
+    // prefer that. Otherwise derive JSON from the HTML we just produced.
+    sharedInstructionJSON: toRichTextJSON(q.sharedInstructionJSON ?? q.sharedInstruction),
+    textJSON:              toRichTextJSON(q.textJSON ?? q.text),
+    passageJSON:           toRichTextJSON(q.passageJSON ?? q.passage),
+    explanationJSON:       toRichTextJSON(q.explanationJSON ?? q.explanation),
+
+    contentVersion: 3,
   }
+
+  // Firestore doesn't accept `undefined` — strip any optional-missing keys.
+  const cleaned = Object.fromEntries(
+    Object.entries(candidate).filter(([, v]) => v !== undefined)
+  )
+
+  // Validate the final shape. If Zod rejects, the caller sees a clear error
+  // with the exact field at fault instead of a mysterious Firestore write
+  // failure (or worse: a silent corrupt write).
+  const parsed = questionWriteSchema.safeParse(cleaned)
+  if (!parsed.success) {
+    const first = parsed.error.issues?.[0]
+    const path = first?.path?.join('.') || '(root)'
+    throw new Error(
+      `Invalid question payload at "${path}": ${first?.message || 'schema violation'}`
+    )
+  }
+  return parsed.data
 }
 
 export function useFirestore() {
