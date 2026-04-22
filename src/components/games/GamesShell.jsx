@@ -33,7 +33,6 @@ export default function GamesShell({ crumbs = [], children, maxW = 'max-w-5xl' }
               <span className="hidden sm:inline">Leaderboard</span>
             </Link>
             <MuteToggle />
-            <Link to="/teachers" className="hidden sm:block text-sm font-bold text-slate-700 hover:text-slate-900">For Teachers</Link>
             {currentUser ? (
               <Link
                 to="/dashboard"

@@ -56,11 +56,6 @@ const TeacherLibrary = lazy(() => import('./components/teacher/library/TeacherLi
 const LibraryItemDetail = lazy(() => import('./components/teacher/library/LibraryItemDetail'))
 const PublicShareView = lazy(() => import('./components/teacher/library/PublicShareView'))
 
-// Public marketing pages (no auth)
-const TeacherLandingPage = lazy(() => import('./components/marketing/TeacherLandingPage'))
-const SamplesGallery = lazy(() => import('./components/marketing/SamplesGallery'))
-const SampleDetailPage = lazy(() => import('./components/marketing/SampleDetailPage'))
-
 // Daily Exams (auth required)
 const DailyExamsHub      = lazy(() => import('./components/exams/DailyExamsHub'))
 const DailyExamRunner    = lazy(() => import('./components/exams/DailyExamRunner'))
@@ -82,7 +77,7 @@ const EditQuiz = lazy(() => import('./components/quiz/EditQuizV2'))
 
 function RootRedirect() {
   const { currentUser, userProfile, isAdmin, isTeacher, profileIssue } = useAuth()
-  if (!currentUser) return <Navigate to="/teachers" replace />
+  if (!currentUser) return <Navigate to="/login" replace />
   if (profileIssue) return <MissingProfileRecovery />
   if (!userProfile) return <PageLoader />
   return (
@@ -193,10 +188,6 @@ export default function App() {
           <Route path="/login"    element={<Login />} />
           <Route path="/register" element={<Register />} />
 
-          {/* ── Public marketing (no auth) ──────────────────────── */}
-          <Route path="/teachers"                 element={<TeacherLandingPage />} />
-          <Route path="/teachers/samples"         element={<SamplesGallery />} />
-          <Route path="/teachers/samples/:slug"   element={<SampleDetailPage />} />
           {/* Public share link — no auth, read-only viewer of a frozen snapshot */}
           <Route path="/share/:token"             element={<PublicShareView />} />
 

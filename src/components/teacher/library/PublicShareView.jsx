@@ -56,7 +56,7 @@ export default function PublicShareView() {
             <Logo />
             <span className="hidden sm:inline text-xs font-bold text-slate-500">Shared teacher resource</span>
           </Link>
-          <Link to="/teachers" className="text-xs font-black text-emerald-700 hover:underline">
+          <Link to="/" className="text-xs font-black text-emerald-700 hover:underline">
             About ZedExams →
           </Link>
         </div>
@@ -92,7 +92,7 @@ export default function PublicShareView() {
             </header>
             <RenderPlanByTool tool={share.tool} plan={share.plan} />
             <footer className="mt-8 pt-4 border-t border-slate-200 text-xs text-slate-400 text-center print:hidden">
-              Generated with the <Link to="/teachers" className="font-bold text-emerald-700 hover:underline">ZedExams Teacher Suite</Link>.
+              Generated with the <Link to="/" className="font-bold text-emerald-700 hover:underline">ZedExams Teacher Suite</Link>.
             </footer>
           </article>
         )}
