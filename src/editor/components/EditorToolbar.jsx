@@ -15,6 +15,17 @@
 
 import { useEditorState } from '@tiptap/react'
 import { useState } from 'react'
+// Real icons (Heroicons via the shared wrapper) instead of Unicode glyphs.
+// Unicode characters were rendering as literal text in many browsers
+// ("↩↪ BIUS • ≡ 1.≡ ⬅≡≡≡➡ H1H2") — which looked like toolbar bleed even
+// though it was just the button labels. Icons here, styled text for H1/H2.
+import {
+  Undo2, Redo2,
+  Bold, Italic, Underline, Strikethrough,
+  List, ListOrdered,
+  AlignLeft, AlignCenter, AlignRight,
+  Sigma, TableIcon,
+} from '../../components/ui/icons'
 
 const TX_COLORS = [
   '#1a1523', '#1e3a8a', '#dc2626', '#ea580c', '#ca8a04',
@@ -170,7 +181,7 @@ export default function EditorToolbar({ editor, onMath, onTable }) {
           disabled={!toolbarState.canUndo}
           onMouseDown={(e) => { e.preventDefault(); run('undo') }}
         >
-          ↩
+          <Undo2 size={15} strokeWidth={2.25} />
         </TBtn>
         <TBtn
           editor={editor}
@@ -178,40 +189,67 @@ export default function EditorToolbar({ editor, onMath, onTable }) {
           disabled={!toolbarState.canRedo}
           onMouseDown={(e) => { e.preventDefault(); run('redo') }}
         >
-          ↪
+          <Redo2 size={15} strokeWidth={2.25} />
         </TBtn>
         <div className="tbsep" />
 
         {/* -- Text format -- */}
         <TBtn editor={editor} cmd="toggleBold" active={toolbarState.bold} title="Bold (Ctrl+B)">
-          <b style={{ fontWeight: 900, fontSize: '13px' }}>B</b>
+          <Bold size={15} strokeWidth={2.5} />
         </TBtn>
         <TBtn editor={editor} cmd="toggleItalic" active={toolbarState.italic} title="Italic (Ctrl+I)">
-          <i style={{ fontSize: '13px' }}>I</i>
+          <Italic size={15} strokeWidth={2.5} />
         </TBtn>
-        <TBtn editor={editor} cmd="toggleUnderline" active={toolbarState.underline} title="Underline (Ctrl+U)"><u>U</u></TBtn>
-        <TBtn editor={editor} cmd="toggleStrike" active={toolbarState.strike} title="Strikethrough"><s>S</s></TBtn>
+        <TBtn editor={editor} cmd="toggleUnderline" active={toolbarState.underline} title="Underline (Ctrl+U)">
+          <Underline size={15} strokeWidth={2.5} />
+        </TBtn>
+        <TBtn editor={editor} cmd="toggleStrike" active={toolbarState.strike} title="Strikethrough">
+          <Strikethrough size={15} strokeWidth={2.5} />
+        </TBtn>
         <div className="tbsep" />
 
-        {/* -- Super / Sub -- */}
-        <TBtn editor={editor} cmd="toggleSuperscript" active={toolbarState.superscript} title="Superscript">x²</TBtn>
-        <TBtn editor={editor} cmd="toggleSubscript" active={toolbarState.subscript} title="Subscript">x₂</TBtn>
+        {/* -- Super / Sub --
+            Text labels x² / x₂ are the standard across Word, Docs, and most
+            web editors — clearer than any available icon in the Heroicons
+            set (Superscript/Subscript in icons.js are mis-mapped to H1/H2). */}
+        <TBtn editor={editor} cmd="toggleSuperscript" active={toolbarState.superscript} title="Superscript">
+          <span style={{ fontWeight: 700, fontSize: '12px', lineHeight: 1 }}>x²</span>
+        </TBtn>
+        <TBtn editor={editor} cmd="toggleSubscript" active={toolbarState.subscript} title="Subscript">
+          <span style={{ fontWeight: 700, fontSize: '12px', lineHeight: 1 }}>x₂</span>
+        </TBtn>
         <div className="tbsep" />
 
         {/* -- Lists -- */}
-        <TBtn editor={editor} cmd="toggleBulletList" active={toolbarState.bulletList} title="Bullet list">• ≡</TBtn>
-        <TBtn editor={editor} cmd="toggleOrderedList" active={toolbarState.orderedList} title="Numbered list">1.≡</TBtn>
+        <TBtn editor={editor} cmd="toggleBulletList" active={toolbarState.bulletList} title="Bullet list">
+          <List size={15} strokeWidth={2.25} />
+        </TBtn>
+        <TBtn editor={editor} cmd="toggleOrderedList" active={toolbarState.orderedList} title="Numbered list">
+          <ListOrdered size={15} strokeWidth={2.25} />
+        </TBtn>
         <div className="tbsep" />
 
         {/* -- Alignment -- */}
-        <TBtn editor={editor} cmd="setTextAlign" args="left" active={toolbarState.alignLeft} title="Align left">⬅≡</TBtn>
-        <TBtn editor={editor} cmd="setTextAlign" args="center" active={toolbarState.alignCenter} title="Centre">≡</TBtn>
-        <TBtn editor={editor} cmd="setTextAlign" args="right" active={toolbarState.alignRight} title="Align right">≡➡</TBtn>
+        <TBtn editor={editor} cmd="setTextAlign" args="left" active={toolbarState.alignLeft} title="Align left">
+          <AlignLeft size={15} strokeWidth={2.25} />
+        </TBtn>
+        <TBtn editor={editor} cmd="setTextAlign" args="center" active={toolbarState.alignCenter} title="Centre">
+          <AlignCenter size={15} strokeWidth={2.25} />
+        </TBtn>
+        <TBtn editor={editor} cmd="setTextAlign" args="right" active={toolbarState.alignRight} title="Align right">
+          <AlignRight size={15} strokeWidth={2.25} />
+        </TBtn>
         <div className="tbsep" />
 
-        {/* -- Headings -- */}
-        <TBtn editor={editor} cmd="toggleHeading" args={{ level: 1 }} active={toolbarState.heading1} title="Heading 1">H1</TBtn>
-        <TBtn editor={editor} cmd="toggleHeading" args={{ level: 2 }} active={toolbarState.heading2} title="Heading 2">H2</TBtn>
+        {/* -- Headings --
+            No H1/H2 icons in the set. Styled text labels ARE the standard
+            for heading buttons in Word / Docs / every rich-text UI. */}
+        <TBtn editor={editor} cmd="toggleHeading" args={{ level: 1 }} active={toolbarState.heading1} title="Heading 1">
+          <span style={{ fontWeight: 800, fontSize: '12px', lineHeight: 1 }}>H1</span>
+        </TBtn>
+        <TBtn editor={editor} cmd="toggleHeading" args={{ level: 2 }} active={toolbarState.heading2} title="Heading 2">
+          <span style={{ fontWeight: 800, fontSize: '12px', lineHeight: 1 }}>H2</span>
+        </TBtn>
         <div className="tbsep" />
 
         {/* -- Text colour -- */}
@@ -268,16 +306,20 @@ export default function EditorToolbar({ editor, onMath, onTable }) {
 
         {/* -- Math + Table -- */}
         <button
-          type="button" className="tbb tbm" title="Insert Math (∑)"
+          type="button" className="tbb tbm" title="Insert Math"
           onMouseDown={(e) => { e.preventDefault(); onMath() }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
         >
-          ∑ Math
+          <Sigma size={14} strokeWidth={2.5} />
+          Math
         </button>
         <button
           type="button" className="tbb tbt" title="Insert Table"
           onMouseDown={(e) => { e.preventDefault(); onTable() }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
         >
-          ⊞ Table
+          <TableIcon size={14} strokeWidth={2.25} />
+          Table
         </button>
       </div>
 
