@@ -15,6 +15,20 @@
     ],
     "rewrites": [
       {
+        "source": "/api/ai/chat",
+        "function": {
+          "functionId": "apiAiChat",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/tts",
+        "function": {
+          "functionId": "apiTextToSpeech",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/payments/momo/initiate",
         "function": {
           "functionId": "apiCreateMomoPayment",
