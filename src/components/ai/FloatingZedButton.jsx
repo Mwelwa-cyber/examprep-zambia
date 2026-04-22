@@ -8,7 +8,6 @@ const HIDDEN_PATTERNS = [
   /^\/study(\/|$)/,
   /^\/quiz\/[^/]+/,
   /^\/exam\/[^/]+/,
-  /^\/teachers(\/|$)/,
 ]
 
 function useIsWide() {

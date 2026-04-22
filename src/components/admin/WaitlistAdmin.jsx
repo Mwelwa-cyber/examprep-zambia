@@ -308,8 +308,7 @@ function Empty() {
       <div className="text-5xl mb-3">📭</div>
       <p className="font-black text-slate-800 mb-1">Nobody on the waitlist yet</p>
       <p className="text-sm text-slate-500 max-w-md mx-auto">
-        Signups from <code>/teachers</code> will land here. Start your outreach
-        plan in MARKETING_KIT.md.
+        Waitlist signups will land here.
       </p>
     </div>
   )
