@@ -8,6 +8,10 @@ import GamesShell from './GamesShell'
 import TimedQuizGame from './TimedQuizGame'
 import MemoryMatchGame from './MemoryMatchGame'
 import WordBuilderGame from './WordBuilderGame'
+import {
+  subjectTheme, gameTypeMeta,
+  ClockIcon, StarIcon, AcademicCapIcon, ArrowRightIcon, PuzzlePieceIcon,
+} from './gameIcons'
 
 /**
  * /games/play/:gameId — Step 4: the play surface.
@@ -57,8 +61,10 @@ export default function PlayGame() {
   if (loading || !game) {
     return (
       <GamesShell crumbs={[{ label: 'Loading…' }]}>
-        <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center">
-          <div className="text-4xl mb-3 animate-bounce">🎮</div>
+        <div className="rounded-[20px] border border-slate-200 bg-white p-10 text-center shadow-sm">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center shadow-md mb-3 animate-bounce">
+            <PuzzlePieceIcon className="w-7 h-7" />
+          </div>
           <p className="font-black">Loading game…</p>
         </div>
       </GamesShell>
@@ -83,29 +89,53 @@ export default function PlayGame() {
 }
 
 function GameHeader({ game, subjectMeta, gradeMeta }) {
+  const theme = subjectTheme(subjectMeta?.slug)
+  const type = gameTypeMeta(game.type)
   return (
-    <header className="mb-6 flex items-center gap-4">
-      <div className="text-5xl sm:text-6xl" aria-hidden="true">{subjectMeta?.emoji || '🎮'}</div>
-      <div className="min-w-0">
-        <div className="flex flex-wrap gap-1.5 mb-1">
-          {gradeMeta && <Chip>{gradeMeta.label}</Chip>}
-          {subjectMeta && <Chip>{subjectMeta.label}</Chip>}
-          {game.cbc_topic && <Chip>CBC · {game.cbc_topic}</Chip>}
-          <Chip tone="amber">{game.difficulty || 'easy'}</Chip>
+    <header className="mb-6 rounded-[20px] border border-slate-200 bg-white p-4 sm:p-5 shadow-sm overflow-hidden relative">
+      <div aria-hidden="true" className={`absolute -top-16 -right-16 w-48 h-48 rounded-full opacity-15 ${theme.blob} blur-2xl`} />
+      <div className="relative flex items-center gap-4">
+        <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br ${theme.gradient} text-white flex items-center justify-center shadow-md shrink-0`}>
+          <theme.icon className="w-7 h-7 sm:w-8 sm:h-8" />
         </div>
-        <h1 className="text-2xl sm:text-3xl font-black leading-tight truncate">{game.title}</h1>
-        <p className="text-sm text-slate-600">{game.description}</p>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap gap-1.5 mb-1">
+            {gradeMeta && (
+              <Chip>
+                <AcademicCapIcon className="w-3 h-3" />
+                {gradeMeta.label}
+              </Chip>
+            )}
+            {subjectMeta && (
+              <Chip tone={theme.chip}>
+                <theme.icon className="w-3 h-3" />
+                {subjectMeta.label}
+              </Chip>
+            )}
+            <Chip tone="bg-white text-slate-700 border-slate-200">
+              <type.icon className="w-3 h-3" />
+              {type.label}
+            </Chip>
+            {game.cbc_topic && <Chip>{game.cbc_topic}</Chip>}
+            <Chip tone="bg-amber-100 text-amber-800 border-amber-200">{game.difficulty || 'easy'}</Chip>
+          </div>
+          <h1 className="font-display text-2xl sm:text-3xl font-black leading-tight truncate">{game.title}</h1>
+          {game.description && <p className="text-sm text-slate-600 line-clamp-2">{game.description}</p>}
+          <div className="mt-2 flex items-center gap-3 text-xs font-black text-slate-600">
+            {game.timer > 0 && (
+              <span className="inline-flex items-center gap-1"><ClockIcon className="w-3.5 h-3.5" />{game.timer}s</span>
+            )}
+            <span className="inline-flex items-center gap-1"><StarIcon className="w-3.5 h-3.5 text-amber-500" />{game.points} pts</span>
+          </div>
+        </div>
       </div>
     </header>
   )
 }
 
-function Chip({ children, tone = 'slate' }) {
-  const cls = tone === 'amber'
-    ? 'bg-amber-100 text-amber-800'
-    : 'bg-slate-100 text-slate-700'
+function Chip({ children, tone = 'bg-slate-100 text-slate-700 border-slate-200' }) {
   return (
-    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide ${cls}`}>
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide border ${tone}`}>
       {children}
     </span>
   )
@@ -120,15 +150,17 @@ function GameEngine({ game }) {
   if (game.type === 'memory_match') return <MemoryMatchGame game={game} />
   if (game.type === 'word_builder') return <WordBuilderGame game={game} />
   return (
-    <div className="rounded-3xl border-2 border-dashed border-slate-300 bg-white p-10 text-center">
-      <div className="text-5xl mb-3">🚧</div>
+    <div className="rounded-[20px] border-2 border-dashed border-slate-300 bg-white p-10 text-center">
+      <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-slate-200 to-slate-300 text-slate-500 flex items-center justify-center mb-3">
+        <PuzzlePieceIcon className="w-8 h-8" />
+      </div>
       <h2 className="text-xl font-black mb-1">Unknown game type</h2>
       <p className="text-slate-600 max-w-md mx-auto mb-5">
         This game is saved with <span className="font-mono">type="{game.type}"</span>
         but no engine is registered for it yet.
       </p>
-      <Link to="/games" className="inline-block px-5 py-3 rounded-xl font-black text-white bg-gradient-to-r from-amber-500 to-orange-500">
-        Back to all games
+      <Link to="/games" className="inline-flex items-center gap-1 px-5 py-3 rounded-xl font-black text-white bg-gradient-to-r from-amber-500 to-orange-500">
+        Back to all games <ArrowRightIcon className="w-4 h-4" />
       </Link>
     </div>
   )

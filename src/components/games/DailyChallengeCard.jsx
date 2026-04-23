@@ -4,6 +4,11 @@ import {
   getTodaysChallenge, getMyStreak, todaysDateId,
 } from '../../utils/dailyChallengeService'
 import { gradeByValue, subjectBySlug } from '../../utils/gamesService'
+import {
+  subjectTheme, gameTypeMeta,
+  SparklesIcon, FireIcon, StarIcon, ClockIcon, LockClosedIcon, RocketLaunchIcon,
+  AcademicCapIcon, TrophyIcon, PlayIcon,
+} from './gameIcons'
 
 /**
  * Big, kid-friendly banner for today's daily challenge. Sits at the top of
@@ -43,36 +48,52 @@ export default function DailyChallengeCard() {
 
   const grade = gradeByValue(game.grade)
   const subject = subjectBySlug(game.subject)
+  const theme = subjectTheme(game.subject)
+  const type = gameTypeMeta(game.type)
   const playedToday = streak.lastPlayedDate === todayId
   const countdown = msUntilMidnightUTC(now)
 
   return (
-    <section className="relative overflow-hidden rounded-[28px] border border-amber-200/70 shadow-[0_10px_40px_-12px_rgba(251,146,60,0.35)] mb-6 sm:mb-8 bg-gradient-to-br from-amber-50 via-rose-50 to-orange-100 animate-slide-in-soft">
+    <section className="relative overflow-hidden rounded-[24px] border border-amber-200/60 shadow-[0_10px_40px_-12px_rgba(251,146,60,0.35)] mb-6 sm:mb-8 bg-gradient-to-br from-amber-50 via-rose-50 to-orange-100 animate-slide-in-soft">
       {/* decorative blobs */}
       <div aria-hidden="true" className="absolute -top-16 -left-10 w-56 h-56 rounded-full bg-amber-200/50 blur-3xl" />
       <div aria-hidden="true" className="absolute -bottom-20 right-0 w-72 h-72 rounded-full bg-rose-200/40 blur-3xl" />
 
-      <div className="relative grid md:grid-cols-[1.4fr_1fr] gap-0">
+      <div className="relative grid md:grid-cols-[1.5fr_1fr] gap-0">
         {/* Left: content */}
         <div className="p-5 sm:p-7">
           <div className="flex flex-wrap items-center gap-2 mb-3">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 text-[10px] font-black uppercase tracking-wider text-amber-800 shadow-sm">
-              <span aria-hidden="true">⭐</span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/95 text-[10px] font-black uppercase tracking-wider text-amber-800 shadow-sm border border-amber-100">
+              <SparklesIcon className="w-3.5 h-3.5" />
               <span>Today's Daily Challenge</span>
             </span>
             <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-black text-amber-700/80">
-              <span aria-hidden="true">📅</span>
+              <ClockIcon className="w-3.5 h-3.5" />
               <span>{formatPrettyDate(todayId)}</span>
             </span>
           </div>
 
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black leading-tight text-slate-900">
+          <h2 className="font-display text-2xl sm:text-3xl lg:text-4xl font-black leading-tight text-slate-900">
             {game.title}
           </h2>
 
           <div className="flex flex-wrap gap-1.5 mt-3">
-            {grade && <Chip tone="amber">{grade.label}</Chip>}
-            {subject && <Chip tone="rose">{subject.emoji} {subject.label}</Chip>}
+            {grade && (
+              <Chip tone="amber">
+                <AcademicCapIcon className="w-3 h-3" />
+                {grade.label}
+              </Chip>
+            )}
+            {subject && (
+              <Chip tone="rose">
+                <theme.icon className="w-3 h-3" />
+                {subject.label}
+              </Chip>
+            )}
+            <Chip tone="white">
+              <type.icon className="w-3 h-3" />
+              {type.label}
+            </Chip>
             {game.cbc_topic && <Chip tone="emerald">{game.cbc_topic}</Chip>}
           </div>
 
@@ -83,11 +104,11 @@ export default function DailyChallengeCard() {
               to={`/games/play/${game.id}`}
               className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-black text-white bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-lg shadow-orange-500/25 hover:-translate-y-0.5 transition"
             >
-              <span>{playedToday ? 'Play Again' : "Play Today's Challenge"}</span>
-              <span aria-hidden="true">🚀</span>
+              <PlayIcon className="w-4 h-4" />
+              <span>{playedToday ? 'Play Again' : "Play Now"}</span>
             </Link>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <CountdownPill ms={countdown} label="Ends in" />
               <StreakBadge streak={streak} playedToday={playedToday} />
             </div>
@@ -96,30 +117,30 @@ export default function DailyChallengeCard() {
 
         {/* Right: mascot illustration panel */}
         <div className="relative hidden md:flex items-end justify-center p-5 sm:p-7">
-          <Mascot subject={subject} />
+          <Mascot theme={theme} />
         </div>
       </div>
     </section>
   )
 }
 
-function Mascot({ subject }) {
-  const emoji = subject?.emoji || '🤖'
+function Mascot({ theme }) {
+  const Icon = theme.icon
   return (
     <div className="relative w-full flex items-center justify-center">
       <div className="relative">
         {/* floating tiles around mascot */}
-        <div aria-hidden="true" className="absolute -top-4 -left-8 w-10 h-10 rounded-xl bg-white shadow-md rotate-[-8deg] flex items-center justify-center text-lg">
-          ✏️
+        <div aria-hidden="true" className="absolute -top-4 -left-10 w-11 h-11 rounded-xl bg-white shadow-md rotate-[-8deg] flex items-center justify-center text-amber-500">
+          <StarIcon className="w-5 h-5" />
         </div>
-        <div aria-hidden="true" className="absolute -top-6 right-0 w-10 h-10 rounded-xl bg-white shadow-md rotate-[10deg] flex items-center justify-center text-lg">
-          📚
+        <div aria-hidden="true" className="absolute -top-6 right-0 w-11 h-11 rounded-xl bg-white shadow-md rotate-[10deg] flex items-center justify-center text-sky-500">
+          <RocketLaunchIcon className="w-5 h-5" />
         </div>
-        <div aria-hidden="true" className="absolute bottom-2 -right-8 w-10 h-10 rounded-xl bg-white shadow-md rotate-[-6deg] flex items-center justify-center text-lg">
-          🎯
+        <div aria-hidden="true" className="absolute bottom-2 -right-10 w-11 h-11 rounded-xl bg-white shadow-md rotate-[-6deg] flex items-center justify-center text-emerald-500">
+          <TrophyIcon className="w-5 h-5" />
         </div>
-        <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-full bg-gradient-to-br from-indigo-400 via-sky-400 to-cyan-400 border-4 border-white shadow-xl flex items-center justify-center text-5xl sm:text-6xl">
-          <span aria-hidden="true">{emoji}</span>
+        <div className={`w-36 h-36 sm:w-44 sm:h-44 rounded-full bg-gradient-to-br ${theme.gradient} border-4 border-white shadow-xl flex items-center justify-center text-white`}>
+          <Icon className="w-16 h-16 sm:w-20 sm:h-20" />
         </div>
       </div>
     </div>
@@ -132,8 +153,8 @@ function CountdownPill({ ms, label = 'Ends in' }) {
   const mins = Math.floor((ms % 3_600_000) / 60_000)
   const text = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`
   return (
-    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 border border-amber-200 text-xs font-black text-amber-800 shadow-sm">
-      <span aria-hidden="true">⏳</span>
+    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/95 border border-amber-200 text-xs font-black text-amber-800 shadow-sm">
+      <ClockIcon className="w-3.5 h-3.5" />
       <span className="text-slate-500 font-bold">{label}</span>
       <span className="font-mono">{text}</span>
     </span>
@@ -145,25 +166,25 @@ function StreakBadge({ streak, playedToday }) {
     return (
       <Link
         to="/login"
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 border border-slate-200 text-xs font-black text-slate-700 hover:bg-white shadow-sm"
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/95 border border-slate-200 text-xs font-black text-slate-700 hover:bg-white shadow-sm transition"
       >
-        <span aria-hidden="true">🔒</span>
+        <LockClosedIcon className="w-3.5 h-3.5" />
         <span>Sign in for streaks</span>
       </Link>
     )
   }
   if (streak.streak === 0) {
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 border border-slate-200 text-xs font-black text-slate-600 shadow-sm">
-        <span aria-hidden="true">✨</span>
+      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/95 border border-slate-200 text-xs font-black text-slate-600 shadow-sm">
+        <SparklesIcon className="w-3.5 h-3.5 text-amber-500" />
         Start your streak
       </span>
     )
   }
   const onFire = streak.streak >= 3
   return (
-    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black shadow-sm ${onFire ? 'bg-rose-500 text-white' : 'bg-white text-amber-800 border border-amber-200'}`}>
-      <span aria-hidden="true">{onFire ? '🔥' : '⭐'}</span>
+    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black shadow-sm ${onFire ? 'bg-gradient-to-r from-rose-500 to-orange-500 text-white' : 'bg-white text-amber-800 border border-amber-200'}`}>
+      {onFire ? <FireIcon className="w-3.5 h-3.5" /> : <StarIcon className="w-3.5 h-3.5 text-amber-500" />}
       <span>{streak.streak}-day streak</span>
       {playedToday && <span className="opacity-80">· today ✓</span>}
     </span>
@@ -175,6 +196,7 @@ function Chip({ children, tone = 'slate' }) {
     amber:   'bg-amber-100 text-amber-800 border-amber-200',
     rose:    'bg-rose-100 text-rose-800 border-rose-200',
     emerald: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+    white:   'bg-white text-slate-700 border-slate-200',
     slate:   'bg-white text-slate-700 border-slate-200',
   }
   return (
@@ -186,7 +208,7 @@ function Chip({ children, tone = 'slate' }) {
 
 function Skeleton() {
   return (
-    <section className="rounded-[28px] border border-amber-200/70 bg-amber-50 p-6 mb-8">
+    <section className="rounded-[24px] border border-amber-200/70 bg-amber-50 p-6 mb-8">
       <div className="h-3 w-40 bg-amber-200 rounded animate-pulse mb-4"></div>
       <div className="flex gap-4">
         <div className="flex-1">
