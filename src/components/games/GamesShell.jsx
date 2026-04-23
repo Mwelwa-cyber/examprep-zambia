@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import {
+  HomeIcon, ClipboardDocumentListIcon, BookOpenIcon, PuzzlePieceIcon,
+  TrophyIcon, BellIcon, UserCircleIcon, SpeakerWaveIcon, SpeakerXMarkIcon,
+} from '@heroicons/react/24/outline'
 import { isMuted, toggleMute } from '../../utils/gameSounds'
 import { useAuth } from '../../contexts/AuthContext'
 
 /**
  * Shared chrome for every /games page. Provides the light-themed layout,
- * a sticky nav, and a breadcrumb strip.
- *
- * `crumbs` is an array of { label, to? } — the last one is unlinked.
+ * a sticky nav and a breadcrumb strip. All icons use Heroicons for visual
+ * consistency with the rest of the redesigned games surface.
  */
 export default function GamesShell({ crumbs = [], children, maxW = 'max-w-6xl' }) {
   const { currentUser, userProfile } = useAuth()
@@ -30,17 +33,18 @@ export default function GamesShell({ crumbs = [], children, maxW = 'max-w-6xl' }
                 loading="eager"
               />
             </picture>
-            <span className="hidden xs:inline px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide bg-amber-100 text-amber-800">
+            <span className="hidden xs:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide bg-amber-100 text-amber-800">
+              <PuzzlePieceIcon className="w-3 h-3" strokeWidth={2.5} />
               Games
             </span>
           </Link>
 
           {currentUser && (
             <div className="hidden md:flex items-center gap-1 text-sm font-bold text-slate-600">
-              <NavTab to="/dashboard" active={pathname === '/dashboard'}>Dashboard</NavTab>
-              <NavTab to="/exams"     active={pathname.startsWith('/exams')}>Exams</NavTab>
-              <NavTab to="/lessons"   active={pathname.startsWith('/lessons')}>Lessons</NavTab>
-              <NavTab to="/games"     active={onGames}>Games</NavTab>
+              <NavTab to="/dashboard" icon={HomeIcon} label="Dashboard" active={pathname === '/dashboard'} />
+              <NavTab to="/exams"     icon={ClipboardDocumentListIcon} label="Exams" active={pathname.startsWith('/exams')} />
+              <NavTab to="/lessons"   icon={BookOpenIcon} label="Lessons" active={pathname.startsWith('/lessons')} />
+              <NavTab to="/games"     icon={PuzzlePieceIcon} label="Games" active={onGames} />
             </div>
           )}
 
@@ -50,7 +54,7 @@ export default function GamesShell({ crumbs = [], children, maxW = 'max-w-6xl' }
               className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs sm:text-sm font-black bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200"
               title="Open live leaderboard"
             >
-              <span aria-hidden="true">🏆</span>
+              <TrophyIcon className="w-4 h-4" strokeWidth={2.25} />
               <span className="hidden sm:inline">Leaderboard</span>
             </Link>
             <NotificationBell />
@@ -68,7 +72,10 @@ export default function GamesShell({ crumbs = [], children, maxW = 'max-w-6xl' }
               </Link>
             ) : (
               <>
-                <Link to="/login" className="hidden sm:block text-sm font-bold text-slate-700 hover:text-slate-900 px-2">Sign in</Link>
+                <Link to="/login" className="hidden sm:inline-flex items-center gap-1 text-sm font-bold text-slate-700 hover:text-slate-900 px-2">
+                  <UserCircleIcon className="w-4 h-4" />
+                  Sign in
+                </Link>
                 <Link
                   to="/register"
                   className="px-3 py-2 sm:px-4 rounded-xl text-xs sm:text-sm font-black text-white bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-sm"
@@ -106,17 +113,18 @@ export default function GamesShell({ crumbs = [], children, maxW = 'max-w-6xl' }
   )
 }
 
-function NavTab({ to, children, active }) {
+function NavTab({ to, icon: Icon, label, active }) {
   return (
     <Link
       to={to}
       className={
         active
-          ? 'px-3 py-1.5 rounded-lg bg-amber-50 text-amber-800'
-          : 'px-3 py-1.5 rounded-lg hover:bg-slate-100 hover:text-slate-900'
+          ? 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-800'
+          : 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-slate-100 hover:text-slate-900'
       }
     >
-      {children}
+      <Icon className="w-4 h-4" strokeWidth={2} />
+      <span>{label}</span>
     </Link>
   )
 }
@@ -134,12 +142,12 @@ function NotificationBell() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="relative w-9 h-9 rounded-full border border-slate-200 bg-white text-lg flex items-center justify-center hover:bg-slate-50"
+        className="relative w-9 h-9 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 text-slate-600"
         aria-label="Notifications"
         title="Notifications"
       >
-        <span aria-hidden="true">🔔</span>
-        <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white" />
+        <BellIcon className="w-5 h-5" strokeWidth={2} />
+        <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white" />
       </button>
       {open && (
         <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-slate-200 bg-white shadow-xl p-3 z-30 animate-slide-in-soft">
@@ -163,15 +171,16 @@ function NotificationBell() {
 
 function MuteToggle() {
   const [muted, setMuted] = useState(() => isMuted())
+  const Icon = muted ? SpeakerXMarkIcon : SpeakerWaveIcon
   return (
     <button
       type="button"
       onClick={() => setMuted(toggleMute())}
-      className="w-9 h-9 rounded-full border border-slate-200 bg-white text-lg flex items-center justify-center hover:bg-slate-50"
+      className="w-9 h-9 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 text-slate-600"
       aria-label={muted ? 'Unmute game sounds' : 'Mute game sounds'}
       title={muted ? 'Unmute' : 'Mute'}
     >
-      <span aria-hidden="true">{muted ? '🔇' : '🔊'}</span>
+      <Icon className="w-5 h-5" strokeWidth={2} />
     </button>
   )
 }
