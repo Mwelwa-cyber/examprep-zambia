@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { subscribeToGlobalLeaderboard, formatWhen } from '../../utils/gamesService'
 import GamesShell from './GamesShell'
+import {
+  TrophyIcon, StarIcon, ArrowRightIcon, SparklesIcon, PuzzlePieceIcon,
+} from './gameIcons'
 
 /**
  * /games/leaderboard — live cross-game leaderboard.
@@ -28,12 +31,20 @@ export default function GlobalLeaderboard() {
 
   return (
     <GamesShell crumbs={[{ label: 'Live Leaderboard' }]}>
-      <header className="mb-6 flex items-center gap-4">
-        <div className="text-5xl sm:text-6xl">🏆</div>
-        <div>
-          <p className="text-xs font-black uppercase tracking-wider text-slate-500">Live · updates in real time</p>
-          <h1 className="text-3xl sm:text-4xl font-black">Global Leaderboard</h1>
-          <p className="text-sm text-slate-600">Top 25 scores across every CBC game.</p>
+      <header className="mb-6 rounded-[20px] border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-orange-50 p-5 sm:p-6 shadow-sm overflow-hidden relative">
+        <div aria-hidden="true" className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-amber-200/40 blur-3xl" />
+        <div className="relative flex items-center gap-4">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-500 text-white flex items-center justify-center shadow-lg shrink-0">
+            <TrophyIcon className="w-9 h-9 sm:w-10 sm:h-10" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-black uppercase tracking-wider text-amber-700 inline-flex items-center gap-1">
+              <SparklesIcon className="w-3.5 h-3.5" />
+              Live · updates in real time
+            </p>
+            <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-black leading-tight">Global Leaderboard</h1>
+            <p className="text-sm text-slate-600">Top 25 scores across every CBC game.</p>
+          </div>
         </div>
       </header>
 
@@ -43,7 +54,7 @@ export default function GlobalLeaderboard() {
       {!state.error && state.rows == null && <Skeleton />}
       {!state.error && state.rows != null && state.rows.length === 0 && <EmptyCard />}
       {!state.error && state.rows != null && state.rows.length > 0 && (
-        <ol className="bg-white rounded-3xl border-2 border-slate-200 overflow-hidden divide-y divide-slate-100">
+        <ol className="bg-white rounded-[20px] border border-slate-200 shadow-sm overflow-hidden divide-y divide-slate-100">
           {state.rows.map((r, i) => (
             <Row key={r.id} row={r} rank={i + 1} isMe={currentUser && r.userId === currentUser.uid} />
           ))}
@@ -51,7 +62,7 @@ export default function GlobalLeaderboard() {
       )}
 
       {!currentUser && (
-        <div className="mt-6 rounded-2xl border-2 border-amber-200 bg-amber-50 p-4 text-center">
+        <div className="mt-6 rounded-[16px] border border-amber-200 bg-amber-50 p-4 text-center">
           <p className="text-sm text-amber-900">
             Sign in to save your scores and appear on this board.{' '}
             <Link to="/login?redirect=/games/leaderboard" className="font-black underline">Sign in →</Link>
@@ -79,8 +90,8 @@ function WindowTabs({ value, onChange }) {
             onClick={() => onChange(t.key)}
             className={`px-4 py-2 rounded-full font-black text-sm shrink-0 transition ${
               active
-                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow'
-                : 'bg-white border-2 border-slate-200 text-slate-700 hover:border-slate-400'
+                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md'
+                : 'bg-white border border-slate-200 text-slate-700 hover:border-slate-400 shadow-sm'
             }`}
           >
             {t.label}
@@ -92,18 +103,16 @@ function WindowTabs({ value, onChange }) {
 }
 
 function Row({ row, rank, isMe }) {
-  const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : null
-  const rankCls = rank === 1
-    ? 'bg-amber-400 text-white'
-    : rank === 2
-      ? 'bg-slate-300 text-slate-800'
-      : rank === 3
-        ? 'bg-amber-700 text-white'
-        : 'bg-slate-100 text-slate-700'
+  const isTop3 = rank <= 3
+  const rankCls =
+    rank === 1 ? 'bg-gradient-to-br from-amber-400 to-yellow-500 text-white shadow-md' :
+    rank === 2 ? 'bg-gradient-to-br from-slate-300 to-slate-400 text-white shadow-md' :
+    rank === 3 ? 'bg-gradient-to-br from-orange-400 to-amber-600 text-white shadow-md' :
+                 'bg-slate-100 text-slate-700'
   return (
-    <li className={`flex items-center gap-3 px-4 sm:px-5 py-3 ${isMe ? 'bg-amber-50' : ''}`}>
+    <li className={`flex items-center gap-3 px-4 sm:px-5 py-3 transition ${isMe ? 'bg-amber-50/70' : ''}`}>
       <span className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center font-black ${rankCls}`}>
-        {medal || rank}
+        {isTop3 ? <TrophyIcon className="w-5 h-5" /> : rank}
       </span>
       <div className="flex-1 min-w-0">
         <div className="font-black truncate text-slate-900">
@@ -127,13 +136,15 @@ function Row({ row, rank, isMe }) {
 
 function EmptyCard() {
   return (
-    <div className="bg-white rounded-3xl border-2 border-dashed border-slate-300 p-10 text-center">
-      <div className="text-6xl mb-3">📭</div>
+    <div className="bg-white rounded-[20px] border-2 border-dashed border-slate-300 p-10 text-center">
+      <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 text-slate-500 flex items-center justify-center mb-3">
+        <TrophyIcon className="w-8 h-8" />
+      </div>
       <h3 className="text-xl font-black mb-1">No scores yet</h3>
       <p className="text-slate-600">Be the first to land on the board.</p>
       <div className="mt-5">
-        <Link to="/games" className="inline-block px-5 py-3 rounded-xl font-black text-white bg-gradient-to-r from-amber-500 to-orange-500">
-          Play a game →
+        <Link to="/games" className="inline-flex items-center gap-1 px-5 py-3 rounded-xl font-black text-white bg-gradient-to-r from-amber-500 to-orange-500 shadow-md hover:from-amber-600 hover:to-orange-600 transition">
+          Play a game <ArrowRightIcon className="w-4 h-4" />
         </Link>
       </div>
     </div>
@@ -143,7 +154,7 @@ function EmptyCard() {
 function ErrorCard({ error }) {
   const isIndex = /index|inadequate|FAILED_PRECONDITION/i.test(String(error))
   return (
-    <div className="bg-white rounded-3xl border-2 border-rose-200 p-6">
+    <div className="bg-white rounded-[20px] border border-rose-200 p-6 shadow-sm">
       <p className="font-black text-rose-700 mb-1">Live leaderboard isn't available right now.</p>
       <p className="text-sm text-slate-700">
         {isIndex
@@ -156,7 +167,7 @@ function ErrorCard({ error }) {
 
 function Skeleton() {
   return (
-    <div className="bg-white rounded-3xl border-2 border-slate-200 divide-y divide-slate-100">
+    <div className="bg-white rounded-[20px] border border-slate-200 divide-y divide-slate-100 shadow-sm">
       {Array.from({ length: 8 }).map((_, i) => (
         <div key={i} className="flex items-center gap-3 px-5 py-3">
           <div className="w-10 h-10 rounded-xl bg-slate-100 animate-pulse"></div>
