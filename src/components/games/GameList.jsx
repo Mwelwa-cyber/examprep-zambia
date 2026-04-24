@@ -1,35 +1,33 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { gradeByValue, listGames, subjectBySlug } from '../../utils/gamesService'
+import { SparklesIcon } from '@heroicons/react/24/solid'
 import { getFallbackGames } from '../../data/gamesSeed'
+import { gradeByValue, listGames, subjectBySlug } from '../../utils/gamesService'
 import GamesShell from './GamesShell'
 import {
-  subjectTheme, gameTypeMeta,
-  ClockIcon, StarIcon, ArrowRightIcon, SparklesIcon, PuzzlePieceIcon,
-} from './gameIcons'
-
-const DIFFICULTY_CHIP = {
-  easy:   'bg-emerald-100 text-emerald-800 border-emerald-200',
-  medium: 'bg-amber-100 text-amber-800 border-amber-200',
-  hard:   'bg-rose-100 text-rose-800 border-rose-200',
-}
+  GameDiscoveryCard,
+  GamesSectionHeading,
+  IconBubble,
+  MetaPill,
+  getGameStatusBadge,
+  getSubjectTheme,
+} from './gamesUi'
 
 /**
- * /games/g/:grade/:subject — Step 3: list of games for the chosen
- * grade + subject. Reads live Firestore, falls back to the local seed
- * so the UI always shows something even before an admin import.
+ * /games/g/:grade/:subject — discovery page for the chosen grade + subject.
+ * Keeps the same Firestore reads while upgrading the browse experience.
  */
 export default function GameList() {
   const { grade, subject } = useParams()
   const gradeMeta = gradeByValue(grade)
   const subjectMeta = subjectBySlug(subject)
-
   const [games, setGames] = useState(null)
-  const [source, setSource] = useState('live') // 'live' | 'fallback'
+  const [source, setSource] = useState('live')
 
   useEffect(() => {
     if (!gradeMeta || !subjectMeta) return
     document.title = `${gradeMeta.label} ${subjectMeta.label} Games — ZedExams`
+
     let cancelled = false
     async function load() {
       const live = await listGames({ grade: gradeMeta.value, subject: subjectMeta.slug })
@@ -38,11 +36,11 @@ export default function GameList() {
         setGames(live)
         setSource('live')
       } else {
-        const fb = getFallbackGames({ grade: gradeMeta.value, subject: subjectMeta.slug })
-        setGames(fb)
+        setGames(getFallbackGames({ grade: gradeMeta.value, subject: subjectMeta.slug }))
         setSource('fallback')
       }
     }
+
     load()
     return () => { cancelled = true }
   }, [gradeMeta, subjectMeta])
@@ -50,31 +48,41 @@ export default function GameList() {
   if (!gradeMeta) return <Navigate to="/games" replace />
   if (!subjectMeta) return <Navigate to={`/games/g/${gradeMeta.value}`} replace />
 
-  const theme = subjectTheme(subjectMeta.slug)
+  const subjectTheme = getSubjectTheme(subjectMeta.slug)
 
   return (
-    <GamesShell crumbs={[
-      { label: gradeMeta.label, to: `/games/g/${gradeMeta.value}` },
-      { label: subjectMeta.label },
-    ]}>
-      <header className="mb-6 rounded-[20px] border border-slate-200 bg-white p-5 sm:p-6 shadow-sm flex items-center gap-4 overflow-hidden relative">
-        <div aria-hidden="true" className={`absolute -top-16 -right-16 w-56 h-56 rounded-full opacity-20 ${theme.blob} blur-2xl`} />
-        <div className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br ${theme.gradient} text-white flex items-center justify-center shadow-md shrink-0`}>
-          <theme.icon className="w-9 h-9 sm:w-10 sm:h-10" />
+    <GamesShell
+      crumbs={[
+        { label: gradeMeta.label, to: `/games/g/${gradeMeta.value}` },
+        { label: subjectMeta.label },
+      ]}
+    >
+      <section className={`mb-8 overflow-hidden rounded-[20px] border ${subjectTheme.border} bg-gradient-to-br ${subjectTheme.gradient} p-6 shadow-[0_24px_60px_-34px_rgba(15,23,42,0.2)] sm:p-7`}>
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <MetaPill icon={SparklesIcon} label={gradeMeta.label} />
+              <MetaPill icon={subjectTheme.icon} label={subjectMeta.label} />
+            </div>
+            <div className="mt-5 flex items-start gap-4">
+              <IconBubble icon={subjectTheme.icon} theme={subjectTheme} size="h-14 w-14" iconClassName="h-7 w-7" />
+              <div>
+                <GamesSectionHeading
+                  eyebrow="Discover games"
+                  title={`${subjectMeta.label} for ${gradeMeta.label}`}
+                  description="Browse colourful game cards with clear points, duration, and type labels before you jump into play."
+                />
+              </div>
+            </div>
+          </div>
+
+          {games && games.length > 0 && (
+            <div className="rounded-2xl bg-white/75 px-4 py-3 text-sm font-bold text-slate-700 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.25)]">
+              {games.length} game{games.length === 1 ? '' : 's'} ready now
+            </div>
+          )}
         </div>
-        <div className="relative flex-1 min-w-0">
-          <p className="text-[11px] font-black uppercase tracking-wider text-slate-500 inline-flex items-center gap-1">
-            <SparklesIcon className="w-3.5 h-3.5 text-amber-500" />
-            Step 3 of 4 · Choose a game
-          </p>
-          <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-black leading-tight">
-            {gradeMeta.label} · {subjectMeta.label}
-          </h1>
-          <p className="text-sm text-slate-600 mt-1">
-            {games == null ? 'Loading games…' : games.length === 0 ? 'No games yet — we\'re cooking some up.' : `${games.length} ${games.length === 1 ? 'game' : 'games'} ready to play.`}
-          </p>
-        </div>
-      </header>
+      </section>
 
       {games == null && <SkeletonGrid />}
 
@@ -85,15 +93,30 @@ export default function GameList() {
       {games != null && games.length > 0 && (
         <>
           {source === 'fallback' && (
-            <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 px-4 py-2.5 text-sm font-bold">
-              Showing offline preview — an admin can run{' '}
-              <Link to="/admin/games-seed" className="underline">Games Seed Importer</Link>{' '}
-              to publish these to Firestore.
+            <div className="mb-5 rounded-[20px] border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-5 py-4 text-sm text-amber-900 shadow-[0_18px_40px_-30px_rgba(245,158,11,0.22)]">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-black">Preview mode is active.</p>
+                  <p className="mt-1 leading-6 text-amber-800">
+                    These games are showing from the bundled fallback list until the live collection is published.
+                  </p>
+                </div>
+                <Link to="/admin/games-seed" className="font-black underline">
+                  Open Games Seed Importer
+                </Link>
+              </div>
             </div>
           )}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {games.map((g, i) => (
-              <GameCard key={g.id} game={g} subjectMeta={subjectMeta} badge={i === 0 ? 'Popular' : i === 1 ? 'New' : null} />
+
+          <div className="grid gap-4 lg:grid-cols-3">
+            {games.map((game, index) => (
+              <GameDiscoveryCard
+                key={game.id}
+                game={game}
+                badge={getGameStatusBadge(game, index, games[0]?.id)}
+                variant={index === 0 ? 'featured' : 'standard'}
+                showRating
+              />
             ))}
           </div>
         </>
@@ -102,80 +125,22 @@ export default function GameList() {
   )
 }
 
-function GameCard({ game, subjectMeta, badge }) {
-  const theme = subjectTheme(subjectMeta?.slug)
-  const type = gameTypeMeta(game.type)
-  const badgeStyle = {
-    Popular: 'bg-rose-100 text-rose-800 border-rose-200',
-    New:     'bg-sky-100 text-sky-800 border-sky-200',
-    Recommended: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  }[badge] || null
-  return (
-    <Link
-      to={`/games/play/${game.id}`}
-      className={`group relative rounded-[20px] border ${theme.ring} bg-gradient-to-br ${theme.soft} p-5 shadow-sm hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.99] transition overflow-hidden`}
-    >
-      <div aria-hidden="true" className={`absolute -top-16 -right-16 w-40 h-40 rounded-full opacity-25 ${theme.blob} blur-2xl`} />
-
-      <div className="relative flex items-start justify-between gap-2">
-        <div className="flex items-start gap-3 flex-1 min-w-0">
-          <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${theme.gradient} text-white flex items-center justify-center shadow-md shrink-0`}>
-            <theme.icon className="w-6 h-6" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-display font-black text-lg leading-tight text-slate-900 line-clamp-2">{game.title}</h3>
-            <div className="flex items-center gap-1 mt-1 text-[10px] font-black uppercase tracking-wider text-slate-500">
-              <type.icon className="w-3 h-3" />
-              <span>{type.label}</span>
-            </div>
-          </div>
-        </div>
-        <div className="flex flex-col items-end gap-1 shrink-0">
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide border ${DIFFICULTY_CHIP[game.difficulty] || 'bg-slate-100 text-slate-700 border-slate-200'}`}>
-            {game.difficulty || 'easy'}
-          </span>
-          {badgeStyle && (
-            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide border ${badgeStyle}`}>
-              {badge}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {game.cbc_topic && (
-        <p className="relative text-[11px] font-black uppercase tracking-wider text-slate-500 mt-3">
-          CBC · {game.cbc_topic}
-        </p>
-      )}
-      {game.description && (
-        <p className="relative mt-2 text-sm text-slate-700 line-clamp-2">{game.description}</p>
-      )}
-
-      <div className="relative mt-4 flex items-center justify-between text-xs font-black">
-        <span className="inline-flex items-center gap-2 text-slate-600">
-          <span className="inline-flex items-center gap-1"><ClockIcon className="w-3.5 h-3.5" />{game.timer}s</span>
-          <span className="inline-flex items-center gap-1"><StarIcon className="w-3.5 h-3.5 text-amber-500" />{game.points} pts</span>
-        </span>
-        <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-white bg-gradient-to-r ${theme.gradient} shadow-sm group-hover:translate-x-0.5 transition`}>
-          Play <ArrowRightIcon className="w-3.5 h-3.5" />
-        </span>
-      </div>
-    </Link>
-  )
-}
-
 function SkeletonGrid() {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="rounded-[20px] border border-slate-200 bg-white p-5">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 rounded-2xl bg-slate-200 animate-pulse" />
-            <div className="h-4 w-2/3 bg-slate-200 rounded animate-pulse" />
+    <div className="grid gap-4 lg:grid-cols-3">
+      {Array.from({ length: 3 }).map((_, index) => (
+        <div
+          key={index}
+          className={`rounded-[20px] border border-slate-100 bg-white/82 p-5 shadow-[0_24px_60px_-34px_rgba(15,23,42,0.16)] ${index === 0 ? 'lg:col-span-2 sm:p-7' : ''}`}
+        >
+          <div className="h-12 w-12 rounded-full bg-slate-100 animate-pulse" />
+          <div className="mt-5 h-7 w-3/4 rounded-2xl bg-slate-100 animate-pulse" />
+          <div className="mt-3 h-4 w-full rounded-full bg-slate-100 animate-pulse" />
+          <div className="mt-2 h-4 w-5/6 rounded-full bg-slate-100 animate-pulse" />
+          <div className="mt-5 flex gap-2">
+            <div className="h-8 w-24 rounded-full bg-slate-100 animate-pulse" />
+            <div className="h-8 w-24 rounded-full bg-slate-100 animate-pulse" />
           </div>
-          <div className="h-3 w-1/3 bg-slate-100 rounded animate-pulse mb-4"></div>
-          <div className="h-3 bg-slate-100 rounded animate-pulse mb-2"></div>
-          <div className="h-3 bg-slate-100 rounded animate-pulse w-5/6"></div>
         </div>
       ))}
     </div>
@@ -183,19 +148,23 @@ function SkeletonGrid() {
 }
 
 function EmptyState({ gradeMeta, subjectMeta }) {
+  const subjectTheme = getSubjectTheme(subjectMeta.slug)
+
   return (
-    <div className="rounded-[20px] border-2 border-dashed border-slate-300 bg-white p-10 text-center">
-      <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 text-slate-500 flex items-center justify-center mb-3">
-        <PuzzlePieceIcon className="w-8 h-8" />
+    <div className="rounded-[20px] border border-dashed border-slate-300 bg-white/82 p-10 text-center shadow-[0_24px_60px_-34px_rgba(15,23,42,0.16)]">
+      <div className="mx-auto flex w-full max-w-md flex-col items-center">
+        <IconBubble icon={subjectTheme.icon} theme={subjectTheme} size="h-16 w-16" iconClassName="h-8 w-8" />
+        <h2 className="mt-5 text-2xl font-black text-slate-900">No games are published here yet</h2>
+        <p className="mt-3 text-base leading-7 text-slate-600">
+          {subjectMeta.label} for {gradeMeta.label} will appear here as soon as the next pack is published.
+        </p>
+        <Link
+          to={`/games/g/${gradeMeta.value}`}
+          className="mt-6 inline-flex items-center justify-center rounded-full bg-slate-900 px-5 py-3 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-slate-800 active:scale-[0.98]"
+        >
+          Pick a different subject
+        </Link>
       </div>
-      <h2 className="font-display text-xl font-black mb-1">No games published yet</h2>
-      <p className="text-slate-600 max-w-md mx-auto mb-5">
-        There are no {subjectMeta.label} games for {gradeMeta.label} yet. We're
-        adding fresh packs every week.
-      </p>
-      <Link to={`/games/g/${gradeMeta.value}`} className="inline-flex items-center gap-1 px-5 py-3 rounded-xl font-black text-white bg-gradient-to-r from-amber-500 to-orange-500 shadow-md hover:from-amber-600 hover:to-orange-600 transition">
-        Pick a different subject <ArrowRightIcon className="w-4 h-4" />
-      </Link>
     </div>
   )
 }

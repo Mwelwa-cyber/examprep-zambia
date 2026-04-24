@@ -1,238 +1,241 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  getTodaysChallenge, getMyStreak, todaysDateId,
-} from '../../utils/dailyChallengeService'
-import { gradeByValue, subjectBySlug } from '../../utils/gamesService'
+  ClockIcon,
+  FireIcon,
+  PlayIcon,
+  SparklesIcon,
+  StarIcon,
+  TrophyIcon,
+} from '@heroicons/react/24/solid'
+import { gradeByValue } from '../../utils/gamesService'
 import {
-  subjectTheme, gameTypeMeta,
-  SparklesIcon, FireIcon, StarIcon, ClockIcon, LockClosedIcon, RocketLaunchIcon,
-  AcademicCapIcon, TrophyIcon, PlayIcon,
-} from './gameIcons'
+  IconBubble,
+  MetaPill,
+  getGameTypeTheme,
+  getSubjectTheme,
+} from './gamesUi'
 
 /**
- * Big, kid-friendly banner for today's daily challenge. Sits at the top of
- * the GamesHub. Shows the featured game, a streak counter (when signed in),
- * a countdown until midnight UTC, and a CTA that drops the pupil straight
- * into the play screen.
+ * Featured hero for the Games hub. Purely presentational — the data is
+ * loaded by GamesHub so we can reuse it across stats and recommendations.
  */
-export default function DailyChallengeCard() {
-  const [state, setState] = useState({ loading: true })
-  const [streak, setStreak] = useState({ streak: 0, longestStreak: 0, signedIn: false })
-  const [now, setNow] = useState(() => new Date())
-  const todayId = todaysDateId()
+export default function DailyChallengeCard({ challenge, streak, loading }) {
+  const [timeLeft, setTimeLeft] = useState(() => formatCountdown(getMsUntilNextUtcMidnight()))
 
   useEffect(() => {
-    let cancelled = false
-    Promise.all([getTodaysChallenge(), getMyStreak()])
-      .then(([challenge, s]) => {
-        if (cancelled) return
-        setState({ loading: false, ...challenge })
-        setStreak(s)
-      })
-      .catch(() => {
-        if (cancelled) return
-        setState({ loading: false, game: null })
-      })
-    return () => { cancelled = true }
+    const timer = setInterval(() => {
+      setTimeLeft(formatCountdown(getMsUntilNextUtcMidnight()))
+    }, 1000)
+    return () => clearInterval(timer)
   }, [])
 
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 60_000)
-    return () => clearInterval(t)
-  }, [])
+  if (loading) return <Skeleton />
+  if (!challenge?.game) return null
 
-  if (state.loading) return <Skeleton />
-  const game = state.game
-  if (!game) return null
-
+  const game = challenge.game
   const grade = gradeByValue(game.grade)
-  const subject = subjectBySlug(game.subject)
-  const theme = subjectTheme(game.subject)
-  const type = gameTypeMeta(game.type)
-  const playedToday = streak.lastPlayedDate === todayId
-  const countdown = msUntilMidnightUTC(now)
+  const subjectTheme = getSubjectTheme(game.subject)
+  const typeTheme = getGameTypeTheme(game.type)
+  const playedToday = streak?.lastPlayedDate === challenge.dateId
 
   return (
-    <section className="relative overflow-hidden rounded-[24px] border border-amber-200/60 shadow-[0_10px_40px_-12px_rgba(251,146,60,0.35)] mb-6 sm:mb-8 bg-gradient-to-br from-amber-50 via-rose-50 to-orange-100 animate-slide-in-soft">
-      {/* decorative blobs */}
-      <div aria-hidden="true" className="absolute -top-16 -left-10 w-56 h-56 rounded-full bg-amber-200/50 blur-3xl" />
-      <div aria-hidden="true" className="absolute -bottom-20 right-0 w-72 h-72 rounded-full bg-rose-200/40 blur-3xl" />
+    <section className={`relative mb-10 overflow-hidden rounded-[20px] border ${subjectTheme.border} bg-gradient-to-br ${subjectTheme.gradient} p-6 shadow-[0_28px_80px_-36px_rgba(15,23,42,0.28)] sm:p-8`}>
+      <div className="absolute inset-y-0 right-0 w-48 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.8),_transparent_64%)]" />
+      <div className="absolute -top-12 right-10 h-36 w-36 rounded-full bg-white/35 blur-3xl" />
+      <div className="absolute bottom-0 left-0 h-32 w-32 rounded-full bg-white/25 blur-3xl" />
 
-      <div className="relative grid md:grid-cols-[1.5fr_1fr] gap-0">
-        {/* Left: content */}
-        <div className="p-5 sm:p-7">
-          <div className="flex flex-wrap items-center gap-2 mb-3">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/95 text-[10px] font-black uppercase tracking-wider text-amber-800 shadow-sm border border-amber-100">
-              <SparklesIcon className="w-3.5 h-3.5" />
-              <span>Today's Daily Challenge</span>
+      <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.9fr)] lg:items-center">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/88 px-4 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-slate-700">
+              <SparklesIcon className="h-4 w-4 text-amber-500" />
+              Daily challenge
             </span>
-            <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-black text-amber-700/80">
-              <ClockIcon className="w-3.5 h-3.5" />
-              <span>{formatPrettyDate(todayId)}</span>
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1.5 text-xs font-bold text-slate-600">
+              <ClockIcon className="h-4 w-4" />
+              Refreshes in {timeLeft}
             </span>
+            {challenge.source && (
+              <span className="inline-flex rounded-full bg-white/70 px-3 py-1.5 text-xs font-bold text-slate-600">
+                {challenge.source === 'firestore-override' ? 'Teacher pick' : 'Daily rotation'}
+              </span>
+            )}
           </div>
 
-          <h2 className="font-display text-2xl sm:text-3xl lg:text-4xl font-black leading-tight text-slate-900">
+          <div className="mt-5 flex flex-wrap gap-2">
+            {grade && <MetaPill icon={SparklesIcon} label={grade.label} />}
+            <MetaPill icon={subjectTheme.icon} label={subjectTheme.label} />
+            <MetaPill icon={typeTheme.icon} label={typeTheme.label} />
+            <MetaPill icon={StarIcon} label={`${Number(game.points) || 0} pts`} />
+          </div>
+
+          <h1 className="mt-5 max-w-2xl text-3xl font-black tracking-tight text-slate-900 sm:text-4xl lg:text-[2.8rem] lg:leading-[1.02]">
             {game.title}
-          </h2>
+          </h1>
+          <p className="mt-4 max-w-2xl text-base leading-7 text-slate-700 sm:text-lg">
+            {game.description}
+          </p>
 
-          <div className="flex flex-wrap gap-1.5 mt-3">
-            {grade && (
-              <Chip tone="amber">
-                <AcademicCapIcon className="w-3 h-3" />
-                {grade.label}
-              </Chip>
-            )}
-            {subject && (
-              <Chip tone="rose">
-                <theme.icon className="w-3 h-3" />
-                {subject.label}
-              </Chip>
-            )}
-            <Chip tone="white">
-              <type.icon className="w-3 h-3" />
-              {type.label}
-            </Chip>
-            {game.cbc_topic && <Chip tone="emerald">{game.cbc_topic}</Chip>}
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <StatusCard
+              icon={FireIcon}
+              title={streak?.signedIn ? `${streak.streak || 0}-day streak` : 'Track your streak'}
+              description={
+                streak?.signedIn
+                  ? playedToday
+                    ? 'Challenge completed today. Come back tomorrow to keep the run alive.'
+                    : streak?.streak
+                      ? `One more win extends your best run of ${streak.longestStreak || streak.streak} days.`
+                      : 'A fresh streak starts the moment you clear today’s challenge.'
+                  : 'Sign in to save progress, badges, and streaks across every game.'
+              }
+            />
+            <StatusCard
+              icon={TrophyIcon}
+              title={playedToday ? 'Already cleared today' : 'Ready for today'}
+              description={
+                playedToday
+                  ? 'Replay it for extra practice and sharpen your speed.'
+                  : 'Beat the daily spotlight to push your points, rank, and badges forward.'
+              }
+            />
           </div>
 
-          <p className="text-sm sm:text-base text-slate-700 mt-3 line-clamp-2">{game.description}</p>
-
-          <div className="mt-5 flex flex-wrap items-center gap-3">
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
             <Link
               to={`/games/play/${game.id}`}
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-black text-white bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-lg shadow-orange-500/25 hover:-translate-y-0.5 transition"
+              className={`inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r ${subjectTheme.strongGradient} px-6 py-3.5 text-base font-black text-white shadow-[0_20px_40px_-24px_rgba(15,23,42,0.45)] transition hover:-translate-y-0.5 active:scale-[0.98]`}
             >
-              <PlayIcon className="w-4 h-4" />
-              <span>{playedToday ? 'Play Again' : "Play Now"}</span>
+              <PlayIcon className="h-5 w-5" />
+              {playedToday ? 'Play again' : 'Play now'}
             </Link>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <CountdownPill ms={countdown} label="Ends in" />
-              <StreakBadge streak={streak} playedToday={playedToday} />
-            </div>
+            <p className="text-sm font-medium text-slate-600">
+              {streak?.signedIn ? 'Scores save automatically after each finished round.' : 'You can play without signing in and save later.'}
+            </p>
           </div>
         </div>
 
-        {/* Right: mascot illustration panel */}
-        <div className="relative hidden md:flex items-end justify-center p-5 sm:p-7">
-          <Mascot theme={theme} />
-        </div>
+        <HeroArtwork subjectTheme={subjectTheme} />
       </div>
     </section>
   )
 }
 
-function Mascot({ theme }) {
-  const Icon = theme.icon
+function StatusCard({ icon, title, description }) {
+  const Icon = icon
+
   return (
-    <div className="relative w-full flex items-center justify-center">
-      <div className="relative">
-        {/* floating tiles around mascot */}
-        <div aria-hidden="true" className="absolute -top-4 -left-10 w-11 h-11 rounded-xl bg-white shadow-md rotate-[-8deg] flex items-center justify-center text-amber-500">
-          <StarIcon className="w-5 h-5" />
-        </div>
-        <div aria-hidden="true" className="absolute -top-6 right-0 w-11 h-11 rounded-xl bg-white shadow-md rotate-[10deg] flex items-center justify-center text-sky-500">
-          <RocketLaunchIcon className="w-5 h-5" />
-        </div>
-        <div aria-hidden="true" className="absolute bottom-2 -right-10 w-11 h-11 rounded-xl bg-white shadow-md rotate-[-6deg] flex items-center justify-center text-emerald-500">
-          <TrophyIcon className="w-5 h-5" />
-        </div>
-        <div className={`w-36 h-36 sm:w-44 sm:h-44 rounded-full bg-gradient-to-br ${theme.gradient} border-4 border-white shadow-xl flex items-center justify-center text-white`}>
-          <Icon className="w-16 h-16 sm:w-20 sm:h-20" />
+    <div className="rounded-2xl bg-white/72 p-4 shadow-[0_18px_36px_-30px_rgba(15,23,42,0.25)] backdrop-blur-sm">
+      <div className="flex items-start gap-3">
+        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-900 text-white">
+          <Icon className="h-5 w-5" />
+        </span>
+        <div>
+          <h2 className="text-sm font-black uppercase tracking-wide text-slate-900">{title}</h2>
+          <p className="mt-1 text-sm leading-6 text-slate-600">{description}</p>
         </div>
       </div>
     </div>
   )
 }
 
-function CountdownPill({ ms, label = 'Ends in' }) {
-  if (ms == null || ms <= 0) return null
-  const hours = Math.floor(ms / 3_600_000)
-  const mins = Math.floor((ms % 3_600_000) / 60_000)
-  const text = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`
+function HeroArtwork({ subjectTheme }) {
   return (
-    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/95 border border-amber-200 text-xs font-black text-amber-800 shadow-sm">
-      <ClockIcon className="w-3.5 h-3.5" />
-      <span className="text-slate-500 font-bold">{label}</span>
-      <span className="font-mono">{text}</span>
-    </span>
+    <div className="relative mx-auto flex w-full max-w-[23rem] items-center justify-center self-stretch">
+      <div className={`absolute inset-8 rounded-full bg-gradient-to-br ${subjectTheme.strongGradient} opacity-18 blur-3xl`} />
+      <div className="relative aspect-[4/4.2] w-full overflow-hidden rounded-[28px] border border-white/70 bg-white/72 p-6 shadow-[0_24px_70px_-34px_rgba(15,23,42,0.22)] backdrop-blur-xl">
+        <div className="absolute -right-6 top-6 h-28 w-28 rounded-full bg-amber-200/55 blur-2xl" />
+        <div className="absolute left-0 top-16 h-24 w-24 rounded-full bg-sky-200/40 blur-2xl" />
+        <div className="absolute bottom-0 right-6 h-28 w-28 rounded-full bg-emerald-200/45 blur-2xl" />
+
+        <div className="relative flex h-full flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <IconBubble icon={subjectTheme.icon} theme={subjectTheme} size="h-14 w-14" iconClassName="h-7 w-7" />
+            <span className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-white">
+              <FireIcon className="h-4 w-4 text-amber-300" />
+              Daily streak
+            </span>
+          </div>
+
+          <div className="grid gap-3">
+            <IllustrationStat
+              icon={SparklesIcon}
+              label="Boost learning"
+              note="Short, focused challenge"
+            />
+            <IllustrationStat
+              icon={TrophyIcon}
+              label="Earn leaderboard points"
+              note="Fast wins feel rewarding"
+            />
+            <IllustrationStat
+              icon={PlayIcon}
+              label="One tap to jump in"
+              note="Built for quick mobile play"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 
-function StreakBadge({ streak, playedToday }) {
-  if (!streak.signedIn) {
-    return (
-      <Link
-        to="/login"
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/95 border border-slate-200 text-xs font-black text-slate-700 hover:bg-white shadow-sm transition"
-      >
-        <LockClosedIcon className="w-3.5 h-3.5" />
-        <span>Sign in for streaks</span>
-      </Link>
-    )
-  }
-  if (streak.streak === 0) {
-    return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/95 border border-slate-200 text-xs font-black text-slate-600 shadow-sm">
-        <SparklesIcon className="w-3.5 h-3.5 text-amber-500" />
-        Start your streak
+function IllustrationStat({ icon, label, note }) {
+  const Icon = icon
+
+  return (
+    <div className="flex items-center gap-3 rounded-2xl bg-white/78 p-3">
+      <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-white">
+        <Icon className="h-5 w-5" />
       </span>
-    )
-  }
-  const onFire = streak.streak >= 3
-  return (
-    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black shadow-sm ${onFire ? 'bg-gradient-to-r from-rose-500 to-orange-500 text-white' : 'bg-white text-amber-800 border border-amber-200'}`}>
-      {onFire ? <FireIcon className="w-3.5 h-3.5" /> : <StarIcon className="w-3.5 h-3.5 text-amber-500" />}
-      <span>{streak.streak}-day streak</span>
-      {playedToday && <span className="opacity-80">· today ✓</span>}
-    </span>
-  )
-}
-
-function Chip({ children, tone = 'slate' }) {
-  const tones = {
-    amber:   'bg-amber-100 text-amber-800 border-amber-200',
-    rose:    'bg-rose-100 text-rose-800 border-rose-200',
-    emerald: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-    white:   'bg-white text-slate-700 border-slate-200',
-    slate:   'bg-white text-slate-700 border-slate-200',
-  }
-  return (
-    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wide border ${tones[tone] || tones.slate}`}>
-      {children}
-    </span>
+      <div>
+        <p className="text-sm font-black text-slate-900">{label}</p>
+        <p className="text-xs font-medium text-slate-500">{note}</p>
+      </div>
+    </div>
   )
 }
 
 function Skeleton() {
   return (
-    <section className="rounded-[24px] border border-amber-200/70 bg-amber-50 p-6 mb-8">
-      <div className="h-3 w-40 bg-amber-200 rounded animate-pulse mb-4"></div>
-      <div className="flex gap-4">
-        <div className="flex-1">
-          <div className="h-6 w-3/4 bg-amber-200 rounded animate-pulse mb-3"></div>
-          <div className="h-3 w-1/2 bg-amber-200 rounded animate-pulse mb-4"></div>
-          <div className="h-10 w-40 bg-amber-200 rounded-xl animate-pulse"></div>
+    <section className="mb-10 overflow-hidden rounded-[20px] border border-amber-100 bg-gradient-to-br from-amber-100 via-orange-50 to-white p-6 sm:p-8">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.9fr)]">
+        <div className="space-y-4">
+          <div className="h-8 w-40 rounded-full bg-white/80 animate-pulse" />
+          <div className="h-6 w-52 rounded-full bg-white/70 animate-pulse" />
+          <div className="h-14 w-full max-w-xl rounded-3xl bg-white/70 animate-pulse" />
+          <div className="h-6 w-full max-w-2xl rounded-full bg-white/65 animate-pulse" />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="h-28 rounded-2xl bg-white/70 animate-pulse" />
+            <div className="h-28 rounded-2xl bg-white/70 animate-pulse" />
+          </div>
+          <div className="h-12 w-40 rounded-full bg-white/80 animate-pulse" />
         </div>
-        <div className="w-36 h-36 rounded-full bg-amber-200 animate-pulse hidden md:block" />
+        <div className="h-80 rounded-[28px] bg-white/75 animate-pulse" />
       </div>
     </section>
   )
 }
 
-function msUntilMidnightUTC(now = new Date()) {
-  const next = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1)
+function getMsUntilNextUtcMidnight() {
+  const now = new Date()
+  const next = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate() + 1,
+    0,
+    0,
+    0,
+    0,
+  )
   return Math.max(0, next - now.getTime())
 }
 
-function formatPrettyDate(dateId) {
-  try {
-    const [y, m, d] = dateId.split('-').map(Number)
-    const date = new Date(Date.UTC(y, m - 1, d))
-    return date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric', year: 'numeric' })
-  } catch {
-    return dateId
-  }
+function formatCountdown(ms) {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000))
+  const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, '0')
+  const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0')
+  const seconds = String(totalSeconds % 60).padStart(2, '0')
+  return `${hours}:${minutes}:${seconds}`
 }

@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
+import { PuzzlePieceIcon, SparklesIcon } from '@heroicons/react/24/solid'
 import {
-  gradeByValue, subjectBySlug, getGame,
+  getGame,
+  gradeByValue,
+  subjectBySlug,
 } from '../../utils/gamesService'
 import { getFallbackGame } from '../../data/gamesSeed'
 import GamesShell from './GamesShell'
@@ -9,15 +12,14 @@ import TimedQuizGame from './TimedQuizGame'
 import MemoryMatchGame from './MemoryMatchGame'
 import WordBuilderGame from './WordBuilderGame'
 import {
-  subjectTheme, gameTypeMeta,
-  ClockIcon, StarIcon, AcademicCapIcon, ArrowRightIcon, PuzzlePieceIcon,
-} from './gameIcons'
+  IconBubble,
+  MetaPill,
+  getGameTypeTheme,
+  getSubjectTheme,
+} from './gamesUi'
 
 /**
- * /games/play/:gameId — Step 4: the play surface.
- *
- * Looks the game up in Firestore, falls back to the bundled seed if the
- * collection is empty, then dispatches to the engine matching `type`.
+ * /games/play/:gameId — play surface.
  */
 export default function PlayGame() {
   const { gameId } = useParams()
@@ -27,6 +29,7 @@ export default function PlayGame() {
 
   useEffect(() => {
     let cancelled = false
+
     async function load() {
       setLoading(true)
       try {
@@ -36,19 +39,21 @@ export default function PlayGame() {
           setGame(live)
           return
         }
-        const fb = getFallbackGame(gameId)
-        if (fb) setGame(fb)
+
+        const fallback = getFallbackGame(gameId)
+        if (fallback) setGame(fallback)
         else setNotFound(true)
       } catch (err) {
         if (cancelled) return
         console.error('PlayGame load failed', err)
-        const fb = getFallbackGame(gameId)
-        if (fb) setGame(fb)
+        const fallback = getFallbackGame(gameId)
+        if (fallback) setGame(fallback)
         else setNotFound(true)
       } finally {
         if (!cancelled) setLoading(false)
       }
     }
+
     load()
     return () => { cancelled = true }
   }, [gameId])
@@ -60,12 +65,13 @@ export default function PlayGame() {
   if (notFound) return <Navigate to="/games" replace />
   if (loading || !game) {
     return (
-      <GamesShell crumbs={[{ label: 'Loading…' }]}>
-        <div className="rounded-[20px] border border-slate-200 bg-white p-10 text-center shadow-sm">
-          <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center shadow-md mb-3 animate-bounce">
-            <PuzzlePieceIcon className="w-7 h-7" />
-          </div>
-          <p className="font-black">Loading game…</p>
+      <GamesShell crumbs={[{ label: 'Loading…' }]} maxW="max-w-4xl">
+        <div className="rounded-[20px] border border-white/80 bg-white/88 p-10 text-center shadow-[0_24px_60px_-34px_rgba(15,23,42,0.16)]">
+          <span className="mx-auto inline-flex h-16 w-16 items-center justify-center rounded-full bg-slate-900 text-white">
+            <PuzzlePieceIcon className="h-8 w-8 text-amber-300" />
+          </span>
+          <p className="mt-5 text-xl font-black text-slate-900">Loading game</p>
+          <p className="mt-2 text-sm leading-6 text-slate-600">Setting up the next round and pulling the latest game data.</p>
         </div>
       </GamesShell>
     )
@@ -73,7 +79,6 @@ export default function PlayGame() {
 
   const gradeMeta = gradeByValue(game.grade)
   const subjectMeta = subjectBySlug(game.subject)
-
   const crumbs = [
     gradeMeta && { label: gradeMeta.label, to: `/games/g/${gradeMeta.value}` },
     gradeMeta && subjectMeta && { label: subjectMeta.label, to: `/games/g/${gradeMeta.value}/${subjectMeta.slug}` },
@@ -81,7 +86,7 @@ export default function PlayGame() {
   ].filter(Boolean)
 
   return (
-    <GamesShell crumbs={crumbs} maxW="max-w-3xl">
+    <GamesShell crumbs={crumbs} maxW="max-w-4xl">
       <GameHeader game={game} subjectMeta={subjectMeta} gradeMeta={gradeMeta} />
       <GameEngine game={game} />
     </GamesShell>
@@ -89,78 +94,51 @@ export default function PlayGame() {
 }
 
 function GameHeader({ game, subjectMeta, gradeMeta }) {
-  const theme = subjectTheme(subjectMeta?.slug)
-  const type = gameTypeMeta(game.type)
+  const subjectTheme = getSubjectTheme(subjectMeta?.slug || game.subject)
+  const typeTheme = getGameTypeTheme(game.type)
+
   return (
-    <header className="mb-6 rounded-[20px] border border-slate-200 bg-white p-4 sm:p-5 shadow-sm overflow-hidden relative">
-      <div aria-hidden="true" className={`absolute -top-16 -right-16 w-48 h-48 rounded-full opacity-15 ${theme.blob} blur-2xl`} />
-      <div className="relative flex items-center gap-4">
-        <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br ${theme.gradient} text-white flex items-center justify-center shadow-md shrink-0`}>
-          <theme.icon className="w-7 h-7 sm:w-8 sm:h-8" />
-        </div>
+    <header className={`mb-6 overflow-hidden rounded-[20px] border ${subjectTheme.border} bg-gradient-to-br ${subjectTheme.gradient} p-6 shadow-[0_24px_60px_-34px_rgba(15,23,42,0.18)] sm:p-7`}>
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+        <IconBubble icon={subjectTheme.icon} theme={subjectTheme} size="h-16 w-16" iconClassName="h-8 w-8" />
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap gap-1.5 mb-1">
-            {gradeMeta && (
-              <Chip>
-                <AcademicCapIcon className="w-3 h-3" />
-                {gradeMeta.label}
-              </Chip>
-            )}
-            {subjectMeta && (
-              <Chip tone={theme.chip}>
-                <theme.icon className="w-3 h-3" />
-                {subjectMeta.label}
-              </Chip>
-            )}
-            <Chip tone="bg-white text-slate-700 border-slate-200">
-              <type.icon className="w-3 h-3" />
-              {type.label}
-            </Chip>
-            {game.cbc_topic && <Chip>{game.cbc_topic}</Chip>}
-            <Chip tone="bg-amber-100 text-amber-800 border-amber-200">{game.difficulty || 'easy'}</Chip>
+          <div className="flex flex-wrap gap-2">
+            {gradeMeta && <MetaPill icon={SparklesIcon} label={gradeMeta.label} />}
+            {subjectMeta && <MetaPill icon={subjectTheme.icon} label={subjectMeta.label} />}
+            <MetaPill icon={typeTheme.icon} label={typeTheme.label} />
+            {game.cbc_topic && <MetaPill icon={SparklesIcon} label={game.cbc_topic} />}
           </div>
-          <h1 className="font-display text-2xl sm:text-3xl font-black leading-tight truncate">{game.title}</h1>
-          {game.description && <p className="text-sm text-slate-600 line-clamp-2">{game.description}</p>}
-          <div className="mt-2 flex items-center gap-3 text-xs font-black text-slate-600">
-            {game.timer > 0 && (
-              <span className="inline-flex items-center gap-1"><ClockIcon className="w-3.5 h-3.5" />{game.timer}s</span>
-            )}
-            <span className="inline-flex items-center gap-1"><StarIcon className="w-3.5 h-3.5 text-amber-500" />{game.points} pts</span>
-          </div>
+          <h1 className="mt-5 text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">
+            {game.title}
+          </h1>
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-700 sm:text-base">
+            {game.description}
+          </p>
         </div>
       </div>
     </header>
   )
 }
 
-function Chip({ children, tone = 'bg-slate-100 text-slate-700 border-slate-200' }) {
-  return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide border ${tone}`}>
-      {children}
-    </span>
-  )
-}
-
-/**
- * Dispatches to the right engine by game.type.
- * Supported:  timed_quiz  |  memory_match  |  word_builder
- */
 function GameEngine({ game }) {
-  if (game.type === 'timed_quiz')   return <TimedQuizGame   game={game} />
+  if (game.type === 'timed_quiz') return <TimedQuizGame game={game} />
   if (game.type === 'memory_match') return <MemoryMatchGame game={game} />
   if (game.type === 'word_builder') return <WordBuilderGame game={game} />
+
   return (
-    <div className="rounded-[20px] border-2 border-dashed border-slate-300 bg-white p-10 text-center">
-      <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-slate-200 to-slate-300 text-slate-500 flex items-center justify-center mb-3">
-        <PuzzlePieceIcon className="w-8 h-8" />
-      </div>
-      <h2 className="text-xl font-black mb-1">Unknown game type</h2>
-      <p className="text-slate-600 max-w-md mx-auto mb-5">
-        This game is saved with <span className="font-mono">type="{game.type}"</span>
-        but no engine is registered for it yet.
+    <div className="rounded-[20px] border border-dashed border-slate-300 bg-white/88 p-10 text-center shadow-[0_24px_60px_-34px_rgba(15,23,42,0.16)]">
+      <span className="mx-auto inline-flex h-16 w-16 items-center justify-center rounded-full bg-slate-900 text-white">
+        <PuzzlePieceIcon className="h-8 w-8 text-amber-300" />
+      </span>
+      <h2 className="mt-5 text-2xl font-black text-slate-900">This game type is not wired yet</h2>
+      <p className="mt-3 text-base leading-7 text-slate-600">
+        The saved document uses <span className="font-mono">type=&quot;{game.type}&quot;</span>, but no matching play engine is registered.
       </p>
-      <Link to="/games" className="inline-flex items-center gap-1 px-5 py-3 rounded-xl font-black text-white bg-gradient-to-r from-amber-500 to-orange-500">
-        Back to all games <ArrowRightIcon className="w-4 h-4" />
+      <Link
+        to="/games"
+        className="mt-6 inline-flex items-center justify-center rounded-full bg-slate-900 px-5 py-3 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-slate-800 active:scale-[0.98]"
+      >
+        Back to games
       </Link>
     </div>
   )

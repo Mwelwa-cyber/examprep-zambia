@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import {
+  BoltIcon,
+  ArrowPathIcon,
+  TrophyIcon,
+} from '@heroicons/react/24/solid'
 import { useAuth } from '../../contexts/AuthContext'
 import { saveScore, shuffle } from '../../utils/gamesService'
 import { evaluateAndAwardGameBadges } from '../../utils/gameBadgesService'
@@ -10,6 +15,8 @@ import BadgeToast from './BadgeToast'
 import ShareButton from './ShareButton'
 import Confetti from './Confetti'
 import SmartFeedback from './SmartFeedback'
+import { DoneStat, SaveBanner, StreakBanner } from './DoneBanners'
+import { RatingStars } from './gamesUi'
 
 /**
  * Engine for any `type: "timed_quiz"` game document.
@@ -29,7 +36,7 @@ import SmartFeedback from './SmartFeedback'
 export default function TimedQuizGame({ game }) {
   const points = Number(game.points) || 10
   const duration = Number(game.timer) || 60
-  const pool = useMemo(() => game.questions || [], [game.id])
+  const pool = useMemo(() => game.questions || [], [game.questions])
 
   const [phase, setPhase] = useState('ready') // ready | playing | done
   const [seed, setSeed] = useState(0)
@@ -278,25 +285,28 @@ function ReadyCard({ game, onStart }) {
   const { currentUser } = useAuth()
   return (
     <div className="bg-white rounded-3xl border-2 border-slate-200 shadow-sm p-8 sm:p-10 text-center">
-      <div className="text-6xl mb-3">⚡</div>
+      <span className="mx-auto inline-flex h-16 w-16 items-center justify-center rounded-full bg-amber-500 text-white shadow-[0_20px_40px_-24px_rgba(245,158,11,0.55)]">
+        <BoltIcon className="h-8 w-8" />
+      </span>
       <h2 className="text-3xl font-black mb-2">{game.title}</h2>
       <p className="text-slate-700 max-w-md mx-auto mb-6">
         {game.description}
       </p>
       <ul className="text-sm text-slate-700 max-w-sm mx-auto text-left mb-7 space-y-1.5">
-        <li>⏱️ <b>{game.timer}s</b> on the clock</li>
-        <li>🎯 <b>+{game.points}</b> per correct, plus a streak bonus</li>
-        <li>❌ Small penalty for wrong answers</li>
+        <li><b>{game.timer}s</b> on the clock</li>
+        <li><b>+{game.points}</b> per correct answer, plus streak bonus points</li>
+        <li>Small penalties apply for wrong answers</li>
         {currentUser
-          ? <li>🏅 Your score saves automatically to the leaderboard</li>
-          : <li>🏅 Sign in to save your score and climb the leaderboard</li>}
+          ? <li>Your score saves automatically to the leaderboard</li>
+          : <li>Sign in to save your score and climb the leaderboard</li>}
       </ul>
       <button
         type="button"
         onClick={onStart}
-        className="px-6 py-3.5 rounded-xl font-black text-white bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-md text-lg"
+        className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl font-black text-white bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-md text-lg"
       >
-        Start sprint 🚀
+        <BoltIcon className="h-5 w-5" />
+        Start sprint
       </button>
       <p className="mt-5 text-xs text-slate-500">Tip: tap the answer or use the A / B / C / D keys.</p>
     </div>
@@ -310,13 +320,18 @@ function DoneCard({ game, score, correct, wrong, accuracy, bestStreak, saveResul
       {newBadges?.length > 0 && <BadgeToast badges={newBadges} />}
 
       <div className="bg-white rounded-3xl border-2 border-slate-200 shadow-sm p-8 text-center">
-        <div className="text-6xl mb-2">🏁</div>
+        <span className="mx-auto inline-flex h-16 w-16 items-center justify-center rounded-full bg-slate-900 text-white shadow-[0_20px_40px_-24px_rgba(15,23,42,0.4)]">
+          <TrophyIcon className="h-8 w-8 text-amber-300" />
+        </span>
         <h2 className="text-3xl font-black mb-1">{score} pts</h2>
         <p className="text-slate-600 mb-6">Final score</p>
         <div className="grid grid-cols-3 gap-3 max-w-md mx-auto mb-6">
-          <Stat label="Correct"     value={correct} tone="emerald" />
-          <Stat label="Accuracy"    value={`${accuracy}%`} tone="amber" />
-          <Stat label="Best streak" value={bestStreak} tone="rose" />
+          <DoneStat label="Correct" value={correct} tone="emerald" />
+          <DoneStat label="Accuracy" value={`${accuracy}%`} tone="amber" />
+          <DoneStat label="Best streak" value={bestStreak} tone="rose" />
+        </div>
+        <div className="mb-4 flex justify-center">
+          <RatingStars filled={accuracy >= 90 ? 5 : accuracy >= 70 ? 4 : accuracy >= 50 ? 3 : 2} />
         </div>
         <SaveBanner saveResult={saveResult} />
         <SmartFeedback
@@ -328,9 +343,10 @@ function DoneCard({ game, score, correct, wrong, accuracy, bestStreak, saveResul
           <button
             type="button"
             onClick={onRestart}
-            className="px-5 py-3 rounded-xl font-black text-white bg-gradient-to-r from-amber-500 to-orange-500"
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl font-black text-white bg-gradient-to-r from-amber-500 to-orange-500"
           >
-            Play again 🔁
+            <ArrowPathIcon className="h-5 w-5" />
+            Play again
           </button>
           <ShareButton game={game} score={score} accuracy={accuracy} bestStreak={bestStreak} />
           <Link
@@ -344,74 +360,6 @@ function DoneCard({ game, score, correct, wrong, accuracy, bestStreak, saveResul
 
       <Leaderboard gameId={game.id} />
     </div>
-  )
-}
-
-function StreakBanner({ result }) {
-  const onFire = (result.streak || 0) >= 3
-  if (result.wasAlreadyCountedToday) {
-    return (
-      <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 sm:p-5 flex items-center gap-4">
-        <div className="text-4xl shrink-0" aria-hidden="true">⭐</div>
-        <div className="flex-1">
-          <p className="font-black text-amber-900 text-lg leading-tight">
-            Daily challenge already ticked today
-          </p>
-          <p className="text-sm text-amber-800">
-            Your streak is still <b>{result.streak} day{result.streak === 1 ? '' : 's'}</b>.
-            Come back tomorrow for the next challenge.
-          </p>
-        </div>
-      </div>
-    )
-  }
-  if (result.bumped) {
-    return (
-      <div className={`rounded-2xl border-2 p-4 sm:p-5 flex items-center gap-4 ${onFire ? 'border-rose-400 bg-rose-50' : 'border-amber-300 bg-amber-50'}`}>
-        <div className="text-5xl shrink-0" aria-hidden="true">{onFire ? '🔥' : '⭐'}</div>
-        <div className="flex-1">
-          <p className={`font-black text-lg leading-tight ${onFire ? 'text-rose-900' : 'text-amber-900'}`}>
-            Daily streak: {result.streak} day{result.streak === 1 ? '' : 's'}!
-          </p>
-          <p className={`text-sm ${onFire ? 'text-rose-800' : 'text-amber-800'}`}>
-            {result.streak === 1
-              ? 'A new streak has begun. Play again tomorrow to keep it alive.'
-              : onFire
-                ? `You're on fire! Longest streak ever: ${result.longestStreak} days.`
-                : `Nice run — longest streak ever: ${result.longestStreak} days.`}
-          </p>
-        </div>
-      </div>
-    )
-  }
-  return null
-}
-
-function SaveBanner({ saveResult }) {
-  const { currentUser } = useAuth()
-  if (!saveResult) return <p className="text-sm text-slate-500">Saving your score…</p>
-  if (saveResult.ok) {
-    return (
-      <p className="text-sm text-emerald-700 font-bold">
-        ✅ Score saved to your history.
-      </p>
-    )
-  }
-  if (saveResult.skipped && saveResult.reason === 'not_signed_in') {
-    return (
-      <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-900">
-        Sign in to save this score and appear on the leaderboard.{' '}
-        <Link to={`/login?redirect=${encodeURIComponent(window.location.pathname)}`} className="font-black underline">
-          Sign in →
-        </Link>
-        {currentUser && <span> (currently signed in as {currentUser.email})</span>}
-      </div>
-    )
-  }
-  return (
-    <p className="text-sm text-rose-700 font-bold">
-      Couldn't save score: {saveResult.reason || 'unknown error'}
-    </p>
   )
 }
 
@@ -444,15 +392,6 @@ function Pill({ label, value, tone = 'slate' }) {
     <div className={`rounded-xl border-2 px-3 py-2 text-center ${TONE[tone]}`}>
       <div className="text-[10px] font-black uppercase tracking-wide opacity-70">{label}</div>
       <div className="text-xl font-black">{value}</div>
-    </div>
-  )
-}
-
-function Stat({ label, value, tone = 'slate' }) {
-  return (
-    <div className={`rounded-xl border-2 p-4 ${TONE[tone]}`}>
-      <div className="text-[10px] font-black uppercase tracking-wide opacity-70">{label}</div>
-      <div className="text-2xl font-black">{value}</div>
     </div>
   )
 }
