@@ -1,195 +1,140 @@
-import { useEffect, useRef, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
-import { isMuted, toggleMute } from '../../utils/gameSounds'
-import { useAuth } from '../../contexts/AuthContext'
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
-  NAV_ICON,
-  PuzzlePieceIcon,
-  TrophyIcon,
-  BellIcon,
-  UserCircleIcon,
+  BookOpenIcon,
+  ChevronRightIcon,
   SpeakerWaveIcon,
   SpeakerXMarkIcon,
-  ChevronRightIcon,
-} from './gameIcons'
+} from '@heroicons/react/24/solid'
+import { isMuted, toggleMute } from '../../utils/gameSounds'
+import { useAuth } from '../../contexts/AuthContext'
+import { NAV_ICON_MAP } from './gamesUi'
 
 /**
- * Shared chrome for every /games page. Provides the light-themed layout,
- * a sticky nav, and a breadcrumb strip.
+ * Shared chrome for every /games page. Keeps the Games experience cohesive
+ * without touching the app's wider routing or data flow.
  *
  * `crumbs` is an array of { label, to? } — the last one is unlinked.
  */
 export default function GamesShell({ crumbs = [], children, maxW = 'max-w-6xl' }) {
   const { currentUser, userProfile } = useAuth()
   const firstName = userProfile?.displayName?.split(' ')[0] ?? null
-  const initial = (firstName || userProfile?.email || 'Z').charAt(0).toUpperCase()
-  const { pathname } = useLocation()
-  const onGames = pathname.startsWith('/games')
+  const TrophyIcon = NAV_ICON_MAP.leaderboard
+  const HomeIcon = NAV_ICON_MAP.dashboard
+  const GamesIcon = NAV_ICON_MAP.games
 
   return (
-    <div className="force-light-theme min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50 text-slate-900">
-      <nav className="border-b border-slate-200/70 bg-white/85 backdrop-blur-md sticky top-0 z-20">
-        <div className={`${maxW} mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3`}>
-          <Link to={currentUser ? '/dashboard' : '/'} className="flex items-center gap-2 shrink-0">
-            <picture>
-              <source type="image/webp" srcSet="/zedexams-logo.webp?v=1" />
-              <img
-                src="/zedexams-logo.png?v=4"
-                alt="ZedExams"
-                className="h-9 w-auto object-contain flex-shrink-0"
-                loading="eager"
-              />
-            </picture>
-            <span className="hidden xs:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide bg-amber-100 text-amber-800">
-              <PuzzlePieceIcon className="w-3 h-3" />
-              Games
-            </span>
-          </Link>
+    <div className="force-light-theme min-h-screen overflow-x-hidden bg-[linear-gradient(180deg,#fff7ed_0%,#f8fafc_38%,#ffffff_100%)] text-slate-900">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[28rem] bg-[radial-gradient(circle_at_top_left,_rgba(251,191,36,0.18),_transparent_36%),radial-gradient(circle_at_top_right,_rgba(14,165,233,0.14),_transparent_32%),radial-gradient(circle_at_center,_rgba(16,185,129,0.12),_transparent_42%)]" />
 
-          {currentUser && (
-            <div className="hidden md:flex items-center gap-1 text-sm font-bold text-slate-600">
-              <NavTab to="/dashboard" icon={NAV_ICON.dashboard} active={pathname === '/dashboard'}>Dashboard</NavTab>
-              <NavTab to="/exams"     icon={NAV_ICON.exams}     active={pathname.startsWith('/exams')}>Exams</NavTab>
-              <NavTab to="/lessons"   icon={NAV_ICON.lessons}   active={pathname.startsWith('/lessons')}>Lessons</NavTab>
-              <NavTab to="/games"     icon={NAV_ICON.games}     active={onGames}>Games</NavTab>
-            </div>
-          )}
-
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <Link
-              to="/games/leaderboard"
-              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs sm:text-sm font-black bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200 transition"
-              title="Open live leaderboard"
-            >
-              <TrophyIcon className="w-4 h-4" />
-              <span className="hidden sm:inline">Leaderboard</span>
-            </Link>
-            <NotificationBell />
-            <MuteToggle />
-            {currentUser ? (
-              <Link
-                to="/profile"
-                className="flex items-center gap-2 pl-1 pr-2 sm:pr-3 py-1 rounded-full bg-white border border-slate-200 hover:bg-slate-50 shadow-sm transition"
-                title="Your profile"
-              >
-                <span className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 text-white text-xs font-black flex items-center justify-center">
-                  {initial}
-                </span>
-                <span className="hidden sm:inline text-xs font-black text-slate-700 max-w-[96px] truncate">{firstName ?? 'Profile'}</span>
-              </Link>
-            ) : (
-              <>
-                <Link to="/login" className="hidden sm:block text-sm font-bold text-slate-700 hover:text-slate-900 px-2">Sign in</Link>
-                <Link
-                  to="/register"
-                  className="px-3 py-2 sm:px-4 rounded-xl text-xs sm:text-sm font-black text-white bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-sm transition"
-                >
-                  Join free
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </nav>
-
-      {crumbs.length > 0 && (
-        <div className="bg-white border-b border-slate-200">
-          <div className={`${maxW} mx-auto px-4 sm:px-6 py-3 flex items-center flex-wrap gap-1 text-sm`}>
-            <Link to="/games" className="inline-flex items-center gap-1 font-bold text-slate-600 hover:text-slate-900">
-              <PuzzlePieceIcon className="w-3.5 h-3.5 text-amber-500" />
-              Games
-            </Link>
-            {crumbs.map((c, i) => (
-              <span key={i} className="flex items-center gap-1">
-                <ChevronRightIcon className="w-3.5 h-3.5 text-slate-300" />
-                {c.to ? (
-                  <Link to={c.to} className="font-bold text-slate-600 hover:text-slate-900">{c.label}</Link>
-                ) : (
-                  <span className="font-black text-slate-900">{c.label}</span>
-                )}
+      <div className="relative">
+        <nav className="sticky top-0 z-30 border-b border-white/60 bg-white/72 backdrop-blur-xl">
+          <div className={`${maxW} mx-auto flex items-center justify-between gap-3 px-4 py-4 sm:px-6`}>
+            <Link to="/games" className="flex min-w-0 items-center gap-3">
+              <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 via-orange-400 to-rose-400 text-white shadow-[0_20px_40px_-20px_rgba(249,115,22,0.55)]">
+                <GamesIcon className="h-6 w-6" />
               </span>
-            ))}
-          </div>
-        </div>
-      )}
+              <span className="min-w-0">
+                <span className="block truncate text-lg font-black tracking-tight text-slate-900">
+                  ZedExams Games
+                </span>
+                <span className="block truncate text-xs font-bold uppercase tracking-[0.22em] text-slate-500">
+                  Play • Learn • Level up
+                </span>
+              </span>
+            </Link>
 
-      <main className={`${maxW} mx-auto px-4 sm:px-6 py-6 sm:py-10`}>
-        {children}
-      </main>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <NavLink to="/games/leaderboard" icon={TrophyIcon} label="Leaderboard" />
+              <MuteToggle />
+              <Link
+                to="/teachers"
+                className="hidden items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-sm font-bold text-slate-700 ring-1 ring-slate-200 transition hover:bg-white hover:text-slate-900 sm:inline-flex"
+              >
+                <BookOpenIcon className="h-4 w-4 text-sky-500" />
+                Teachers
+              </Link>
+              {currentUser ? (
+                <Link
+                  to="/dashboard"
+                  className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-black text-white shadow-[0_18px_40px_-24px_rgba(15,23,42,0.75)] transition hover:-translate-y-0.5 hover:bg-slate-800 active:scale-[0.98]"
+                >
+                  <HomeIcon className="h-4 w-4 text-amber-300" />
+                  <span>{firstName ?? 'Dashboard'}</span>
+                </Link>
+              ) : (
+                <>
+                  <Link to="/login" className="hidden text-sm font-bold text-slate-700 transition hover:text-slate-900 sm:block">
+                    Sign in
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-sm font-black text-white shadow-[0_18px_40px_-24px_rgba(249,115,22,0.72)] transition hover:-translate-y-0.5 hover:from-amber-600 hover:to-orange-600 active:scale-[0.98]"
+                  >
+                    <HomeIcon className="h-4 w-4" />
+                    Save scores
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        </nav>
+
+        {crumbs.length > 0 && (
+          <div className="border-b border-white/60 bg-white/60 backdrop-blur-xl">
+            <div className={`${maxW} mx-auto flex flex-wrap items-center gap-2 px-4 py-3 text-sm sm:px-6`}>
+              <Link to="/games" className="font-black text-slate-600 transition hover:text-slate-900">
+                Games
+              </Link>
+              {crumbs.map((crumb, index) => (
+                <span key={`${crumb.label}-${index}`} className="flex items-center gap-2">
+                  <ChevronRightIcon className="h-4 w-4 text-slate-300" />
+                  {crumb.to ? (
+                    <Link to={crumb.to} className="font-bold text-slate-600 transition hover:text-slate-900">
+                      {crumb.label}
+                    </Link>
+                  ) : (
+                    <span className="font-black text-slate-900">{crumb.label}</span>
+                  )}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <main className={`${maxW} mx-auto px-4 py-8 sm:px-6 sm:py-10`}>
+          {children}
+        </main>
+      </div>
     </div>
   )
 }
 
-function NavTab({ to, icon: Icon, children, active }) {
+function NavLink({ to, icon: Icon, label }) {
   return (
     <Link
       to={to}
-      className={
-        'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition ' +
-        (active
-          ? 'bg-amber-50 text-amber-800'
-          : 'hover:bg-slate-100 hover:text-slate-900')
-      }
+      className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-sm font-black text-slate-700 ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:bg-white hover:text-slate-900 active:scale-[0.98]"
     >
-      {Icon && <Icon className="w-4 h-4" />}
-      <span>{children}</span>
+      <Icon className="h-4 w-4 text-amber-500" />
+      <span className="hidden sm:inline">{label}</span>
     </Link>
-  )
-}
-
-function NotificationBell() {
-  const [open, setOpen] = useState(false)
-  const ref = useRef(null)
-  useEffect(() => {
-    function onDoc(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
-    document.addEventListener('mousedown', onDoc)
-    return () => document.removeEventListener('mousedown', onDoc)
-  }, [])
-  return (
-    <div className="relative" ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="relative w-9 h-9 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 transition"
-        aria-label="Notifications"
-        title="Notifications"
-      >
-        <BellIcon className="w-[18px] h-[18px] text-slate-600" />
-        <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white" />
-      </button>
-      {open && (
-        <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-slate-200 bg-white shadow-xl p-3 z-30 animate-slide-in-soft">
-          <p className="text-xs font-black uppercase tracking-wider text-slate-500 mb-2 px-1">Updates</p>
-          <ul className="space-y-1.5 text-sm">
-            <li className="px-2 py-1.5 rounded-lg bg-amber-50 text-amber-900 font-bold">
-              New daily challenge is live — earn streak points today!
-            </li>
-            <li className="px-2 py-1.5 rounded-lg hover:bg-slate-50 text-slate-700">
-              Fresh Grade 4 spelling games added this week.
-            </li>
-            <li className="px-2 py-1.5 rounded-lg hover:bg-slate-50 text-slate-700">
-              Leaderboard resets at midnight GMT.
-            </li>
-          </ul>
-        </div>
-      )}
-    </div>
   )
 }
 
 function MuteToggle() {
   const [muted, setMuted] = useState(() => isMuted())
+  const Icon = muted ? SpeakerXMarkIcon : SpeakerWaveIcon
+
   return (
     <button
       type="button"
       onClick={() => setMuted(toggleMute())}
-      className="w-9 h-9 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 transition"
+      className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-slate-700 ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:bg-white hover:text-slate-900 active:scale-[0.98]"
       aria-label={muted ? 'Unmute game sounds' : 'Mute game sounds'}
       title={muted ? 'Unmute' : 'Mute'}
     >
-      {muted
-        ? <SpeakerXMarkIcon className="w-[18px] h-[18px] text-slate-600" />
-        : <SpeakerWaveIcon className="w-[18px] h-[18px] text-slate-600" />}
+      <Icon className="h-5 w-5" />
     </button>
   )
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { CheckIcon, ShareIcon } from '@heroicons/react/24/solid'
 
 /**
  * One-tap share button for the game-finish screen.
@@ -47,12 +48,15 @@ export default function ShareButton({ game, score, accuracy, bestStreak }) {
         onClick={handleShare}
         className="px-5 py-3 rounded-xl font-black text-slate-900 bg-white border-2 border-slate-200 hover:border-slate-400 inline-flex items-center gap-2"
       >
-        <span aria-hidden="true">📣</span>
+        <ShareIcon className="h-5 w-5" />
         <span>Challenge a friend</span>
       </button>
       {copied && (
         <span className="absolute left-1/2 -translate-x-1/2 -top-9 whitespace-nowrap px-2.5 py-1 rounded-lg text-xs font-black bg-slate-900 text-white shadow">
-          Copied to clipboard ✓
+          <span className="inline-flex items-center gap-1">
+            <CheckIcon className="h-3.5 w-3.5" />
+            Copied to clipboard
+          </span>
         </span>
       )}
     </div>
@@ -61,10 +65,10 @@ export default function ShareButton({ game, score, accuracy, bestStreak }) {
 
 function buildShareText({ game, score, accuracy, bestStreak }) {
   const parts = [
-    `🎯 I scored ${score} on "${game.title}" on ZedExams Games!`,
+    `I scored ${score} on "${game.title}" on ZedExams Games!`,
   ]
-  if (typeof accuracy === 'number') parts.push(`✨ ${accuracy}% accuracy`)
-  if (typeof bestStreak === 'number' && bestStreak > 0) parts.push(`🔥 Best streak: ${bestStreak}`)
+  if (typeof accuracy === 'number') parts.push(`${accuracy}% accuracy`)
+  if (typeof bestStreak === 'number' && bestStreak > 0) parts.push(`Best streak: ${bestStreak}`)
   parts.push('Can you beat me?')
   return parts.join(' · ')
 }

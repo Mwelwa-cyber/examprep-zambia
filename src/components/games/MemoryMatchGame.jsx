@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import {
+  ArrowPathIcon,
+  PuzzlePieceIcon,
+  TrophyIcon,
+} from '@heroicons/react/24/solid'
 import { useAuth } from '../../contexts/AuthContext'
 import { shuffle } from '../../utils/gamesService'
 import { playCorrect, playWrong, playWin, playTick, primeSounds } from '../../utils/gameSounds'
@@ -10,6 +15,7 @@ import ShareButton from './ShareButton'
 import Confetti from './Confetti'
 import Leaderboard from './Leaderboard'
 import SmartFeedback from './SmartFeedback'
+import { RatingStars } from './gamesUi'
 
 /**
  * Engine for any `type: "memory_match"` game document.
@@ -25,7 +31,7 @@ import SmartFeedback from './SmartFeedback'
  */
 export default function MemoryMatchGame({ game }) {
   const points = Number(game.points) || 10
-  const pairs = useMemo(() => (game.questions || []).filter((p) => p.answer), [game.id])
+  const pairs = useMemo(() => (game.questions || []).filter((p) => p.answer), [game.questions])
 
   const [phase, setPhase] = useState('ready') // ready | playing | done
   const [deck, setDeck] = useState([])        // array of { pairId, label, side }
@@ -95,7 +101,7 @@ export default function MemoryMatchGame({ game }) {
     }
   }
 
-  async function winRound(matchedAll) {
+  async function winRound() {
     playWin()
     setConfettiKey((k) => k + 1)
     setPhase('done')
@@ -183,7 +189,7 @@ export default function MemoryMatchGame({ game }) {
                 </div>
               ) : (
                 <div className="w-full h-full rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 border-2 border-orange-600 flex items-center justify-center text-white text-3xl shadow-md hover:scale-[1.02] transition">
-                  <span aria-hidden="true">🎴</span>
+                  <PuzzlePieceIcon className="h-10 w-10" />
                 </div>
               )}
             </button>
@@ -193,7 +199,7 @@ export default function MemoryMatchGame({ game }) {
 
       <div className="text-center">
         <button type="button" onClick={restart} className="text-sm font-bold text-slate-600 hover:text-slate-900 underline">
-          Reshuffle ↻
+          Reshuffle deck
         </button>
       </div>
     </div>
@@ -204,39 +210,44 @@ function ReadyCard({ game, pairs, onStart }) {
   const { currentUser } = useAuth()
   return (
     <div className="bg-white rounded-3xl border-2 border-slate-200 shadow-sm p-8 sm:p-10 text-center">
-      <div className="text-6xl mb-3">🧠</div>
+      <span className="mx-auto inline-flex h-16 w-16 items-center justify-center rounded-full bg-amber-500 text-white shadow-[0_20px_40px_-24px_rgba(245,158,11,0.55)]">
+        <PuzzlePieceIcon className="h-8 w-8" />
+      </span>
       <h2 className="text-3xl font-black mb-2">{game.title}</h2>
       <p className="text-slate-700 max-w-md mx-auto mb-6">{game.description}</p>
       <ul className="text-sm text-slate-700 max-w-sm mx-auto text-left mb-7 space-y-1.5">
-        <li>🎴 {pairs} pairs to find ({pairs * 2} cards)</li>
-        <li>🏆 Fewer moves = bigger bonus</li>
+        <li>{pairs} pairs to find ({pairs * 2} cards)</li>
+        <li>Fewer moves unlock a bigger bonus score</li>
         {currentUser
-          ? <li>🏅 Your score saves automatically to the leaderboard</li>
-          : <li>🏅 Sign in to save your score and climb the leaderboard</li>}
+          ? <li>Your score saves automatically to the leaderboard</li>
+          : <li>Sign in to save your score and climb the leaderboard</li>}
       </ul>
       <button
         type="button"
         onClick={onStart}
-        className="px-6 py-3.5 rounded-xl font-black text-white bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-md text-lg"
+        className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl font-black text-white bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-md text-lg"
       >
-        Start matching 🎴
+        <PuzzlePieceIcon className="h-5 w-5" />
+        Start matching
       </button>
     </div>
   )
 }
 
 function DoneCard({ game, score, moves, mismatches, elapsed, efficiency, saveResult, newBadges, streakResult, onRestart }) {
-  const stars = efficiency >= 90 ? 3 : efficiency >= 70 ? 2 : 1
+  const stars = efficiency >= 90 ? 5 : efficiency >= 75 ? 4 : efficiency >= 55 ? 3 : 2
   return (
     <div className="space-y-5">
       {streakResult?.isDaily && <StreakBanner result={streakResult} />}
       {newBadges?.length > 0 && <BadgeToast badges={newBadges} />}
 
       <div className="bg-white rounded-3xl border-2 border-slate-200 shadow-sm p-8 text-center">
-        <div className="text-6xl mb-2">🎉</div>
+        <span className="mx-auto inline-flex h-16 w-16 items-center justify-center rounded-full bg-slate-900 text-white shadow-[0_20px_40px_-24px_rgba(15,23,42,0.4)]">
+          <TrophyIcon className="h-8 w-8 text-amber-300" />
+        </span>
         <h2 className="text-3xl font-black mb-1">{score} pts</h2>
-        <div className="text-2xl mb-3">
-          {'⭐'.repeat(stars)}{'☆'.repeat(3 - stars)}
+        <div className="mb-4 flex justify-center">
+          <RatingStars filled={stars} />
         </div>
         <div className="grid grid-cols-3 gap-3 max-w-md mx-auto mb-6">
           <DoneStat label="Moves"    value={moves} tone="amber" />
@@ -250,8 +261,9 @@ function DoneCard({ game, score, moves, mismatches, elapsed, efficiency, saveRes
           saveResult={saveResult}
         />
         <div className="mt-6 flex flex-wrap gap-3 justify-center">
-          <button type="button" onClick={onRestart} className="px-5 py-3 rounded-xl font-black text-white bg-gradient-to-r from-amber-500 to-orange-500">
-            Play again 🔁
+          <button type="button" onClick={onRestart} className="inline-flex items-center gap-2 px-5 py-3 rounded-xl font-black text-white bg-gradient-to-r from-amber-500 to-orange-500">
+            <ArrowPathIcon className="h-5 w-5" />
+            Play again
           </button>
           <ShareButton game={game} score={score} accuracy={efficiency} bestStreak={0} />
           <Link to={`/games/g/${game.grade}/${game.subject}`} className="px-5 py-3 rounded-xl font-black text-slate-900 bg-white border-2 border-slate-200 hover:border-slate-400">

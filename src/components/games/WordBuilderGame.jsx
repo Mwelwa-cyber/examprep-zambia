@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import {
+  ArrowPathIcon,
+  BookOpenIcon,
+  CheckBadgeIcon,
+  TrophyIcon,
+  XCircleIcon,
+} from '@heroicons/react/24/solid'
 import { shuffle } from '../../utils/gamesService'
 import { playCorrect, playWrong, playWin, playTick, primeSounds } from '../../utils/gameSounds'
 import { useGameFinish } from './useGameFinish'
@@ -9,6 +16,7 @@ import ShareButton from './ShareButton'
 import Confetti from './Confetti'
 import Leaderboard from './Leaderboard'
 import SmartFeedback from './SmartFeedback'
+import { RatingStars } from './gamesUi'
 
 /**
  * Engine for any `type: "word_builder"` game document.
@@ -24,7 +32,7 @@ export default function WordBuilderGame({ game }) {
   const points = Number(game.points) || 10
   const words = useMemo(
     () => (game.questions || []).filter((q) => q.answer),
-    [game.id],
+    [game.questions],
   )
 
   const [phase, setPhase] = useState('ready') // ready | playing | done
@@ -175,7 +183,9 @@ export default function WordBuilderGame({ game }) {
       </div>
 
       <div className="bg-white rounded-3xl border-2 border-slate-200 shadow-sm p-6 sm:p-8">
-        <p className="text-center text-2xl mb-1">{firstEmoji(current.question) || '✏️'}</p>
+        <span className="mx-auto mb-3 inline-flex h-12 w-12 items-center justify-center rounded-full bg-sky-100 text-sky-600">
+          <BookOpenIcon className="h-6 w-6" />
+        </span>
         <p className="text-center text-slate-700 font-bold mb-6">
           {stripLeadingEmoji(current.question)}
         </p>
@@ -224,12 +234,18 @@ export default function WordBuilderGame({ game }) {
 
         {solvedThisWord && (
           <div className="mt-6 rounded-xl p-4 bg-emerald-50 border border-emerald-200 text-emerald-900 font-bold text-center">
-            ✅ Great! That spells <b>{target}</b>.
+            <span className="inline-flex items-center gap-2">
+              <CheckBadgeIcon className="h-5 w-5" />
+              Great! That spells <b>{target}</b>.
+            </span>
           </div>
         )}
         {isWrong && (
           <div className="mt-6 rounded-xl p-4 bg-rose-50 border border-rose-200 text-rose-900 font-bold text-center">
-            ❌ Not quite. Tap a letter above to take it back and try again.
+            <span className="inline-flex items-center gap-2">
+              <XCircleIcon className="h-5 w-5" />
+              Not quite. Tap a letter above to take it back and try again.
+            </span>
           </div>
         )}
       </div>
@@ -249,7 +265,7 @@ export default function WordBuilderGame({ game }) {
           disabled={!solvedThisWord && !isWrong}
           className="px-5 py-3 rounded-xl font-black text-white bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-600 hover:to-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {pos + 1 >= order.length ? 'Finish 🏁' : 'Next word →'}
+          {pos + 1 >= order.length ? 'Finish round' : 'Next word'}
         </button>
       </div>
     </div>
@@ -259,20 +275,23 @@ export default function WordBuilderGame({ game }) {
 function ReadyCard({ game, wordCount, onStart }) {
   return (
     <div className="bg-white rounded-3xl border-2 border-slate-200 shadow-sm p-8 sm:p-10 text-center">
-      <div className="text-6xl mb-3">🔤</div>
+      <span className="mx-auto inline-flex h-16 w-16 items-center justify-center rounded-full bg-sky-500 text-white shadow-[0_20px_40px_-24px_rgba(14,165,233,0.55)]">
+        <BookOpenIcon className="h-8 w-8" />
+      </span>
       <h2 className="text-3xl font-black mb-2">{game.title}</h2>
       <p className="text-slate-700 max-w-md mx-auto mb-6">{game.description}</p>
       <ul className="text-sm text-slate-700 max-w-sm mx-auto text-left mb-7 space-y-1.5">
-        <li>🔤 {wordCount} words to spell</li>
-        <li>🎯 +{game.points || 10} per word solved</li>
-        <li>❗ Small penalty for wrong attempts</li>
+        <li>{wordCount} words to spell</li>
+        <li>+{game.points || 10} points per solved word</li>
+        <li>Small penalties apply for wrong attempts</li>
       </ul>
       <button
         type="button"
         onClick={onStart}
-        className="px-6 py-3.5 rounded-xl font-black text-white bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-600 hover:to-cyan-600 shadow-md text-lg"
+        className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl font-black text-white bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-600 hover:to-cyan-600 shadow-md text-lg"
       >
-        Start spelling 🔤
+        <BookOpenIcon className="h-5 w-5" />
+        Start spelling
       </button>
     </div>
   )
@@ -285,8 +304,13 @@ function DoneCard({ game, score, solved, total, accuracy, mistakes, saveResult, 
       {newBadges?.length > 0 && <BadgeToast badges={newBadges} />}
 
       <div className="bg-white rounded-3xl border-2 border-slate-200 shadow-sm p-8 text-center">
-        <div className="text-6xl mb-2">📚</div>
+        <span className="mx-auto inline-flex h-16 w-16 items-center justify-center rounded-full bg-slate-900 text-white shadow-[0_20px_40px_-24px_rgba(15,23,42,0.4)]">
+          <TrophyIcon className="h-8 w-8 text-sky-300" />
+        </span>
         <h2 className="text-3xl font-black mb-1">{score} pts</h2>
+        <div className="my-4 flex justify-center">
+          <RatingStars filled={accuracy >= 90 ? 5 : accuracy >= 70 ? 4 : accuracy >= 50 ? 3 : 2} />
+        </div>
         <div className="grid grid-cols-3 gap-3 max-w-md mx-auto my-5">
           <DoneStat label="Solved"    value={`${solved}/${total}`} tone="emerald" />
           <DoneStat label="Accuracy"  value={`${accuracy}%`} tone="sky" />
@@ -299,8 +323,9 @@ function DoneCard({ game, score, solved, total, accuracy, mistakes, saveResult, 
           saveResult={saveResult}
         />
         <div className="mt-6 flex flex-wrap gap-3 justify-center">
-          <button type="button" onClick={onRestart} className="px-5 py-3 rounded-xl font-black text-white bg-gradient-to-r from-sky-500 to-cyan-500">
-            Play again 🔁
+          <button type="button" onClick={onRestart} className="inline-flex items-center gap-2 px-5 py-3 rounded-xl font-black text-white bg-gradient-to-r from-sky-500 to-cyan-500">
+            <ArrowPathIcon className="h-5 w-5" />
+            Play again
           </button>
           <ShareButton game={game} score={score} accuracy={accuracy} bestStreak={solved} />
           <Link to={`/games/g/${game.grade}/${game.subject}`} className="px-5 py-3 rounded-xl font-black text-slate-900 bg-white border-2 border-slate-200 hover:border-slate-400">
@@ -331,12 +356,6 @@ function makeTiles(word) {
     ;[letters[i], letters[j]] = [letters[j], letters[i]]
   }
   return letters.map((letter) => ({ letter, placed: false }))
-}
-
-function firstEmoji(s) {
-  if (!s) return ''
-  const m = String(s).match(/\p{Extended_Pictographic}/u)
-  return m ? m[0] : ''
 }
 
 function stripLeadingEmoji(s) {
