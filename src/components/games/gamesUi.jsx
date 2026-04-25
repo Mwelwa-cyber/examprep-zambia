@@ -159,6 +159,24 @@ export function getSubjectTheme(subject) {
   return SUBJECT_THEMES[String(subject || '').toLowerCase()] || DEFAULT_SUBJECT_THEME
 }
 
+/**
+ * Friendly subject mascots that appear on the discovery cards. Each mascot
+ * has a personality and a short tagline so the experience feels like a
+ * cast of guides rather than a list of links.
+ */
+export const SUBJECT_MASCOTS = {
+  mathematics: { emoji: '🦊', name: 'Maths Fox',     tagline: 'Numbers are my game!' },
+  english:     { emoji: '🦉', name: 'Story Owl',     tagline: 'Word adventures await.' },
+  science:     { emoji: '🐢', name: 'Science Turtle', tagline: 'Let’s explore the world.' },
+  social:      { emoji: '🦁', name: 'Adventure Lion', tagline: 'Every place has a story.' },
+}
+
+const DEFAULT_MASCOT = { emoji: '🎮', name: 'Game Pal', tagline: 'Pick a game and play!' }
+
+export function getSubjectMascot(slug) {
+  return SUBJECT_MASCOTS[String(slug || '').toLowerCase()] || DEFAULT_MASCOT
+}
+
 export function getGameTypeTheme(type) {
   return GAME_TYPE_THEMES[String(type || '').toLowerCase()] || DEFAULT_TYPE_THEME
 }
@@ -345,37 +363,67 @@ export function SubjectProgressCard({
   helperText,
 }) {
   const theme = getSubjectTheme(subject.slug)
-  const Icon = theme.icon
+  const mascot = getSubjectMascot(subject.slug)
 
   return (
     <Link
       to={href}
-      className={`group relative overflow-hidden rounded-[20px] border ${theme.border} bg-gradient-to-br ${theme.gradient} p-5 transition duration-200 ease-out hover:-translate-y-1 hover:shadow-[0_24px_70px_-34px_rgba(15,23,42,0.25)] active:scale-[0.985] ${theme.glow}`}
+      aria-label={`${subject.label} games — meet ${mascot.name}`}
+      className={`zx-mascot-card group relative overflow-hidden rounded-[24px] border-2 ${theme.border} bg-gradient-to-br ${theme.gradient} p-5 transition duration-200 ease-out hover:-translate-y-1 hover:shadow-[0_28px_70px_-30px_rgba(15,23,42,0.32)] active:scale-[0.985] ${theme.glow}`}
     >
-      <div className="absolute inset-y-0 right-0 w-28 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.7),_transparent_70%)]" />
-      <div className="relative space-y-4">
-        <div className="flex items-start justify-between gap-3">
-          <IconBubble icon={Icon} theme={theme} />
+      {/* Soft decorative blobs to give the card depth without extra assets. */}
+      <div aria-hidden="true" className="pointer-events-none absolute -top-10 -right-8 h-28 w-28 rounded-full bg-white/45 blur-2xl" />
+      <div aria-hidden="true" className="pointer-events-none absolute -bottom-10 -left-6 h-24 w-24 rounded-full bg-white/35 blur-2xl" />
+
+      <div className="relative">
+        {/* Top row: status pill */}
+        <div className="flex justify-end">
           {showComingSoon ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-slate-700">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-slate-700 shadow-sm">
               <LockClosedIcon className="h-3.5 w-3.5" />
               Coming soon
             </span>
           ) : (
-            <span className={`rounded-full bg-white/85 px-3 py-1 text-[11px] font-black uppercase tracking-wide ${theme.accentText}`}>
+            <span className={`rounded-full bg-white/90 px-3 py-1 text-[11px] font-black uppercase tracking-wide ${theme.accentText} shadow-sm`}>
               {gamesCount} {gamesCount === 1 ? 'game' : 'games'}
             </span>
           )}
         </div>
 
-        <div>
-          <h3 className="text-xl font-black text-slate-900">{subject.label}</h3>
-          <p className="mt-1 text-sm text-slate-700">
-            {helperText}
-          </p>
+        {/* Mascot stage */}
+        <div className="mt-1 flex flex-col items-center text-center">
+          <div className="relative">
+            {/* Halo behind the mascot for a lifted, sticker-like feel. */}
+            <span
+              aria-hidden="true"
+              className={`absolute inset-0 rounded-full bg-gradient-to-br ${theme.strongGradient} opacity-25 blur-xl transition group-hover:opacity-40`}
+            />
+            <span
+              role="img"
+              aria-label={mascot.name}
+              className="zx-mascot-emoji relative inline-flex h-24 w-24 items-center justify-center rounded-full bg-white/85 text-[3.6rem] leading-none ring-4 ring-white/70 shadow-[0_20px_36px_-18px_rgba(15,23,42,0.35)] sm:h-28 sm:w-28 sm:text-[4rem]"
+            >
+              {mascot.emoji}
+            </span>
+          </div>
+
+          <h3 className="mt-4 text-2xl font-black tracking-tight text-slate-900">{subject.label}</h3>
+
+          {/* Speech bubble carrying the mascot's voice line */}
+          <div className="zx-speech relative mt-3 inline-block max-w-[240px] rounded-2xl bg-white/92 px-4 py-2 text-sm font-bold text-slate-700 shadow-sm">
+            <span className="block leading-snug">{mascot.tagline}</span>
+            <span aria-hidden="true" className="zx-speech-tail" />
+          </div>
+
+          {helperText && (
+            <p className="mt-3 text-sm leading-6 text-slate-700/90">
+              {helperText}
+            </p>
+          )}
         </div>
 
-        <div className="space-y-2">
+        {/* Progress + CTA */}
+        <div className="mt-5 space-y-2">
           <div className="flex items-center justify-between text-xs font-bold text-slate-600">
             <span>Progress</span>
             <span>{progress}%</span>
@@ -383,11 +431,46 @@ export function SubjectProgressCard({
           <ProgressBar value={progress} gradient={theme.progress} />
         </div>
 
-        <div className="inline-flex items-center gap-2 text-sm font-black text-slate-900">
-          Explore subject
-          <ChevronRightIcon className="h-4 w-4 transition duration-200 group-hover:translate-x-0.5" />
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <span className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-500">
+            {mascot.name}
+          </span>
+          <span className={`inline-flex items-center gap-2 rounded-full bg-white/90 px-3.5 py-1.5 text-sm font-black text-slate-900 shadow-sm transition group-hover:bg-white`}>
+            Let’s play
+            <ChevronRightIcon className="h-4 w-4 transition group-hover:translate-x-0.5" />
+          </span>
         </div>
       </div>
+
+      {/* Mascot animation + speech-bubble tail. Local to this card. */}
+      <style>{`
+        .zx-mascot-card .zx-mascot-emoji {
+          animation: zx-mascot-bob 4.4s ease-in-out infinite;
+          transform-origin: center;
+        }
+        .zx-mascot-card:hover .zx-mascot-emoji,
+        .zx-mascot-card:focus-visible .zx-mascot-emoji {
+          animation-duration: 1.6s;
+        }
+        @keyframes zx-mascot-bob {
+          0%, 100% { transform: translateY(0) rotate(-2deg); }
+          50%      { transform: translateY(-6px) rotate(2deg); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .zx-mascot-card .zx-mascot-emoji { animation: none !important; }
+        }
+        .zx-mascot-card .zx-speech-tail {
+          position: absolute;
+          left: 50%;
+          top: -6px;
+          width: 14px;
+          height: 14px;
+          background: rgba(255, 255, 255, 0.92);
+          transform: translateX(-50%) rotate(45deg);
+          border-radius: 3px;
+          box-shadow: -2px -2px 4px -2px rgba(15, 23, 42, 0.08);
+        }
+      `}</style>
     </Link>
   )
 }
