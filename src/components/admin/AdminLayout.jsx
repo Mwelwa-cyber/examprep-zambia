@@ -16,6 +16,7 @@ import {
   LogOut,
   Sparkles,
   Users,
+  Mic,
 } from '../ui/icons'
 import { useAuth } from '../../contexts/AuthContext'
 import Logo from '../ui/Logo'
@@ -35,6 +36,7 @@ const NAV = [
   { to: '/admin/teacher-applications',   icon: GraduationCap,   label: 'Teacher Apps'              },
   { to: '/admin/results',                icon: TrendingUp,      label: 'Results'                   },
   { to: '/admin/payments',               icon: CreditCard,      label: 'Payments'                  },
+  { to: '/admin/zed-voice',              icon: Mic,             label: 'Talk to Zed'               },
 ]
 
 export default function AdminLayout({ children }) {

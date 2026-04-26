@@ -16,14 +16,21 @@ const textToSpeech = require("@google-cloud/text-to-speech");
 
 const ttsClient = new textToSpeech.TextToSpeechClient();
 
-const ALLOWED_VOICES = new Set([
-  "en-GB-Neural2-A", "en-GB-Neural2-B",
-  "en-US-Neural2-F", "en-US-Neural2-J",
-  "en-ZA-Standard-A", "en-ZA-Standard-B",
-  "en-GB-Standard-A",
-  "en-GB-Studio-B", "en-GB-Studio-C",
-]);
-const DEFAULT_VOICE = "en-GB-Neural2-B"; // British male — Zed's voice
+// Ordered list — also drives the numbered /voice picker in Telegram, so the
+// indexes here are stable. Names match the curated list in useSpeech.js.
+const VOICE_CATALOG = [
+  {voiceURI: "en-GB-Neural2-B", name: "British Male (Neural)"},
+  {voiceURI: "en-GB-Neural2-A", name: "British Female (Neural)"},
+  {voiceURI: "en-ZA-Standard-A", name: "South African Female"},
+  {voiceURI: "en-ZA-Standard-B", name: "South African Male"},
+  {voiceURI: "en-GB-Studio-B", name: "British Male (Studio HQ)"},
+  {voiceURI: "en-GB-Studio-C", name: "British Female (Studio HQ)"},
+  {voiceURI: "en-US-Neural2-F", name: "American Female (Neural)"},
+  {voiceURI: "en-US-Neural2-J", name: "American Male (Neural)"},
+  {voiceURI: "en-GB-Standard-A", name: "British (Standard)"},
+];
+const ALLOWED_VOICES = new Set(VOICE_CATALOG.map((v) => v.voiceURI));
+const DEFAULT_VOICE = VOICE_CATALOG[0].voiceURI; // British male — Zed's voice
 const TTS_MAX_CHARS = 3000;
 
 const WHISPER_URL = "https://api.openai.com/v1/audio/transcriptions";
@@ -75,11 +82,11 @@ async function transcribeOgg(openaiKey, oggBuffer, opts = {}) {
  * head was synthesised — caller should mention this to the user.
  */
 async function synthesizeOgg(text, opts = {}) {
-  const raw = String(text || "").trim();
-  if (!raw) throw new Error("Empty TTS text");
+  const cleaned = stripMarkdown(text);
+  if (!cleaned) throw new Error("Empty TTS text");
 
-  const truncated = raw.length > TTS_MAX_CHARS;
-  const input = truncated ? raw.slice(0, TTS_MAX_CHARS) : raw;
+  const truncated = cleaned.length > TTS_MAX_CHARS;
+  const input = truncated ? cleaned.slice(0, TTS_MAX_CHARS) : cleaned;
 
   const requested = opts.voice && ALLOWED_VOICES.has(opts.voice) ?
     opts.voice :
@@ -104,9 +111,32 @@ async function synthesizeOgg(text, opts = {}) {
   };
 }
 
+// Mirror of stripMarkdown in src/components/ai/useSpeech.js — keeps the
+// Telegram voice notes from reading out literal `*`, `#`, list bullets, etc.
+function stripMarkdown(text) {
+  return String(text ?? "")
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/\*([^*\n]+)\*/g, "$1")
+    .replace(/__([^_]+)__/g, "$1")
+    .replace(/_([^_\n]+)_/g, "$1")
+    .replace(/^\s*[-*+]\s+/gm, "")
+    .replace(/^\s*\d+\.\s+/gm, "")
+    .replace(/^>\s*/gm, "")
+    .replace(/\s*\|\s*/g, ", ")
+    .replace(/\n{2,}/g, ". ")
+    .replace(/\n/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 module.exports = {
   transcribeOgg,
   synthesizeOgg,
+  stripMarkdown,
+  VOICE_CATALOG,
   ALLOWED_VOICES,
   DEFAULT_VOICE,
   TTS_MAX_CHARS,

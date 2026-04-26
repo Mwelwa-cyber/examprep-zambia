@@ -214,6 +214,25 @@ export default function ZedVoice() {
           )}
         </div>
 
+        <div style={styles.voicePicker}>
+          <label htmlFor="zed-voice-select" style={styles.voiceLabel}>
+            Zed&rsquo;s voice
+          </label>
+          <select
+            id="zed-voice-select"
+            value={speech.voice?.voiceURI || ''}
+            onChange={(e) => speech.setVoice(e.target.value)}
+            disabled={speech.speaking}
+            style={styles.voiceSelect}
+          >
+            {speech.voices.map((v) => (
+              <option key={v.voiceURI} value={v.voiceURI}>
+                {v.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div style={styles.actions}>
           {!isCalling ? (
             <button onClick={startCall} style={{ ...styles.btn, ...styles.btnStart }}>
@@ -293,6 +312,25 @@ const styles = {
   },
   state: { fontSize: 18, fontWeight: 600 },
   interim: { color: '#6b7280', fontStyle: 'italic', maxWidth: 480 },
+  voicePicker: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    margin: '8px 0 16px',
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  voiceLabel: { fontWeight: 500 },
+  voiceSelect: {
+    padding: '6px 10px',
+    borderRadius: 8,
+    border: '1px solid #e5e7eb',
+    background: '#fff',
+    fontSize: 14,
+    color: '#111827',
+    cursor: 'pointer',
+  },
   actions: { display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' },
   btn: {
     padding: '12px 24px',
