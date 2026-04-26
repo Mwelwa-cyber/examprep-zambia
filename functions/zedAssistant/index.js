@@ -152,6 +152,31 @@ async function appendTurn(chatId, role, text) {
   }
 }
 
+async function getChatVoice(chatId) {
+  try {
+    const snap = await admin.firestore()
+      .collection("zedAssistantChats")
+      .doc(String(chatId))
+      .get();
+    const stored = snap.exists ? snap.data()?.voiceURI : null;
+    if (stored && voice.ALLOWED_VOICES.has(stored)) return stored;
+  } catch (err) {
+    console.warn("getChatVoice failed", err?.message);
+  }
+  return voice.DEFAULT_VOICE;
+}
+
+async function setChatVoice(chatId, voiceURI) {
+  if (!voice.ALLOWED_VOICES.has(voiceURI)) {
+    throw new Error(`Voice '${voiceURI}' not allowed`);
+  }
+  await admin.firestore()
+    .collection("zedAssistantChats")
+    .doc(String(chatId))
+    .set({voiceURI, voiceUpdatedAt: admin.firestore.FieldValue.serverTimestamp()},
+      {merge: true});
+}
+
 function buildUserMessage(messageText) {
   const today = new Date().toISOString().slice(0, 10);
   return [
@@ -183,13 +208,51 @@ async function speakReply(token, chatId, replyText) {
   // Synthesize a voice note and post it. Failures here should never block
   // the text reply that already shipped — caller invokes us best-effort.
   try {
-    const {audio, truncated} = await voice.synthesizeOgg(replyText);
+    const preferred = await getChatVoice(chatId);
+    const {audio, truncated} = await voice.synthesizeOgg(replyText, {
+      voice: preferred,
+    });
     await telegram.sendVoice(token, chatId, audio);
     return {ok: true, truncated};
   } catch (err) {
     console.warn("zedAssistant: TTS/sendVoice failed", err?.message);
     return {ok: false, error: err?.message};
   }
+}
+
+function buildVoiceListMessage(currentURI) {
+  const lines = ["Pick a voice for Zed. Reply with `/voice <number>`.", ""];
+  voice.VOICE_CATALOG.forEach((v, i) => {
+    const marker = v.voiceURI === currentURI ? " ← current" : "";
+    lines.push(`${i + 1}. ${v.name}${marker}`);
+  });
+  return lines.join("\n");
+}
+
+async function handleVoiceCommand(token, chatId, args) {
+  const arg = String(args || "").trim();
+  if (!arg) {
+    const current = await getChatVoice(chatId);
+    await telegram.sendMessage(token, chatId, buildVoiceListMessage(current));
+    return;
+  }
+  const num = Number.parseInt(arg, 10);
+  if (!Number.isFinite(num) || num < 1 || num > voice.VOICE_CATALOG.length) {
+    await telegram.sendMessage(
+      token,
+      chatId,
+      `Pick a number between 1 and ${voice.VOICE_CATALOG.length}. ` +
+      "Send `/voice` on its own to see the list.",
+    );
+    return;
+  }
+  const chosen = voice.VOICE_CATALOG[num - 1];
+  await setChatVoice(chatId, chosen.voiceURI);
+  await telegram.sendMessage(
+    token,
+    chatId,
+    `Voice set to ${chosen.name}. Send any message to hear it.`,
+  );
 }
 
 async function handleTelegramUpdate(update, {token, anthropicKey, openaiKey}) {
@@ -246,9 +309,16 @@ async function handleTelegramUpdate(update, {token, anthropicKey, openaiKey}) {
       "  • Draft a Claude prompt to fix the quiz editor\n" +
       "  • Make 5 Grade 5 Maths questions on fractions\n\n" +
       "Commands:\n" +
+      "  /voice — list and pick a voice for Zed\n" +
       "  /reset — wipe my memory of this chat",
     );
     return {handled: true};
+  }
+
+  if (text === "/voice" || text.startsWith("/voice ")) {
+    const args = text === "/voice" ? "" : text.slice("/voice ".length);
+    await handleVoiceCommand(token, chatId, args);
+    return {handled: true, command: "voice"};
   }
 
   if (text === "/reset") {
