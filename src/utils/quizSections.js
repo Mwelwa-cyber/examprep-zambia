@@ -223,6 +223,78 @@ export function countQuizMarks(sections = []) {
   }, 0)
 }
 
+// Fisher-Yates shuffle of the order of an array. Returns a new array; does
+// not mutate the input. Exported for tests.
+export function shuffleArray(items = []) {
+  const next = [...items]
+  for (let index = next.length - 1; index > 0; index -= 1) {
+    const swap = Math.floor(Math.random() * (index + 1))
+    ;[next[index], next[swap]] = [next[swap], next[index]]
+  }
+  return next
+}
+
+// Randomise the order of quiz questions while keeping structure intact:
+//   • Ungrouped sections are shuffled among themselves.
+//   • Each Part's member sections are shuffled within that Part.
+//   • Each comprehension passage's sub-questions are shuffled within the passage.
+// Sections never move across Parts; Parts themselves keep their order.
+export function shuffleQuizSections(sections = []) {
+  const ungrouped = []
+  const groupedByPart = new Map()
+
+  sections.forEach(section => {
+    const partId = section.kind === 'passage'
+      ? section.partId ?? null
+      : section.question?.partId ?? null
+    if (partId) {
+      if (!groupedByPart.has(partId)) groupedByPart.set(partId, [])
+      groupedByPart.get(partId).push(section)
+    } else {
+      ungrouped.push(section)
+    }
+  })
+
+  const shuffleSubQuestions = section => {
+    if (section.kind !== 'passage') return section
+    const questions = section.passage?.questions || []
+    if (questions.length < 2) return section
+    return {
+      ...section,
+      passage: {
+        ...section.passage,
+        questions: shuffleArray(questions),
+      },
+    }
+  }
+
+  const shuffledUngrouped = shuffleArray(ungrouped).map(shuffleSubQuestions)
+  const shuffledGroups = new Map(
+    [...groupedByPart.entries()].map(([partId, members]) => (
+      [partId, shuffleArray(members).map(shuffleSubQuestions)]
+    )),
+  )
+
+  // Reassemble preserving the original "ungrouped first, then by Part order
+  // discovered in the input" pattern that the editor already uses.
+  const seenParts = new Set()
+  const partOrderInOriginal = []
+  sections.forEach(section => {
+    const partId = section.kind === 'passage'
+      ? section.partId ?? null
+      : section.question?.partId ?? null
+    if (partId && !seenParts.has(partId)) {
+      seenParts.add(partId)
+      partOrderInOriginal.push(partId)
+    }
+  })
+
+  return [
+    ...shuffledUngrouped,
+    ...partOrderInOriginal.flatMap(partId => shuffledGroups.get(partId) || []),
+  ]
+}
+
 export function serializeQuizSections(sections = [], parts = []) {
   // Dual-format safe: serializeRichField writes Tiptap JSON as a JSON string
   // (keeps objects out of Firestore document fields) and passes HTML strings

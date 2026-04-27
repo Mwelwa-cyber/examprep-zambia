@@ -22,6 +22,7 @@ const BadgesPage = lazy(() => import('./components/dashboard/BadgesPage'))
 const ProfilePage = lazy(() => import('./components/dashboard/ProfilePage'))
 const ZedStudyAssistant = lazy(() => import('./components/ai/ZedStudyAssistant'))
 const FloatingZedButton = lazy(() => import('./components/ai/FloatingZedButton'))
+const IdleWarningModal = lazy(() => import('./components/auth/IdleWarningModal'))
 const NotFound = lazy(() => import('./components/ui/NotFound'))
 
 // Admin section
@@ -37,6 +38,7 @@ const AdminLearners = lazy(() => import('./components/admin/AdminLearners'))
 const AdminLearnerProfile = lazy(() => import('./components/admin/AdminLearnerProfile'))
 const GenerationsAdmin = lazy(() => import('./components/admin/GenerationsAdmin'))
 const CbcKbAdmin = lazy(() => import('./components/admin/CbcKbAdmin'))
+const ZedVoice = lazy(() => import('./components/admin/ZedVoice'))
 
 // Teacher section
 const TeacherLayout = lazy(() => import('./components/teacher/TeacherLayout'))
@@ -231,6 +233,7 @@ export default function App() {
           <Route path="/admin/generations"              element={<AdminRoute><GenerationsAdmin /></AdminRoute>} />
           <Route path="/admin/generations/:id"          element={<AdminRoute><LibraryItemDetail /></AdminRoute>} />
           <Route path="/admin/cbc-kb"                   element={<AdminRoute><CbcKbAdmin /></AdminRoute>} />
+          <Route path="/admin/zed-voice"                element={<AdminRoute><ZedVoice /></AdminRoute>} />
           <Route path="/admin/games-seed"               element={<AdminRoute><GamesSeedAdmin /></AdminRoute>} />
           <Route path="/admin/learners"                 element={<AdminRoute><AdminLearners /></AdminRoute>} />
           <Route path="/admin/learners/:learnerId"      element={<AdminRoute><AdminLearnerProfile /></AdminRoute>} />
@@ -262,6 +265,8 @@ export default function App() {
         </Routes>
         {/* Floating "Ask Zed" button — self-gates visibility per route */}
         <FloatingZedButton />
+        {/* Inactivity warning + auto-logout (driven by AuthContext) */}
+        <IdleWarningModal />
       </Suspense>
     </BrowserRouter>
   )

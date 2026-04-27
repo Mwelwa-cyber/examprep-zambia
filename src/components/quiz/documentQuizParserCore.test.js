@@ -196,4 +196,95 @@ function runRegressionTest() {
 }
 
 runRegressionTest()
+
+function findStandaloneQuestion(sections, sourceQuestionNumber) {
+  return sections
+    .filter(section => section.kind !== 'passage')
+    .map(section => section.question)
+    .find(question => String(question?.sourceQuestionNumber) === String(sourceQuestionNumber))
+}
+
+// Regression test for the "instructions go somewhere else" bug. Before the
+// fix, an instruction line that appeared between question N's options and
+// question N+1 was dumped into question N's explanation and never appeared
+// as the instruction for question N+1. It also had to handle imperative
+// instruction verbs that the strict standalone regex didn't match.
+function runInstructionRoutingTest() {
+  const blocks = [
+    block('1. The capital of France is ___.'),
+    block('A. Berlin'),
+    block('B. Paris'),
+    block('C. London'),
+    block('D. Madrid'),
+    // A new instruction sneaks in right after Q1's options. It uses an
+    // imperative verb ("Underline") that the original strict regex missed.
+    block('Underline the verb in each of the following sentences.'),
+    block('2. The boy ran home after school.'),
+    block('A. boy'),
+    block('B. ran'),
+    block('C. home'),
+    block('D. school'),
+    // A second imperative-style instruction with a trailing colon.
+    block('Match each animal with its young:'),
+    block('3. Cow'),
+    block('A. kid'),
+    block('B. calf'),
+    block('C. lamb'),
+    block('D. foal'),
+  ]
+
+  const warnings = []
+  const { sections } = processImportedQuestionBlocks(blocks, warnings)
+
+  const q1 = findStandaloneQuestion(sections, 1)
+  const q2 = findStandaloneQuestion(sections, 2)
+  const q3 = findStandaloneQuestion(sections, 3)
+
+  assert.ok(q1, 'Q1 should be parsed')
+  assert.ok(q2, 'Q2 should be parsed')
+  assert.ok(q3, 'Q3 should be parsed')
+
+  // Q1's explanation MUST NOT contain the instruction that follows it.
+  assert.doesNotMatch(plainRichText(q1.explanation), /underline the verb/i,
+    'Q1 explanation should not contain the next instruction line.')
+
+  // Q2 should pick up the "Underline..." instruction.
+  assert.match(plainRichText(q2.sharedInstruction), /underline the verb/i,
+    'Q2 should inherit the "Underline" instruction line.')
+
+  // Q2's explanation MUST NOT contain the next "Match..." instruction.
+  assert.doesNotMatch(plainRichText(q2.explanation), /match each animal/i,
+    'Q2 explanation should not contain the next instruction line.')
+
+  // Q3 should pick up the "Match..." instruction.
+  assert.match(plainRichText(q3.sharedInstruction), /match each animal/i,
+    'Q3 should inherit the "Match each animal" instruction line.')
+}
+
+runInstructionRoutingTest()
+
+// Regression test: an instruction that appears BEFORE the first question of
+// a section, with no explicit "Instruction:" prefix and no question yet
+// active, must not be silently dropped.
+function runPreQuestionInstructionTest() {
+  const blocks = [
+    block('Section A: Vocabulary'),
+    block('Underline the correct word in each sentence.'),
+    block('1. He ___ to school every day.'),
+    block('A. go'),
+    block('B. goes'),
+    block('C. going'),
+    block('D. gone'),
+  ]
+
+  const warnings = []
+  const { sections } = processImportedQuestionBlocks(blocks, warnings)
+  const q1 = findStandaloneQuestion(sections, 1)
+  assert.ok(q1, 'Q1 should be parsed')
+  assert.match(plainRichText(q1.sharedInstruction), /underline the correct word/i,
+    'Q1 should inherit the pre-question instruction.')
+}
+
+runPreQuestionInstructionTest()
+
 console.log('documentQuizParserCore regression test passed')

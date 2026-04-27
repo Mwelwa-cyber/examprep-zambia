@@ -1024,6 +1024,7 @@ export default function QuizSectionsEditor({
   onPartMove,
   onPartRemove,
   onAssignSectionToPart,
+  onShuffleSections,
   emptyStateTitle = 'No questions yet',
   emptyStateDescription = 'Click "Add Question" below to start building this quiz.',
 }) {
@@ -1113,8 +1114,47 @@ export default function QuizSectionsEditor({
     )
   }
 
+  function handleShuffleClick() {
+    if (!onShuffleSections) return
+    if (totalQuestions < 2) return
+    const ok = typeof window === 'undefined'
+      ? true
+      : window.confirm(
+        'Shuffle the order of all questions?\n\n'
+          + '• Ungrouped questions and passages will be randomised.\n'
+          + '• Questions inside each Part will be randomised within that Part.\n'
+          + '• Questions inside each comprehension passage will be randomised.\n'
+          + '\nYou can still drag or use the ↑/↓ buttons to fine-tune.',
+      )
+    if (!ok) return
+    onShuffleSections()
+  }
+
+  const canShuffle = Boolean(onShuffleSections) && totalQuestions >= 2
+
   return (
     <div className="space-y-4">
+      {(sections.length > 0 || sortedParts.length > 0) && canShuffle && (
+        <div className="theme-card theme-border flex flex-wrap items-center justify-between gap-2 rounded-2xl border px-4 py-3 shadow-sm">
+          <div>
+            <p className="theme-text text-sm font-black">Question order</p>
+            <p className="theme-text-muted mt-0.5 text-xs font-bold">
+              {totalQuestions} question{totalQuestions === 1 ? '' : 's'} · use Shuffle to randomise the order for fairness.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleShuffleClick}
+            className={joinClasses(
+              'min-h-0 rounded-xl border-2 px-4 py-2 text-sm font-black transition-all hover:-translate-y-px',
+              theme.button,
+            )}
+            title="Randomise the order of questions (and within each Part / passage)"
+          >
+            🔀 Shuffle questions
+          </button>
+        </div>
+      )}
       {sections.length === 0 && sortedParts.length === 0 ? (
         <div className="theme-card theme-border rounded-2xl border-2 border-dashed py-12 text-center">
           <div className="mb-2 text-4xl">📭</div>
