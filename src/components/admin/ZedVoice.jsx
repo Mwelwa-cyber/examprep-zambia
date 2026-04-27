@@ -126,12 +126,25 @@ export default function ZedVoice() {
   // Depend ONLY on the primitive value. Including the whole speech object
   // would make this re-fire on every useSpeech render and double-append the
   // same chunk into pendingRef before resetTranscript clears it.
+  //
+  // The recognizer can emit chunks in two shapes — handle both:
+  //   - Delta:      prev="can",  chunk="you"           → append → "can you"
+  //   - Cumulative: prev="can",  chunk="can you"       → replace → "can you"
+  // If chunk and prev share a prefix the longer one wins; otherwise it's a
+  // genuine new segment and we append. This collapses both "hello hello"
+  // (same chunk twice) and "can can you can you remember…" (cumulative
+  // emissions appended naively) into the single intended utterance.
   useEffect(() => {
     const chunk = speech.finalTranscript
     if (!chunk) return
-    pendingRef.current = pendingRef.current
-      ? `${pendingRef.current} ${chunk}`
-      : chunk
+    const prev = pendingRef.current
+    pendingRef.current = !prev
+      ? chunk
+      : chunk.startsWith(prev)
+        ? chunk
+        : prev.startsWith(chunk)
+          ? prev
+          : `${prev} ${chunk}`
     speechRef.current.resetTranscript()
     clearSilenceTimer()
     silenceTimerRef.current = setTimeout(fireTurnAfterSilence, SILENCE_MS)
