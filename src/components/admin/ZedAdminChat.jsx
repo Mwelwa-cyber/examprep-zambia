@@ -3,8 +3,10 @@ import { useAuth } from '../../contexts/AuthContext'
 import { auth } from '../../firebase/config'
 
 const STORAGE_KEY = 'zed-admin-chat:v1'
+const POS_KEY = 'zed-admin-chat-pos:v1'
 const ENDPOINT = '/api/zed/chat'
 const MAX_PERSISTED_MESSAGES = 50
+const DRAG_CLICK_THRESHOLD_PX = 5
 
 function loadCached() {
   try {
@@ -44,6 +46,25 @@ function useIsNarrow() {
     return () => mq.removeEventListener('change', handler)
   }, [])
   return narrow
+}
+
+function clamp(n, min, max) { return Math.max(min, Math.min(max, n)) }
+
+function loadPosition() {
+  try {
+    const raw = sessionStorage.getItem(POS_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (typeof parsed?.x === 'number' && typeof parsed?.y === 'number') return parsed
+  } catch {
+    /* ignore */
+  }
+  return null
+}
+
+function defaultPosition(size) {
+  if (typeof window === 'undefined') return { x: 24, y: 24 }
+  return { x: 24, y: window.innerHeight - size - 24 }
 }
 
 export default function ZedAdminChat() {
@@ -117,37 +138,114 @@ export default function ZedAdminChat() {
     setError('')
   }
 
-  const fab = useMemo(() => narrow
-    ? { size: 48, bottom: 16, left: 16 }
-    : { size: 56, bottom: 24, left: 24 },
-  [narrow])
+  const fabSize = narrow ? 48 : 56
+  const [pos, setPos] = useState(() => loadPosition() || defaultPosition(fabSize))
+  const dragRef = useRef({ active: false, startX: 0, startY: 0, originX: 0, originY: 0, moved: 0 })
+  const fabBtnRef = useRef(null)
+
+  // Keep the FAB inside the viewport when window resizes (rotation, devtools, etc.).
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+    const onResize = () => setPos((p) => ({
+      x: clamp(p.x, 8, window.innerWidth - fabSize - 8),
+      y: clamp(p.y, 8, window.innerHeight - fabSize - 8),
+    }))
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [fabSize])
+
+  const onPointerDown = (e) => {
+    if (e.button !== undefined && e.button !== 0) return
+    e.preventDefault()
+    dragRef.current = {
+      active: true,
+      moved: 0,
+      startX: e.clientX,
+      startY: e.clientY,
+      originX: pos.x,
+      originY: pos.y,
+    }
+    try { fabBtnRef.current?.setPointerCapture?.(e.pointerId) } catch { /* ignore */ }
+  }
+
+  const onPointerMove = (e) => {
+    const d = dragRef.current
+    if (!d.active) return
+    const dx = e.clientX - d.startX
+    const dy = e.clientY - d.startY
+    d.moved = Math.max(d.moved, Math.hypot(dx, dy))
+    setPos({
+      x: clamp(d.originX + dx, 8, window.innerWidth - fabSize - 8),
+      y: clamp(d.originY + dy, 8, window.innerHeight - fabSize - 8),
+    })
+  }
+
+  const onPointerUp = (e) => {
+    const d = dragRef.current
+    if (!d.active) return
+    d.active = false
+    try { fabBtnRef.current?.releasePointerCapture?.(e.pointerId) } catch { /* ignore */ }
+    if (d.moved < DRAG_CLICK_THRESHOLD_PX) {
+      setOpen(true)
+    } else {
+      try { sessionStorage.setItem(POS_KEY, JSON.stringify(pos)) } catch { /* ignore */ }
+    }
+  }
+
+  // Anchor the panel to whichever corner the FAB is nearest, so it grows
+  // away from the screen edge instead of clipping off-screen.
+  const panelAnchor = useMemo(() => {
+    if (typeof window === 'undefined') return { side: 'left', vertical: 'bottom' }
+    const cx = pos.x + fabSize / 2
+    const cy = pos.y + fabSize / 2
+    return {
+      side: cx < window.innerWidth / 2 ? 'left' : 'right',
+      vertical: cy < window.innerHeight / 2 ? 'top' : 'bottom',
+    }
+  }, [pos, fabSize])
 
   if (!currentUser || !isAdmin) return null
+
+  const panelStyle = narrow
+    ? { bottom: 0, left: 0, right: 0, top: 0, width: '100%', height: '100%', borderRadius: 0 }
+    : {
+      [panelAnchor.side]: 24,
+      [panelAnchor.vertical]: 24,
+      width: 380,
+      height: 540,
+      maxHeight: 'calc(100vh - 48px)',
+      borderRadius: 16,
+    }
 
   return (
     <>
       {!open && (
         <button
+          ref={fabBtnRef}
           type="button"
-          onClick={() => setOpen(true)}
-          aria-label="Open Zed admin chat"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+          aria-label="Open Zed admin chat (drag to move)"
           style={{
             position: 'fixed',
-            bottom: fab.bottom,
-            left: fab.left,
-            width: fab.size,
-            height: fab.size,
+            top: pos.y,
+            left: pos.x,
+            width: fabSize,
+            height: fabSize,
             padding: 0,
             borderRadius: '50%',
             border: 'none',
             background: '#10B981',
             color: '#fff',
-            cursor: 'pointer',
+            cursor: dragRef.current.active ? 'grabbing' : 'grab',
             boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 9998,
+            touchAction: 'none',
           }}
         >
           <picture>
@@ -155,12 +253,12 @@ export default function ZedAdminChat() {
             <img
               src="/images/characters/zedbot-help.png"
               alt=""
-              width={fab.size - 8}
-              height={fab.size - 8}
+              width={fabSize - 8}
+              height={fabSize - 8}
               draggable={false}
               style={{
-                width: fab.size - 8,
-                height: fab.size - 8,
+                width: fabSize - 8,
+                height: fabSize - 8,
                 objectFit: 'contain',
                 userSelect: 'none',
                 pointerEvents: 'none',
@@ -176,15 +274,8 @@ export default function ZedAdminChat() {
           aria-label="Chat with Zed"
           style={{
             position: 'fixed',
-            bottom: narrow ? 0 : 24,
-            left: narrow ? 0 : 24,
-            right: narrow ? 0 : 'auto',
-            top: narrow ? 0 : 'auto',
-            width: narrow ? '100%' : 380,
-            height: narrow ? '100%' : 540,
-            maxHeight: narrow ? '100%' : 'calc(100vh - 48px)',
+            ...panelStyle,
             background: '#fff',
-            borderRadius: narrow ? 0 : 16,
             boxShadow: '0 12px 40px rgba(0,0,0,0.25)',
             display: 'flex',
             flexDirection: 'column',
