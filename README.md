@@ -135,3 +135,4 @@ Husky + lint-staged run `check:integrity` on every commit and `eslint --fix` on 
 - [CBC_PRIVATE_KB_SETUP.md](./CBC_PRIVATE_KB_SETUP.md) — seeding the CBC knowledge base
 - [LAUNCH_CHECKLIST.md](./LAUNCH_CHECKLIST.md) — pre-launch verification steps
 - [BUG_REPORT.md](./BUG_REPORT.md) — known-issue tracker
+<!-- zed was here -->
