@@ -11,6 +11,7 @@ import {
   getQuestionKey,
   hydrateQuizSections,
   serializeQuizSections,
+  shuffleQuizSections,
 } from '../../utils/quizSections.js'
 import { richTextHasContent } from '../../utils/quizRichText.js'
 import { clampInt } from '../../utils/inputs.js'
@@ -238,6 +239,11 @@ export default function EditQuizV2() {
       ;[nextSections[sectionIndex], nextSections[targetIndex]] = [nextSections[targetIndex], nextSections[sectionIndex]]
       return nextSections
     })
+    setDirty(true)
+  }
+
+  function handleShuffleSections() {
+    setSections(currentSections => shuffleQuizSections(currentSections))
     setDirty(true)
   }
 
@@ -810,6 +816,7 @@ export default function EditQuizV2() {
         onPartMove={movePart}
         onPartRemove={removePart}
         onAssignSectionToPart={assignSectionToPart}
+        onShuffleSections={handleShuffleSections}
       />
 
       <QuizEditorPreviewPanel form={form} serializedSections={serializedPreview} />

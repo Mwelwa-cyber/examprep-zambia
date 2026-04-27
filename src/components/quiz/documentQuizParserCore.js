@@ -25,7 +25,74 @@ const PARA_ORDER_INSTRUCTION_RE = /each question has four paragraphs|sentences i
 const PARA_ORDER_DO_Q_RE = /\bnow\s+do\s+questions?\s+(\d{1,3})/i
 const PARA_ORDER_QUESTION_ONLY_RE = /^\d{1,3}$/
 const QUESTION_RANGE_HEADING_RE = /^(?:questions?\s+\d{1,3}\s*[–-]\s*\d{1,3}|now\s+do\s+questions?\s+\d{1,3}\s*[–-]\s*\d{1,3}|look\s+at\s+questions?\s+\d{1,3}(?:\s*[–-]\s*\d{1,3})?)$/i
-const STANDALONE_INSTRUCTION_RE = /^(?:instruction\s*:|choose\s+(?:the|which)\b|select\s+(?:the|which)\b|write\s+(?:the|a|an)\b|complete\s+(?:the|each)\b|fill\s+in\b|look\s+at\s+questions?\b|for\s+questions?\b)/i
+// Verbs that, when they lead a non-numbered line, almost always mean the line
+// is a teacher instruction rather than a question stem or an answer/explanation.
+// Kept conservative — common question stems like "Find the value of x" stay
+// safe because numbered questions are matched first.
+const INSTRUCTION_VERBS = [
+  'choose', 'select', 'pick', 'write', 'complete', 'fill', 'fill in',
+  'look at', 'study', 'observe', 'examine', 'consider', 'inspect',
+  'use', 'refer to', 'read', 'reread',
+  'identify', 'find', 'state', 'name', 'list', 'mention',
+  'underline', 'circle', 'tick', 'mark', 'highlight', 'cross out',
+  'rewrite', 'rephrase', 'rearrange', 'reorder', 'arrange', 'order',
+  'match', 'pair', 'connect', 'link',
+  'supply', 'provide', 'give', 'put', 'place',
+  'change', 'convert', 'translate', 'transform',
+  'spell', 'pronounce',
+  'draw', 'illustrate', 'label', 'shade', 'colour', 'color',
+  'calculate', 'compute', 'work out', 'determine', 'solve', 'evaluate',
+  'simplify', 'factorise', 'factorize', 'expand', 'estimate', 'round off',
+  'explain', 'describe', 'discuss', 'compare', 'contrast', 'distinguish', 'differentiate',
+  'classify', 'group', 'sort', 'categorise', 'categorize',
+  'answer', 'attempt', 'do', 'try',
+  'decide', 'judge', 'predict', 'suggest', 'recommend',
+  'add', 'subtract', 'multiply', 'divide',
+]
+const INSTRUCTION_VERB_ALT = INSTRUCTION_VERBS
+  .map(verb => verb.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&').replace(/\s+/g, '\\s+'))
+  .join('|')
+const STANDALONE_INSTRUCTION_RE = new RegExp(
+  '^(?:' +
+    // Explicit instruction marker / note
+    'instructions?\\s*[:.-]|' +
+    'note\\s*[:\\-]|' +
+    // "For/In each", "For/In all", "For/In every", "For/In the following"
+    '(?:for|in)\\s+(?:each|all|every|the\\s+following|the\\s+next)\\b|' +
+    'each\\s+(?:question|sentence|of\\s+the|word|item)\\b|' +
+    'every\\s+(?:question|sentence|word)\\b|' +
+    // "For questions 26-30" / "Look at questions 39-45" / "Now do questions"
+    '(?:for|in|from|with)\\s+questions?\\s+\\d|' +
+    'look\\s+at\\s+questions?\\b|' +
+    'now\\s+do\\s+questions?\\b|' +
+    'questions?\\s+\\d{1,3}\\s*(?:to|–|-)\\s*\\d{1,3}\\b|' +
+    // Common scaffolds
+    'below\\s+(?:are|is)\\b|' +
+    'the\\s+following\\b|' +
+    'from\\s+the\\s+(?:options|words|sentences|choices|list|passage|paragraph|table|diagram|figure|picture|graph|chart|map|extract|story|text)\\b|' +
+    // Imperative verb at start of line
+    '(?:' + INSTRUCTION_VERB_ALT + ')\\s+\\b' +
+  ')',
+  'i',
+)
+// Hint that a line is an instruction, even when it does not match the strict
+// detector above — used to stop the parser from dumping such lines into the
+// previous question's explanation. Kept broader, but still ignores anything
+// that looks like a question (ends in ?), an option (starts with A. / (A) /
+// etc.), or an answer/explanation prefix.
+const INSTRUCTION_HINT_RE = new RegExp(
+  '(?:' +
+    'instructions?\\s*[:.-]|' +
+    'note\\s*[:\\-]|' +
+    '\\b(?:for|in|from)\\s+questions?\\s+\\d|' +
+    '\\bquestions?\\s+\\d{1,3}\\s*(?:to|–|-)\\s*\\d{1,3}\\b|' +
+    '\\bnow\\s+do\\s+questions?\\b|' +
+    '\\blook\\s+at\\s+(?:the\\s+)?(?:diagram|figure|picture|image|graph|chart|map|table|passage|story|text|extract|questions?)\\b|' +
+    '\\b(?:for|in)\\s+(?:each|all|every|the\\s+following|the\\s+next)\\b|' +
+    '^(?:' + INSTRUCTION_VERB_ALT + ')\\s+' +
+  ')',
+  'i',
+)
 const COMP_INSTRUCTION_RE = /\b(?:read\s+(?:the\s+)?(?:following|passage|story|text|extract|information|paragraph|article|poem|stories)|read\s+each\s+stor(?:y|ies)|answer\s+the\s+(?:following\s+)?questions?\s+(?:(?:that|which)\s+follow|from\s+(?:the\s+)?(?:passage|story|text|extract)|based\s+on\s+(?:the\s+)?(?:passage|story|text)|using\s+(?:the\s+)?(?:passage|story|text))|use\s+(?:the\s+)?(?:passage|text|story|information|extract)(?:\s+(?:above|below|to\s+answer))?|choose\s+(?:the\s+)?(?:correct|best|right)\s+(?:answer|option|word)\s+from\s+(?:the\s+)?(?:passage|text|story|extract)|based\s+on\s+(?:the\s+)?(?:passage|story|text|extract)|refer\s+to\s+(?:the\s+)?(?:passage|story|text|extract)|questions?\s+(?:that|which)\s+follow|stories?\s+with\s+questions?\s+on\s+each|look\s+at\s+the\s+questions?\s+(?:that|which)\s+follow|from\s+(?:the\s+)?(?:passage|story|text|extract)\s+(?:above|below)?)\b/i
 const PASSAGE_LABEL_RE = /^(?:story|passage|text|extract|article|reading(?:\s+comprehension)?|comprehension)\s*(?:\d+|[IVX]+|[A-Z])?\s*(?:[:.,-]\s*.*)?$/i
 
@@ -190,6 +257,30 @@ function isStandaloneInstruction(line) {
   if (ANSWER_KEY_HEADING_RE.test(text)) return false
   if (isComprehensionInstruction(text)) return false
   return STANDALONE_INSTRUCTION_RE.test(text)
+}
+
+// Looser detector — true for any line that smells like a teacher instruction
+// even when the strict patterns above miss it. The parser uses this to refuse
+// to dump instruction text into the previous question's explanation field.
+function looksLikeInstructionLine(line) {
+  const text = cleanImportedText(line)
+  if (!text) return false
+  if (questionMatch(text)) return false
+  if (extractOptionSegments(text).length) return false
+  if (ANSWER_RE.test(text) || EXPLANATION_RE.test(text)) return false
+  if (ANSWER_KEY_HEADING_RE.test(text)) return false
+  if (/\?\s*$/.test(text)) return false
+  if (isComprehensionInstruction(text)) return true
+  if (STANDALONE_INSTRUCTION_RE.test(text)) return true
+  if (INSTRUCTION_HINT_RE.test(text)) return true
+  // Trailing colon at the end of a short imperative-looking line is almost
+  // always a "do this:" prompt, e.g. "Match the following with the answers:".
+  if (/[:.][\s)]*$/.test(text) && /^[A-Z][a-zA-Z\s,;'"-]{4,80}[:.][\s)]*$/.test(text)) return true
+  return false
+}
+
+function stripInstructionPrefix(text) {
+  return cleanImportedText(text).replace(/^instructions?\s*[:.-]\s*/i, '').replace(/^note\s*[:\-]\s*/i, '')
 }
 
 function optionOnlyQuestionMatch(line) {
@@ -551,7 +642,7 @@ function preprocessStandaloneInstructions(blocks) {
     }
 
     if (standaloneInstruction && !detectedQuestion) {
-      currentInstruction = singleLineText.replace(/^instruction\s*:\s*/i, '')
+      currentInstruction = stripInstructionPrefix(singleLineText)
       output.push(block)
       return
     }
@@ -729,7 +820,7 @@ function parseQuestionsFromBlocks(blocks, warnings) {
       const isPassLabel = isPassageLabel(line)
       const isSectionBreak = isSectionHeading(line)
       const numberOnlyQuestion = line.match(PARA_ORDER_QUESTION_ONLY_RE)
-      const explicitInstruction = /^instruction\s*:/i.test(line)
+      const explicitInstruction = /^instructions?\s*[:.-]/i.test(line)
 
       if (compActive) {
         if (isInstruction && !detectedQuestion) {
@@ -785,6 +876,13 @@ function parseQuestionsFromBlocks(blocks, warnings) {
             })
             return
           }
+          // Trailing instruction text after this sub-question's options belongs
+          // to the NEXT question — never to the current question's explanation.
+          if (current.options.length && looksLikeInstructionLine(line)) {
+            finalizeSubQuestion()
+            compInstructions.push(stripInstructionPrefix(line))
+            return
+          }
           if (imageOnlyHint && !current.diagramText) current.diagramText = line
           if (current.options.length && !/\?$/.test(line)) {
             current.explanationParts.push(line)
@@ -803,7 +901,7 @@ function parseQuestionsFromBlocks(blocks, warnings) {
 
       if (explicitInstruction && !detectedQuestion) {
         finalizeStandaloneQuestion()
-        sharedInstruction = cleanImportedText(line).replace(/^instruction\s*:\s*/i, '')
+        sharedInstruction = stripInstructionPrefix(line)
         return
       }
 
@@ -825,7 +923,7 @@ function parseQuestionsFromBlocks(blocks, warnings) {
 
       if (isStandaloneInstruction(line) && !detectedQuestion) {
         finalizeStandaloneQuestion()
-        sharedInstruction = cleanImportedText(line).replace(/^instruction\s*:\s*/i, '')
+        sharedInstruction = stripInstructionPrefix(line)
         return
       }
 
@@ -870,6 +968,14 @@ function parseQuestionsFromBlocks(blocks, warnings) {
       }
 
       if (!current) {
+        // Lines that look like teacher instructions but slipped past the
+        // strict detector (e.g. "Underline the verb in each sentence.") still
+        // belong to the next question — capture rather than silently drop.
+        if (looksLikeInstructionLine(line)) {
+          sharedInstruction = sharedInstruction
+            ? cleanImportedText(`${sharedInstruction} ${stripInstructionPrefix(line)}`)
+            : stripInstructionPrefix(line)
+        }
         if (lineAssets.length) pendingAssets.push(...lineAssets)
         return
       }
@@ -900,6 +1006,14 @@ function parseQuestionsFromBlocks(blocks, warnings) {
         current.options[current.lastOptionIndex] = cleanImportedText(
           [current.options[current.lastOptionIndex], line].filter(Boolean).join(' '),
         )
+        return
+      }
+      // Trailing instruction text after this question's options belongs to
+      // the NEXT question — never to the current question's explanation. This
+      // is the most common reason imported "instructions go somewhere else".
+      if (current.options.length && looksLikeInstructionLine(line)) {
+        finalizeStandaloneQuestion()
+        sharedInstruction = stripInstructionPrefix(line)
         return
       }
       if (imageOnlyHint && !current.diagramText) current.diagramText = line
