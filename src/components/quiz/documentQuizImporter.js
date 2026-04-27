@@ -54,7 +54,7 @@ const QUESTION_NO_PUNCT_RE = /^(?:q(?:uestion)?\s*)?(\d{1,3})\s+(.+\?)$/i
 const OPTION_RE = /^(?:\(([A-Da-d])\)|([A-Da-d])\s*[\).:\-])\s*(.+)$/
 const OPTION_LABEL_RE = /(^|\s)(?:\(([A-Da-d])\)|([A-Da-d])\s*[\).:\-])\s*/g
 
-const ANSWER_RE = /^(?:answer|correct answer|ans|key)\s*[:\-]\s*(.+)$/i
+const ANSWER_RE = /^[\s✓✔☑★●•▶→\-—–·*]*(?:answer|correct answer|ans|key)\s*[:\-]\s*(.+)$/i
 const EXPLANATION_RE = /^(?:explanation|reason|because)\s*[:\-]\s*(.+)$/i
 const IMAGE_HINT_RE = /\b(diagram|figure|picture|image|graph|chart|map|shown|label|observe|study the|look at)\b/i
 const ANSWER_KEY_HEADING_RE = /^(answers\b|answer\s+key|memorandum|marking scheme)\b/i
