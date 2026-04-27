@@ -17,6 +17,7 @@ import {
   getQuestionKey,
   hasOnlyEmptyStarterSection,
   serializeQuizSections,
+  shuffleQuizSections,
 } from '../../utils/quizSections.js'
 import { richTextHasContent } from '../../utils/quizRichText.js'
 import { clampInt } from '../../utils/inputs.js'
@@ -414,6 +415,10 @@ export default function CreateQuizV2() {
       ;[nextSections[sectionIndex], nextSections[targetIndex]] = [nextSections[targetIndex], nextSections[sectionIndex]]
       return nextSections
     })
+  }
+
+  function handleShuffleSections() {
+    setSections(currentSections => shuffleQuizSections(currentSections))
   }
 
   // ── Parts (PRISCA mock-paper section groups) ─────────────────────
@@ -1150,6 +1155,7 @@ export default function CreateQuizV2() {
         onPartMove={movePart}
         onPartRemove={removePart}
         onAssignSectionToPart={assignSectionToPart}
+        onShuffleSections={handleShuffleSections}
       />
 
       <QuizEditorPreviewPanel form={form} serializedSections={serializedPreview} />
