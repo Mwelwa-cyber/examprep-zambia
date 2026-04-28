@@ -21,7 +21,6 @@ function partLabel(index) {
 // way in (legacy quizzes render fine) and emits Tiptap JSON. Saving passes
 // the JSON straight through to Firestore.
 import QuizRichField from './QuizRichField'
-import MapLocationField from './MapLocationField'
 // RichContent is format-aware — handles both legacy HTML and Tiptap JSON.
 // Used wherever we previously showed RichTextContent.
 import RichContent from '../../editor/RichContent'
@@ -799,11 +798,6 @@ function PassageSectionCard({
                 uploadStep={passage.imageUploadStep}
                 onFileSelect={file => onPassageImageUpload(sectionIndex, file)}
                 onRemove={() => onPassageImageRemove(sectionIndex)}
-                theme={theme}
-              />
-              <MapLocationField
-                value={passage.mapLocation ?? null}
-                onChange={nextValue => onPassageChange(sectionIndex, 'mapLocation', nextValue)}
                 theme={theme}
               />
             </div>
