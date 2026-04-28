@@ -151,6 +151,15 @@ npx -y firebase-tools@latest appdistribution:distribute \
 
 For release-signed builds run `npm run android:apk:release` after configuring a keystore in `android/app/build.gradle` (`signingConfigs.release`).
 
+### Hands-off CI build (no Android Studio needed)
+
+[`.github/workflows/android-beta.yml`](./.github/workflows/android-beta.yml) builds the APK in CI and uploads it to App Distribution automatically. Two ways to trigger it:
+
+- **Push to a `beta/**` branch** — e.g. `git push origin beta/2026-04-29` ships whatever's on that branch to testers.
+- **Manual dispatch** — Actions tab ▸ *Android Beta (App Distribution)* ▸ *Run workflow* with optional release notes.
+
+One-time setup: add `FIREBASE_ANDROID_APP_ID` to repo secrets (the rest — `FIREBASE_TOKEN`, `VITE_FIREBASE_*` — are already there for `deploy-hosting.yml`). Optional: add an `APP_DISTRIBUTION_GROUPS` repo variable if you want a different tester group than the default `testers`.
+
 ### Known caveats before wider beta
 
 - **Auth persistence** — `src/firebase/config.js` uses `browserSessionPersistence`, which logs the user out every time the wrapper is killed. Switch to `indexedDBLocalPersistence` for the native shell only (detect via `Capacitor.isNativePlatform()`).
