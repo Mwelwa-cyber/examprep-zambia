@@ -639,6 +639,15 @@ export default function ZedStudyAssistant() {
 
   const scrollToBottom = useCallback((force = false) => {
     const el = messagesRef.current;
+    // On narrow phones the chat scrolls with the page (the messages list
+    // doesn't have its own overflow), so scroll the window instead of the
+    // inner container.
+    if (typeof window !== "undefined" && window.matchMedia?.("(max-width: 480px)").matches) {
+      const top = document.documentElement.scrollHeight;
+      if (force) window.scrollTo({ top, behavior: "smooth" });
+      else window.scrollTo(0, top);
+      return;
+    }
     if (!el) return;
     if (force) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
     else el.scrollTop = el.scrollHeight;
@@ -854,7 +863,10 @@ export default function ZedStudyAssistant() {
   return (
     <div style={{
       minHeight: "100dvh",
-      height: "100dvh",
+      // On narrow phones we let the document scroll naturally instead of
+      // pinning everything inside a 100dvh cage with overflow:hidden — that
+      // was clipping the bottom bars on small screens.
+      height: isNarrow ? "auto" : "100dvh",
       display: "flex",
       flexDirection: "column",
       background: palette.cream,
@@ -863,7 +875,7 @@ export default function ZedStudyAssistant() {
       width: "100%",
       maxWidth: 820,
       margin: "0 auto",
-      overflow: "hidden",
+      overflow: isNarrow ? "visible" : "hidden",
     }}>
       <ZedStyles palette={palette} isDark={isDark} />
 
@@ -894,10 +906,13 @@ export default function ZedStudyAssistant() {
       {/* MAIN VIEW SWITCHER */}
       <main style={{
         flex: 1,
-        overflow: "hidden",
+        // On narrow phones, let main grow with content and the document
+        // scrolls. On wider screens we keep an internal scroll region.
+        overflow: isNarrow ? "visible" : "hidden",
         display: "flex",
         flexDirection: "column",
         background: palette.paper,
+        minHeight: isNarrow ? 0 : undefined,
       }}>
         {activeTab === "chat" && (
           <ChatView
@@ -929,6 +944,7 @@ export default function ZedStudyAssistant() {
               setTimeout(() => send(), 200);
             }}
             toast={toast}
+            isNarrow={isNarrow}
           />
         )}
         {activeTab === "library" && (
@@ -939,6 +955,7 @@ export default function ZedStudyAssistant() {
             onSwitch={switchSession}
             onDelete={deleteSession}
             onNew={() => { newSession(); setActiveTab("chat"); toast("New session started"); }}
+            isNarrow={isNarrow}
           />
         )}
       </main>
@@ -1293,7 +1310,9 @@ function ChatView({ palette, scope, messages, streaming, streamText, pendingBotI
       className="zed-scroll"
       style={{
         flex: 1,
-        overflowY: "auto",
+        // On narrow phones the document scrolls; on wider screens this
+        // region scrolls internally.
+        overflowY: isNarrow ? "visible" : "auto",
         padding: isNarrow ? "12px 12px 6px" : "20px 16px 8px",
         display: "flex",
         flexDirection: "column",
@@ -2164,7 +2183,7 @@ function Sheet({ open, palette, onClose, title, subtitle, children }) {
 // ═══════════════════════════════════════════════════════════════════
 // LIBRARY VIEW
 // ═══════════════════════════════════════════════════════════════════
-function LibraryView({ palette, sessions, activeId, onSwitch, onDelete, onNew }) {
+function LibraryView({ palette, sessions, activeId, onSwitch, onDelete, onNew, isNarrow }) {
   const sorted = useMemo(() => sessions.slice().sort((a, b) => b.updatedAt - a.updatedAt), [sessions]);
   const handleDelete = (id, title) => {
     if (window.confirm(`Delete "${title || "this session"}"? This cannot be undone.`)) {
@@ -2174,7 +2193,7 @@ function LibraryView({ palette, sessions, activeId, onSwitch, onDelete, onNew })
   return (
     <div className="zed-scroll" style={{
       flex: 1,
-      overflowY: "auto",
+      overflowY: isNarrow ? "visible" : "auto",
       padding: "18px 16px 12px",
       display: "flex",
       flexDirection: "column",
@@ -2339,7 +2358,7 @@ function LibraryView({ palette, sessions, activeId, onSwitch, onDelete, onNew })
 // ═══════════════════════════════════════════════════════════════════
 // PRACTICE VIEW — config → quiz → results
 // ═══════════════════════════════════════════════════════════════════
-function PracticeView({ palette, scope, onHandoff, toast }) {
+function PracticeView({ palette, scope, onHandoff, toast, isNarrow }) {
   const [phase, setPhase] = useState("config"); // config | loading | quiz | results
   const [count, setCount] = useState(5);
   const [timer, setTimer] = useState(30);
@@ -2429,7 +2448,7 @@ function PracticeView({ palette, scope, onHandoff, toast }) {
   }, [current, questions, answers, scope, topic, difficulty, history]);
 
   if (phase === "config") {
-    return <PracticeConfig palette={palette} scope={scope} count={count} setCount={setCount} timer={timer} setTimer={setTimer} difficulty={difficulty} setDifficulty={setDifficulty} topic={topic} setTopic={setTopic} history={history} onStart={start} />;
+    return <PracticeConfig palette={palette} scope={scope} count={count} setCount={setCount} timer={timer} setTimer={setTimer} difficulty={difficulty} setDifficulty={setDifficulty} topic={topic} setTopic={setTopic} history={history} onStart={start} isNarrow={isNarrow} />;
   }
   if (phase === "loading") {
     return (
@@ -2442,16 +2461,16 @@ function PracticeView({ palette, scope, onHandoff, toast }) {
     );
   }
   if (phase === "quiz") {
-    return <PracticeQuiz palette={palette} questions={questions} current={current} answers={answers} onSubmit={submit} onNext={nextQ} timerSec={timer} />;
+    return <PracticeQuiz palette={palette} questions={questions} current={current} answers={answers} onSubmit={submit} onNext={nextQ} timerSec={timer} isNarrow={isNarrow} />;
   }
   // results
-  return <PracticeResults palette={palette} questions={questions} answers={answers} startedAt={startedAt} onAgain={() => setPhase("config")} onHandoff={onHandoff} scope={scope} />;
+  return <PracticeResults palette={palette} questions={questions} answers={answers} startedAt={startedAt} onAgain={() => setPhase("config")} onHandoff={onHandoff} scope={scope} isNarrow={isNarrow} />;
 }
 
-function PracticeConfig({ palette, scope, count, setCount, timer, setTimer, difficulty, setDifficulty, topic, setTopic, history, onStart }) {
+function PracticeConfig({ palette, scope, count, setCount, timer, setTimer, difficulty, setDifficulty, topic, setTopic, history, onStart, isNarrow }) {
   const seedTopics = topicsFor(scope.subject, scope.grade);
   return (
-    <div className="zed-scroll" style={{ flex: 1, overflowY: "auto", padding: 16 }}>
+    <div className="zed-scroll" style={{ flex: 1, overflowY: isNarrow ? "visible" : "auto", padding: 16 }}>
       <div style={{ animation: "zed-fade-up 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both" }}>
         <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: palette.orange, marginBottom: 6 }}>Practise mode</div>
         <h1 style={{ fontFamily: "Outfit, system-ui, sans-serif", fontSize: 26, lineHeight: 1.15, fontWeight: 700, letterSpacing: "-0.025em", color: palette.ink, margin: "0 0 6px" }}>
@@ -2661,7 +2680,7 @@ function SegControl({ palette, value, onChange, options }) {
   );
 }
 
-function PracticeQuiz({ palette, questions, current, answers, onSubmit, onNext, timerSec }) {
+function PracticeQuiz({ palette, questions, current, answers, onSubmit, onNext, timerSec, isNarrow }) {
   const q = questions[current];
   const picked = answers[current];
   const settled = picked !== -1 && picked !== undefined;
@@ -2687,7 +2706,7 @@ function PracticeQuiz({ palette, questions, current, answers, onSubmit, onNext, 
   const isLast = current === total - 1;
 
   return (
-    <div className="zed-scroll" style={{ flex: 1, overflowY: "auto", padding: 16 }}>
+    <div className="zed-scroll" style={{ flex: 1, overflowY: isNarrow ? "visible" : "auto", padding: 16 }}>
       <div style={{ animation: "zed-fade-up 0.4s both" }}>
         <div style={{
           display: "flex",
@@ -2839,7 +2858,7 @@ function PracticeQuiz({ palette, questions, current, answers, onSubmit, onNext, 
   );
 }
 
-function PracticeResults({ palette, questions, answers, startedAt, onAgain, onHandoff, scope }) {
+function PracticeResults({ palette, questions, answers, startedAt, onAgain, onHandoff, scope, isNarrow }) {
   const total = questions.length;
   const correctCount = answers.reduce((s, a, i) => s + (a === questions[i].correctIndex ? 1 : 0), 0);
   const pct = Math.round((correctCount / total) * 100);
@@ -2880,7 +2899,7 @@ function PracticeResults({ palette, questions, answers, startedAt, onAgain, onHa
   };
 
   return (
-    <div className="zed-scroll" style={{ flex: 1, overflowY: "auto", padding: 16 }}>
+    <div className="zed-scroll" style={{ flex: 1, overflowY: isNarrow ? "visible" : "auto", padding: 16 }}>
       <div style={{ animation: "zed-fade-up 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both", textAlign: "center", padding: "8px 0" }}>
         <div style={{ width: 130, height: 130, margin: "8px auto 18px", position: "relative" }}>
           <svg viewBox="0 0 130 130" style={{ width: "100%", height: "100%", transform: "rotate(-90deg)" }}>
