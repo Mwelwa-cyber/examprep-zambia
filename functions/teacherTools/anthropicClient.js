@@ -51,7 +51,7 @@ async function callClaude(apiKey, {
         ...(systemBlocks ? {system: systemBlocks} : {}),
         messages,
       }),
-    }, {label: "teacherTools"});
+    }, {label: "teacherTools", maxRetries: 3, maxRetryAfterMs: 15000});
   } catch (err) {
     console.error("Claude fetch failed", err);
     throw new HttpsError(

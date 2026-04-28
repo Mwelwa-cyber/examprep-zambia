@@ -221,7 +221,7 @@ async function callAnthropic(apiKey, {
         } : {}),
         messages,
       }),
-    }, {label: "aiService"});
+    }, {label: "aiService", maxRetries: 2, maxRetryAfterMs: 6000});
   } catch {
     throw new HttpsError(
       "unavailable",
@@ -963,7 +963,7 @@ async function callAnthropicStream(apiKey, {
         } : {}),
         messages,
       }),
-    }, {label: "aiService:stream"});
+    }, {label: "aiService:stream", maxRetries: 1, maxRetryAfterMs: 4000});
   } catch (err) {
     console.error("callAnthropicStream fetch failed", err);
     throw new HttpsError("unavailable", "AI is temporarily unavailable. Please try again.");

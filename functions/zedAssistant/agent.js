@@ -24,6 +24,11 @@ const MAX_TOOL_ITERATIONS = 6;
 const MAX_OUTPUT_TOKENS = 1500;
 
 async function postAnthropic(apiKey, body) {
+  // Tight retry budget: this runs inside the 60s Telegram/WhatsApp webhook
+  // and the 6-iteration runAgent tool loop, so a single slow retry can
+  // easily blow past the function timeout and leave the user with no
+  // reply at all. One quick retry with a 4s cap is enough to recover
+  // from a transient blip without killing the webhook.
   const res = await anthropicFetch(ANTHROPIC_URL, {
     method: "POST",
     headers: {
@@ -32,7 +37,7 @@ async function postAnthropic(apiKey, body) {
       "anthropic-version": ANTHROPIC_VERSION,
     },
     body: JSON.stringify(body),
-  }, {label: "zedAssistant"});
+  }, {label: "zedAssistant", maxRetries: 1, maxRetryAfterMs: 4000});
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const message = data?.error?.message || `HTTP ${res.status}`;

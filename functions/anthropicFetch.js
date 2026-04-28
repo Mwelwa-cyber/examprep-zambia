@@ -50,11 +50,18 @@ function isRetryableStatus(status) {
  * @param {RequestInit} init
  * @param {object} [opts]
  * @param {number} [opts.maxRetries=4]
+ *        Number of retry attempts after the initial request.
+ * @param {number} [opts.maxRetryAfterMs=60000]
+ *        Cap honoured for the `retry-after` header AND for exponential
+ *        backoff. Tune this to fit inside the calling Cloud Function's
+ *        timeout — webhook endpoints (60s) should pass something small
+ *        like 4000-8000ms; the 540s coder runner can keep the default.
  * @param {string} [opts.label="anthropic"]  Used in log lines.
  * @returns {Promise<Response>}
  */
 async function anthropicFetch(url, init, opts = {}) {
   const maxRetries = opts.maxRetries ?? DEFAULT_MAX_RETRIES;
+  const maxRetryAfterMs = opts.maxRetryAfterMs ?? MAX_RETRY_AFTER_MS;
   const label = opts.label || "anthropic";
   let lastNetworkErr;
 
@@ -65,7 +72,7 @@ async function anthropicFetch(url, init, opts = {}) {
     } catch (err) {
       lastNetworkErr = err;
       if (attempt === maxRetries) throw err;
-      const delay = backoffMs(attempt);
+      const delay = Math.min(backoffMs(attempt), maxRetryAfterMs);
       console.warn(
         `[${label}] network error, retrying in ${delay}ms ` +
         `(attempt ${attempt + 1}/${maxRetries + 1})`,
@@ -81,7 +88,7 @@ async function anthropicFetch(url, init, opts = {}) {
     const retryAfter = parseRetryAfterMs(res.headers.get("retry-after"));
     const delay = Math.min(
       retryAfter ?? backoffMs(attempt),
-      MAX_RETRY_AFTER_MS,
+      maxRetryAfterMs,
     );
 
     console.warn(
