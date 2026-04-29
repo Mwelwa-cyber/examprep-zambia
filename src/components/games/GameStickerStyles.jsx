@@ -2,8 +2,9 @@
  * Shared "sticker" styling that mirrors the GamesHub (first page) look:
  * white cards with a 2px navy border and a hard 2px offset shadow, an
  * uppercase eyebrow with an orange dash, and a tactile press-down on
- * sticker buttons. Mounted once inside PlayGame so every engine inherits
- * the same visual language as the hub.
+ * sticker buttons. Mounted once inside GamesShell so every /games page
+ * (hub, subject selector, game list, play surface) inherits the same
+ * visual language.
  */
 export default function GameStickerStyles() {
   return (
@@ -81,6 +82,12 @@ export default function GameStickerStyles() {
         color: #0F1B2D;
         box-shadow: 0 2px 0 #0F1B2D;
       }
+      .zx-hscroll {
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
+      }
+      .zx-hscroll::-webkit-scrollbar { display: none; }
+      .zx-mascot-tile span { display: inline-block; }
       @keyframes zx-question-in {
         0%   { transform: translateY(8px) scale(0.98); opacity: 0; }
         100% { transform: translateY(0)    scale(1);    opacity: 1; }

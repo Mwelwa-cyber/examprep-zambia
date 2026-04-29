@@ -8,7 +8,6 @@ import {
 } from '../../utils/gamesService'
 import { getFallbackGame } from '../../data/gamesSeed'
 import GamesShell from './GamesShell'
-import GameStickerStyles from './GameStickerStyles'
 import TimedQuizGame from './TimedQuizGame'
 import MemoryMatchGame from './MemoryMatchGame'
 import WordBuilderGame from './WordBuilderGame'
@@ -73,7 +72,6 @@ export default function PlayGame() {
   if (loading || !game) {
     return (
       <GamesShell crumbs={[{ label: 'Loading…' }]} maxW="max-w-4xl">
-        <GameStickerStyles />
         <div className="zx-card zx-loading-card mx-auto max-w-md rounded-[22px] bg-white p-10 text-center">
           <span
             role="img"
