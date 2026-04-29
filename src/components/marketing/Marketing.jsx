@@ -11,15 +11,35 @@ import {
   Download,
   BookOpen,
   Users,
-  Bot,
   CheckCircleIcon,
   Lock,
   FileText,
-  Mail,
+  Send,
   ChevronRight,
 } from '../ui/icons'
 
-const CONTACT_EMAIL = 'hello@zedexams.com'
+// Public contact channels — surfaced on the schools callout, pricing tier,
+// and footer. Update these when phone/form change.
+const CONTACT_WHATSAPP_NUMBER = '+260 977 740 465'
+const CONTACT_WHATSAPP_HREF = 'https://wa.me/260977740465'
+const CONTACT_FORM_HREF = '' // TODO: drop in the contact form URL
+
+// Small inline brand-mark SVG for WhatsApp — heroicons doesn't ship one.
+function WhatsAppIcon({ size = 16, className = '' }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+      focusable="false"
+      className={className}
+    >
+      <path d="M19.05 4.91A10.05 10.05 0 0 0 12.04 2C6.5 2 2 6.5 2 12.04c0 1.77.46 3.5 1.34 5.02L2 22l5.07-1.32a10.05 10.05 0 0 0 4.97 1.27h.01c5.54 0 10.04-4.5 10.04-10.04a9.96 9.96 0 0 0-3.04-7.0ZM12.05 20.27h-.01a8.34 8.34 0 0 1-4.25-1.16l-.3-.18-3.01.79.81-2.94-.2-.31a8.32 8.32 0 0 1-1.27-4.43c0-4.6 3.74-8.34 8.35-8.34 2.23 0 4.32.87 5.9 2.45a8.27 8.27 0 0 1 2.44 5.9c0 4.61-3.75 8.35-8.34 8.35Zm4.58-6.24c-.25-.13-1.49-.74-1.72-.82-.23-.08-.4-.13-.57.13-.17.25-.65.82-.79.99-.15.17-.29.19-.54.06-.25-.13-1.06-.39-2.02-1.25-.74-.66-1.24-1.47-1.39-1.72-.15-.25-.02-.39.11-.51.11-.11.25-.29.38-.43.13-.15.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.13-.57-1.37-.78-1.87-.21-.49-.42-.43-.57-.44h-.49c-.17 0-.43.06-.65.31-.22.25-.86.84-.86 2.06 0 1.21.88 2.38 1 2.55.13.17 1.74 2.66 4.22 3.73.59.25 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.49-.61 1.7-1.2.21-.59.21-1.09.15-1.2-.06-.11-.23-.17-.48-.3Z" />
+    </svg>
+  )
+}
 
 const AUDIENCES = [
   {
@@ -68,7 +88,7 @@ const PRICING = [
     price: 'Custom',
     note: 'Talk to us',
     bullets: ['Learner monitoring', 'Teacher verification', 'Private CBC KB'],
-    cta: { label: 'Get in touch', href: `mailto:${CONTACT_EMAIL}?subject=ZedExams%20for%20schools` },
+    cta: { label: 'Chat on WhatsApp', href: CONTACT_WHATSAPP_HREF, external: true },
     primary: false,
   },
 ]
@@ -336,15 +356,32 @@ export default function Marketing() {
                   </p>
                 </div>
               </div>
-              <Button
-                as="a"
-                href={`mailto:${CONTACT_EMAIL}?subject=ZedExams%20for%20schools`}
-                variant="secondary"
-                size="md"
-                trailingIcon={<Icon as={ChevronRight} size="sm" />}
-              >
-                Get in touch
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  as="a"
+                  href={CONTACT_WHATSAPP_HREF}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  variant="primary"
+                  size="md"
+                  leadingIcon={<WhatsAppIcon size={16} />}
+                >
+                  WhatsApp
+                </Button>
+                {CONTACT_FORM_HREF && (
+                  <Button
+                    as="a"
+                    href={CONTACT_FORM_HREF}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    variant="secondary"
+                    size="md"
+                    trailingIcon={<Icon as={ChevronRight} size="sm" />}
+                  >
+                    Contact form
+                  </Button>
+                )}
+              </div>
             </div>
           </Card>
         </div>
@@ -433,7 +470,15 @@ export default function Marketing() {
                     {tier.cta.label}
                   </Button>
                 ) : (
-                  <Button as="a" href={tier.cta.href} variant="secondary" fullWidth>
+                  <Button
+                    as="a"
+                    href={tier.cta.href}
+                    target={tier.cta.external ? '_blank' : undefined}
+                    rel={tier.cta.external ? 'noopener noreferrer' : undefined}
+                    variant="secondary"
+                    fullWidth
+                    leadingIcon={tier.cta.href === CONTACT_WHATSAPP_HREF ? <WhatsAppIcon size={16} /> : null}
+                  >
                     {tier.cta.label}
                   </Button>
                 )}
@@ -526,30 +571,33 @@ export default function Marketing() {
               <ul className="space-y-2 text-sm theme-text-muted">
                 <li>
                   <a
-                    href={`mailto:${CONTACT_EMAIL}`}
+                    href={CONTACT_WHATSAPP_HREF}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 hover:theme-text"
                   >
-                    <Icon as={Mail} size="sm" />
-                    {CONTACT_EMAIL}
+                    <WhatsAppIcon size={16} />
+                    WhatsApp {CONTACT_WHATSAPP_NUMBER}
                   </a>
                 </li>
-                <li>
-                  <a
-                    href={`mailto:${CONTACT_EMAIL}?subject=ZedExams%20for%20schools`}
-                    className="inline-flex items-center gap-2 hover:theme-text"
-                  >
+                {CONTACT_FORM_HREF && (
+                  <li>
+                    <a
+                      href={CONTACT_FORM_HREF}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 hover:theme-text"
+                    >
+                      <Icon as={Send} size="sm" />
+                      Contact form
+                    </a>
+                  </li>
+                )}
+                <li className="theme-text-muted/80">
+                  <span className="inline-flex items-center gap-2">
                     <Icon as={ShieldCheck} size="sm" />
-                    Schools & admins enquiry
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href={`mailto:${CONTACT_EMAIL}?subject=ZedExams%20teacher%20enquiry`}
-                    className="inline-flex items-center gap-2 hover:theme-text"
-                  >
-                    <Icon as={Bot} size="sm" />
-                    Teacher enquiry
-                  </a>
+                    Schools & admins welcome
+                  </span>
                 </li>
               </ul>
             </div>
