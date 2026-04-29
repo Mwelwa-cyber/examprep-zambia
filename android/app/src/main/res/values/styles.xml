@@ -13,13 +13,15 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
-        <!-- Solid white status + nav bars with dark icons. The Capacitor
-             StatusBar plugin reasserts these from JS, but setting them in
-             the theme avoids a one-frame edge-to-edge flash on cold start. -->
-        <item name="android:statusBarColor">@android:color/white</item>
-        <item name="android:windowLightStatusBar">true</item>
-        <item name="android:navigationBarColor">@android:color/white</item>
-        <item name="android:windowLightNavigationBar">true</item>
+        <!-- Tint the system bars with the brand violet so the OS clock,
+             signal, battery and gesture icons sit on the same colour as the
+             app, and switch them to white. The Capacitor StatusBar plugin
+             reasserts these from JS, but matching them in the theme avoids
+             a one-frame flash of the OEM default on cold start. -->
+        <item name="android:statusBarColor">#4C1D95</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:navigationBarColor">#4C1D95</item>
+        <item name="android:windowLightNavigationBar">false</item>
         <!-- Android 15 (SDK 35) enforces edge-to-edge for apps targeting it,
              which lets the WebView draw over the system bars. Opt out so the
              system bars remain solid and the time / signal / battery stay
