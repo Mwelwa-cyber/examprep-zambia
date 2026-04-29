@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import Logo from '../ui/Logo'
 import Button from '../ui/Button'
 import Card from '../ui/Card'
 import Icon from '../ui/Icon'
+import ContactDialog from './ContactDialog'
 import {
   AcademicCapIcon,
   Sparkles,
@@ -18,11 +20,11 @@ import {
   ChevronRight,
 } from '../ui/icons'
 
-// Public contact channels — surfaced on the schools callout, pricing tier,
-// and footer. Update these when phone/form change.
+// Public contact channels surfaced on the schools callout, pricing tier,
+// and footer. WhatsApp opens the chat directly; the contact form opens
+// an in-app modal that writes to the `contactMessages` Firestore collection.
 const CONTACT_WHATSAPP_NUMBER = '+260 977 740 465'
 const CONTACT_WHATSAPP_HREF = 'https://wa.me/260977740465'
-const CONTACT_FORM_HREF = '' // TODO: drop in the contact form URL
 
 // Small inline brand-mark SVG for WhatsApp — heroicons doesn't ship one.
 function WhatsAppIcon({ size = 16, className = '' }) {
@@ -88,7 +90,7 @@ const PRICING = [
     price: 'Custom',
     note: 'Talk to us',
     bullets: ['Learner monitoring', 'Teacher verification', 'Private CBC KB'],
-    cta: { label: 'Chat on WhatsApp', href: CONTACT_WHATSAPP_HREF, external: true },
+    cta: { label: 'Open contact form', kind: 'contact' },
     primary: false,
   },
 ]
@@ -218,6 +220,12 @@ function WorksheetPreview() {
 }
 
 export default function Marketing() {
+  const [contactOpen, setContactOpen] = useState(false)
+  const [contactSource, setContactSource] = useState('marketing-page')
+  function openContact(source = 'marketing-page') {
+    setContactSource(source)
+    setContactOpen(true)
+  }
   return (
     <div className="min-h-screen theme-bg theme-text font-body">
       {/* Top nav */}
@@ -368,19 +376,15 @@ export default function Marketing() {
                 >
                   WhatsApp
                 </Button>
-                {CONTACT_FORM_HREF && (
-                  <Button
-                    as="a"
-                    href={CONTACT_FORM_HREF}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    variant="secondary"
-                    size="md"
-                    trailingIcon={<Icon as={ChevronRight} size="sm" />}
-                  >
-                    Contact form
-                  </Button>
-                )}
+                <Button
+                  type="button"
+                  onClick={() => openContact('schools-callout')}
+                  variant="secondary"
+                  size="md"
+                  trailingIcon={<Icon as={ChevronRight} size="sm" />}
+                >
+                  Contact form
+                </Button>
               </div>
             </div>
           </Card>
@@ -467,6 +471,15 @@ export default function Marketing() {
               <div className="mt-auto">
                 {tier.cta.to ? (
                   <Button as={Link} to={tier.cta.to} variant={tier.primary ? 'primary' : 'secondary'} fullWidth>
+                    {tier.cta.label}
+                  </Button>
+                ) : tier.cta.kind === 'contact' ? (
+                  <Button
+                    type="button"
+                    onClick={() => openContact(`pricing-${tier.title.toLowerCase()}`)}
+                    variant="secondary"
+                    fullWidth
+                  >
                     {tier.cta.label}
                   </Button>
                 ) : (
@@ -580,19 +593,16 @@ export default function Marketing() {
                     WhatsApp {CONTACT_WHATSAPP_NUMBER}
                   </a>
                 </li>
-                {CONTACT_FORM_HREF && (
-                  <li>
-                    <a
-                      href={CONTACT_FORM_HREF}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 hover:theme-text"
-                    >
-                      <Icon as={Send} size="sm" />
-                      Contact form
-                    </a>
-                  </li>
-                )}
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => openContact('footer')}
+                    className="inline-flex items-center gap-2 hover:theme-text"
+                  >
+                    <Icon as={Send} size="sm" />
+                    Contact form
+                  </button>
+                </li>
                 <li className="theme-text-muted/80">
                   <span className="inline-flex items-center gap-2">
                     <Icon as={ShieldCheck} size="sm" />
@@ -608,6 +618,12 @@ export default function Marketing() {
           </div>
         </Section>
       </footer>
+
+      <ContactDialog
+        open={contactOpen}
+        onClose={() => setContactOpen(false)}
+        source={contactSource}
+      />
     </div>
   )
 }
