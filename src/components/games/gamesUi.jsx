@@ -427,28 +427,41 @@ export function SubjectProgressCard({
   )
 }
 
+const BADGE_TIER_BG = {
+  bronze: 'bg-amber-100',
+  silver: 'bg-slate-100',
+  gold:   'bg-yellow-100',
+}
+
+const BADGE_TIER_TILE = {
+  bronze: 'bg-amber-300',
+  silver: 'bg-slate-200',
+  gold:   'bg-yellow-300',
+}
+
 export function GameBadgeCard({
   badge,
   earned,
   subtitle,
   compact = false,
 }) {
-  const { Icon, tierStyle } = getGameBadgeMeta(badge)
+  const { Icon } = getGameBadgeMeta(badge)
+  const wrapBg = earned ? (BADGE_TIER_BG[badge?.tier] || BADGE_TIER_BG.bronze) : 'bg-white'
+  const tileBg = earned ? (BADGE_TIER_TILE[badge?.tier] || BADGE_TIER_TILE.bronze) : 'bg-slate-100'
 
   return (
     <div
       title={!earned ? badge.hint : undefined}
-      className={`relative overflow-hidden rounded-[20px] border p-4 ${tierStyle.shell} ${earned ? tierStyle.glow : 'opacity-85'} ${compact ? '' : 'sm:p-5'}`}
+      className={`zx-card rounded-[18px] p-4 ${wrapBg} ${earned ? '' : 'opacity-70'} ${compact ? '' : 'sm:p-5'}`}
     >
-      <div className="absolute inset-y-0 right-0 w-20 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.65),_transparent_72%)]" />
-      <div className="relative flex items-start gap-4">
-        <span className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${earned ? tierStyle.icon : 'bg-white/70 text-slate-400'}`}>
+      <div className="flex items-start gap-4">
+        <span className={`grid h-12 w-12 shrink-0 place-items-center rounded-[12px] border-2 border-slate-900 text-slate-900 ${tileBg}`}>
           {earned ? <Icon className="h-6 w-6" /> : <LockClosedIcon className="h-6 w-6" />}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h3 className="truncate text-base font-black text-slate-900">{badge.name}</h3>
-            <span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wide ${earned ? tierStyle.badge : 'bg-slate-200 text-slate-600'}`}>
+            <h3 className="font-display truncate text-base font-bold text-slate-900">{badge.name}</h3>
+            <span className="zx-chip">
               {earned ? badge.tier : 'Locked'}
             </span>
           </div>
