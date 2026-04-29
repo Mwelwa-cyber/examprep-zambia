@@ -120,8 +120,6 @@ export default function GamesHub() {
 
   return (
     <GamesShell crumbs={[]}>
-      <RedesignStyles />
-
       <div className="mx-auto w-full max-w-md space-y-7 pb-4 sm:max-w-3xl sm:space-y-9 lg:max-w-5xl lg:space-y-12">
         {/* Stats strip */}
         <section className="zx-card flex items-center justify-between gap-2 rounded-[18px] bg-slate-900 px-3.5 py-2.5 text-white sm:gap-4 sm:rounded-[22px] sm:px-6 sm:py-4">
@@ -435,49 +433,3 @@ function setMeta(content) {
   tag.content = content
 }
 
-/**
- * Hard-bordered "sticker" card style + horizontal scroller hide-scrollbar.
- * Scoped to GamesHub so other /games pages keep their existing visual
- * language while we evaluate the redesign.
- */
-function RedesignStyles() {
-  return (
-    <style>{`
-      .zx-card {
-        border: 2px solid #0F1B2D;
-        box-shadow: 0 2px 0 #0F1B2D;
-      }
-      .zx-eyebrow {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 10.5px;
-        font-weight: 800;
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
-        color: #053541;
-      }
-      .zx-eyebrow::before {
-        content: '';
-        width: 18px;
-        height: 2px;
-        border-radius: 2px;
-        background: #FF7A1A;
-      }
-      .zx-hscroll {
-        scroll-snap-type: x mandatory;
-        scrollbar-width: none;
-      }
-      .zx-hscroll::-webkit-scrollbar { display: none; }
-      .zx-mascot-tile span { display: inline-block; }
-      @keyframes zx-flame {
-        0%, 100% { transform: scale(1) rotate(-2deg); filter: drop-shadow(0 0 4px rgba(255,140,0,0.4)); }
-        50%      { transform: scale(1.15) rotate(2deg); filter: drop-shadow(0 0 8px rgba(255,140,0,0.7)); }
-      }
-      .zx-flame { animation: zx-flame 1.4s ease-in-out infinite; display: inline-block; }
-      @media (prefers-reduced-motion: reduce) {
-        .zx-flame { animation: none !important; }
-      }
-    `}</style>
-  )
-}
