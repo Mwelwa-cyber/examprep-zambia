@@ -917,7 +917,7 @@ export default function GradeHub() {
             </Link>
           </div>
 
-          <div className="theme-card rounded-2xl border theme-border px-4">
+          <div className="surface rounded-radius-lg px-4">
             {loading ? (
               <div className="py-4 space-y-3">
                 {Array.from({ length: 3 }).map((_, i) => (
