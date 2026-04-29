@@ -425,17 +425,32 @@ export default function QuizRunnerV2() {
     const typed = shortText[question.id] ?? ''
 
     return (
-      <div key={question.id} className="theme-card theme-border theme-text space-y-4 rounded-[24px] border p-5 shadow-sm">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="theme-accent-bg theme-accent-text rounded-full px-3 py-1 text-xs font-black">Q{question.questionNumber}</span>
-            {question.topic && <span className="theme-bg-subtle theme-text-muted rounded-full px-2.5 py-1 text-xs font-bold">{question.topic}</span>}
-            {question.marks > 1 && <span className="rounded-full bg-orange-100 px-2.5 py-1 text-xs font-bold text-orange-700">{question.marks} marks</span>}
-          </div>
+      <div
+        key={question.id}
+        className="theme-text space-y-4 p-5"
+        style={{
+          background: 'var(--surface)',
+          border: '1px solid var(--line-medium)',
+          borderTopColor: 'var(--surface-tint-top)',
+          borderRadius: 'var(--r-xl)',
+          boxShadow: 'var(--shadow-card)',
+        }}
+      >
+        <div className="q-tag-row">
+          <span className="q-num">Q{question.questionNumber}</span>
+          {question.topic && <span className="q-topic">{question.topic}</span>}
+          {question.marks > 1 && (
+            <span
+              className="rounded px-1.5 py-0.5 text-[10px] font-semibold"
+              style={{ background: 'var(--warning-bg)', color: 'var(--warning-fg)' }}
+            >
+              {question.marks} marks
+            </span>
+          )}
           <button
             type="button"
             onClick={() => setFlagged(current => ({ ...current, [question.id]: !current[question.id] }))}
-            className={`rounded-full p-2 transition-colors ${flagged[question.id] ? 'bg-amber-100 text-amber-700' : 'theme-bg-subtle theme-text-muted'}`}
+            className={`q-flag rounded-full p-1.5 transition-colors ${flagged[question.id] ? 'bg-amber-100 text-amber-700' : ''}`}
             title={flagged[question.id] ? 'Unflag' : 'Flag for review'}
           >
             🚩
@@ -551,7 +566,7 @@ export default function QuizRunnerV2() {
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="opt-grid">
               {question.options.map((option, optionIndex) => (
                 <OptionButton
                   key={`${question.id}-${optionIndex}`}
