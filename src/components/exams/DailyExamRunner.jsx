@@ -562,7 +562,7 @@ export default function DailyExamRunner() {
       </div>
 
       {/* Fixed bottom nav */}
-      <div className="theme-card theme-border fixed bottom-0 left-0 right-0 z-30 border-t backdrop-blur">
+      <div className="theme-card theme-border fixed bottom-0 left-0 right-0 z-30 border-t backdrop-blur safe-area-bottom">
         <div className="mx-auto max-w-5xl px-4 py-3">
           {/* Section dots */}
           <div className="mb-2 flex items-center justify-between px-1">

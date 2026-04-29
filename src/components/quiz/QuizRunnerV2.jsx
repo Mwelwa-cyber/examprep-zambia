@@ -734,7 +734,7 @@ export default function QuizRunnerV2() {
         )}
       </div>
 
-      <div className="theme-card theme-border fixed bottom-0 left-0 right-0 z-30 border-t backdrop-blur">
+      <div className="theme-card theme-border fixed bottom-0 left-0 right-0 z-30 border-t backdrop-blur safe-area-bottom">
         <div className="mx-auto max-w-5xl px-4 py-3">
           <div className="mb-2 flex items-center justify-between px-1">
             <span className="theme-text-muted text-xs font-black">Section <span className="theme-accent-text">{activeSectionIndex + 1}</span> of {sections.length}</span>
