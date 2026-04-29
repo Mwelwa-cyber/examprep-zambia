@@ -13,8 +13,11 @@ export function initNativeShell() {
   if (!isNativePlatform()) return
   initialized = true
 
-  StatusBar.setStyle({ style: Style.Light }).catch(() => {})
-  StatusBar.setBackgroundColor({ color: '#ffffff' }).catch(() => {})
+  // System bar tint must match android/app/src/main/res/values/styles.xml so
+  // a hot reload of the WebView doesn't flash a different colour. Style.Dark
+  // means "dark status bar" — i.e. light/white icons.
+  StatusBar.setStyle({ style: Style.Dark }).catch(() => {})
+  StatusBar.setBackgroundColor({ color: '#4C1D95' }).catch(() => {})
   StatusBar.setOverlaysWebView({ overlay: false }).catch(() => {})
 
   // Android hardware back button: rely on Capacitor's own canGoBack
