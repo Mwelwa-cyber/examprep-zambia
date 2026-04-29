@@ -207,27 +207,27 @@ export default function DailyExamsHub() {
 
           {/* Summary banner */}
           {!loading && (
-            <div className="mt-4 flex gap-3 flex-wrap">
-              <div className="theme-card rounded-xl border theme-border px-4 py-2.5 text-center">
-                <p className="text-xl font-black theme-text">{completedCount}</p>
-                <p className="theme-text-muted text-xs font-bold">Completed</p>
+            <div className="stats-row stats-row-3 mt-4">
+              <div className="stat-compact">
+                <p className="stat-num">{completedCount}</p>
+                <p className="stat-label">Completed</p>
               </div>
-              <div className="theme-card rounded-xl border theme-border px-4 py-2.5 text-center">
-                <p className="text-xl font-black theme-text">{availableCount}</p>
-                <p className="theme-text-muted text-xs font-bold">Available</p>
+              <div className="stat-compact">
+                <p className="stat-num">{availableCount}</p>
+                <p className="stat-label">Available</p>
               </div>
-              <div className="theme-card rounded-xl border theme-border px-4 py-2.5 text-center">
-                <p className="text-xl font-black theme-text">{SUBJECTS.length - completedCount - availableCount}</p>
-                <p className="theme-text-muted text-xs font-bold">Not scheduled</p>
+              <div className="stat-compact">
+                <p className="stat-num">{SUBJECTS.length - completedCount - availableCount}</p>
+                <p className="stat-label">Not scheduled</p>
               </div>
             </div>
           )}
         </div>
 
         {/* Rule callout */}
-        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-          <span className="text-lg mt-0.5">⚠️</span>
-          <p className="text-sm font-bold text-amber-800">
+        <div className="alert-strip">
+          <span className="text-base">⚠️</span>
+          <p>
             Each subject can only be attempted <strong>once per day</strong>. The timer cannot be
             paused or reset — even if you refresh the page.
           </p>

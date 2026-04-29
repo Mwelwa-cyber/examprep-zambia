@@ -24,23 +24,18 @@ function isTextAnswerType(type) {
 }
 
 function OptionButton({ label, selected, revealed, correct, wrong, onClick, children }) {
-  let classes = 'theme-card theme-text flex w-full items-center gap-3 rounded-2xl border-2 px-4 py-3 text-left transition-all '
-  if (revealed && correct) classes += 'border-green-400 bg-green-50 text-green-800'
-  else if (revealed && wrong) classes += 'border-red-300 bg-red-50 text-red-700'
-  else if (selected) classes += 'border-[var(--accent)] theme-accent-bg theme-accent-text'
-  else classes += 'theme-border hover:border-[var(--accent)] hover:theme-bg-subtle'
+  // Map state to the design-system .opt[data-state] variants. The CSS
+  // handles theme-derived hover/selected colours and semantic correct/wrong
+  // colours, so we only emit the right state value here.
+  const state = revealed && correct ? 'correct'
+              : revealed && wrong   ? 'wrong'
+              : selected            ? 'selected'
+              : undefined
 
   return (
-    <button type="button" onClick={onClick} disabled={revealed} className={classes}>
-      <span className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-black ${
-        revealed && correct ? 'bg-green-500 text-white'
-          : revealed && wrong ? 'bg-red-500 text-white'
-          : selected ? 'theme-accent-fill theme-on-accent'
-          : 'theme-bg-subtle theme-text-muted'
-      }`}>
-        {label}
-      </span>
-      <span className="flex-1 text-sm font-semibold leading-snug">{children}</span>
+    <button type="button" onClick={onClick} disabled={revealed} data-state={state} className="opt">
+      <span className="opt-letter">{label}</span>
+      <span className="opt-text flex-1 leading-snug">{children}</span>
       {revealed && correct && <span className="text-lg">✅</span>}
     </button>
   )
