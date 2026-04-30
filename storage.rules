@@ -104,6 +104,15 @@ service firebase.storage {
       allow delete: if ownsPath(ownerUid) && isTeacherOrAdmin();
     }
 
+    // CDC syllabi library: world-readable static PDFs (free for all teachers).
+    // The viewer iframe loads these via tokenless `?alt=media` URLs so they
+    // must be public. Writes are admin-only and gated by validPaperUpload.
+    match /syllabi/{fileName=**} {
+      allow read: if true;
+      allow create, update: if isAdmin() && validPaperUpload();
+      allow delete: if isAdmin();
+    }
+
     // Block all other paths
     match /{allPaths=**} {
       allow read, write: if false;
