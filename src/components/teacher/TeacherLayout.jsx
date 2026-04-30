@@ -15,6 +15,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import Logo from '../ui/Logo'
 import ThemeSelector from '../ui/ThemeSelector'
 import Icon from '../ui/Icon'
+import TeacherTopBar from './TeacherTopBar'
 
 const UpgradeModal = lazy(() => import('../subscription/UpgradeModal'))
 
@@ -95,10 +96,14 @@ export default function TeacherLayout({ children }) {
           <button
             type="button"
             onClick={handleLearnerDashboardClick}
-            className="theme-bg-subtle theme-text hover:theme-accent-bg hover:theme-accent-text flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all duration-fast ease-out text-left"
+            title="Switch to the student-facing portal to see what learners see"
+            className="theme-bg-subtle theme-text hover:theme-accent-bg hover:theme-accent-text flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all duration-fast ease-out text-left"
           >
             <Icon as={Home} size="sm" />
-            Learner Dashboard
+            <span className="leading-tight">
+              Learner Dashboard
+              <span className="block text-[10.5px] font-semibold opacity-70 mt-0.5">View student-facing content</span>
+            </span>
           </button>
           {isAdmin && (
             <Link
@@ -182,9 +187,13 @@ export default function TeacherLayout({ children }) {
             <button
               type="button"
               onClick={handleLearnerDashboardClick}
-              className="theme-bg-subtle theme-text hover:theme-accent-bg hover:theme-accent-text flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-colors animate-slide-in-soft text-left"
+              className="theme-bg-subtle theme-text hover:theme-accent-bg hover:theme-accent-text flex w-full items-start gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-colors animate-slide-in-soft text-left"
             >
-              <Icon as={Home} size="sm" />Learner Dashboard
+              <Icon as={Home} size="sm" />
+              <span className="leading-tight">
+                Learner Dashboard
+                <span className="block text-[11px] font-semibold opacity-70 mt-0.5">View student-facing content</span>
+              </span>
             </button>
             {isAdmin && (
               <Link
@@ -224,7 +233,8 @@ export default function TeacherLayout({ children }) {
 
       {/* ── Main Content ────────────────────────────────── */}
       <main className="flex-1 min-w-0 md:pt-0 pt-20">
-        <div className="app-container py-6">
+        <div className="app-container py-6 pb-28">
+          <TeacherTopBar />
           {children}
         </div>
       </main>

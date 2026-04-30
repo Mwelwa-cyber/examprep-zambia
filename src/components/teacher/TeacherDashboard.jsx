@@ -9,7 +9,6 @@ import {
   formatDate,
 } from '../../utils/teacherLibraryService'
 import UpgradeModal from '../subscription/UpgradeModal'
-import Logo from '../ui/Logo'
 import { SYLLABI_TOTAL_COUNT } from '../../data/syllabiCatalog'
 
 const STUDIOS = [
@@ -91,16 +90,31 @@ function SectionLabel({ children }) {
 }
 
 function StudioCard({ emoji, mascotBg, badge, libraryKey, title, tagline, mascot, to, librarySummary }) {
+  const isSoon = badge === 'SOON'
   const count = libraryKey ? (librarySummary?.byTool?.[libraryKey] ?? 0) : null
   const badgeText = badge !== null ? badge : `${count} SAVED`
   const badgeStyle = badge === 'FREE'
     ? { background: '#10864e', color: '#fff' }
+    : badge === 'SOON'
+    ? { background: '#e7e1cf', color: '#7a6a4a' }
+    : badge === 'NEW'
+    ? { background: '#ff7a2e', color: '#fff' }
     : { background: '#0e2a32', color: '#fde9b8' }
+
+  const cardOpacity = isSoon ? 0.62 : 1
+  const cardBorder = isSoon ? '#cdc4ad' : '#0e2a32'
+  const cardBg = isSoon ? '#faf6ea' : '#fff'
 
   const inner = (
     <>
       <div className="flex items-start justify-between mb-3">
-        <div style={{ width: 58, height: 58, borderRadius: 14, background: mascotBg, display: 'grid', placeItems: 'center', fontSize: 32, flexShrink: 0 }}>
+        <div
+          style={{
+            width: 58, height: 58, borderRadius: 14, background: mascotBg,
+            display: 'grid', placeItems: 'center', fontSize: 32, flexShrink: 0,
+            filter: isSoon ? 'grayscale(.5)' : 'none',
+          }}
+        >
           {emoji}
         </div>
         <span style={{ ...badgeStyle, padding: '4px 10px', borderRadius: 99, fontSize: 10, fontWeight: 700, letterSpacing: '.5px', whiteSpace: 'nowrap' }}>
@@ -114,17 +128,30 @@ function StudioCard({ emoji, mascotBg, badge, libraryKey, title, tagline, mascot
         {tagline}
       </p>
       <p style={{ fontSize: 11, color: '#566f76', marginTop: 12, fontWeight: 600, margin: '12px 0 0' }}>
-        {mascot}
+        {isSoon ? 'Coming soon' : mascot}
       </p>
     </>
   )
+
+  if (isSoon) {
+    return (
+      <div
+        className="flex flex-col p-5 rounded-[18px] border-2 border-dashed"
+        style={{ background: cardBg, borderColor: cardBorder, minHeight: 210, opacity: cardOpacity, cursor: 'not-allowed' }}
+        aria-disabled="true"
+        title={`${title} — coming soon`}
+      >
+        {inner}
+      </div>
+    )
+  }
 
   if (to) {
     return (
       <Link
         to={to}
         className="flex flex-col p-5 rounded-[18px] border-2 transition-all duration-200 no-underline hover:-translate-y-1"
-        style={{ background: '#fff', borderColor: '#0e2a32', minHeight: 210, boxShadow: 'none' }}
+        style={{ background: cardBg, borderColor: cardBorder, minHeight: 210, boxShadow: 'none' }}
         onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 10px 24px rgba(14,42,50,.12)' }}
         onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none' }}
       >
@@ -139,6 +166,60 @@ function StudioCard({ emoji, mascotBg, badge, libraryKey, title, tagline, mascot
       style={{ background: '#fff', borderColor: '#b8ad96', minHeight: 210, opacity: 0.78, cursor: 'default' }}
     >
       {inner}
+    </div>
+  )
+}
+
+function StatPill({ value, label, accent }) {
+  return (
+    <div
+      className="flex-1 min-w-[130px] rounded-2xl px-4 py-3 border-2"
+      style={{ background: '#fff', borderColor: '#0e2a32' }}
+    >
+      <div className="flex items-center gap-2">
+        <span style={{ width: 6, height: 24, borderRadius: 3, background: accent || '#ff7a2e', display: 'inline-block', flexShrink: 0 }} />
+        <div>
+          <p style={{ fontFamily: "'Fraunces', serif", fontWeight: 800, fontSize: 22, color: '#0e2a32', margin: 0, lineHeight: 1 }}>
+            {value}
+          </p>
+          <p style={{ fontSize: 11.5, color: '#566f76', margin: '2px 0 0', fontWeight: 600 }}>
+            {label}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ProgressWidget({ generations, quizzes }) {
+  const stats = useMemo(() => {
+    const now = Date.now()
+    const DAY = 24 * 60 * 60 * 1000
+    const toMs = (t) => {
+      if (!t) return 0
+      if (typeof t.toDate === 'function') return t.toDate().getTime()
+      return new Date(t).getTime() || 0
+    }
+    const last30 = (g) => (now - toMs(g.createdAt)) <= 30 * DAY
+    const last7 = (g) => (now - toMs(g.createdAt)) <= 7 * DAY
+    const lessonsThisMonth = generations.filter(g => g.tool === 'lesson_plan' && last30(g)).length
+    const notesThisMonth = generations.filter(g => g.tool === 'notes' && last30(g)).length
+    const assessmentsThisMonth = (quizzes || []).filter(last30).length
+    const itemsThisWeek = generations.filter(last7).length + (quizzes || []).filter(last7).length
+    const totalSaved = generations.length + (quizzes?.length || 0)
+    return { lessonsThisMonth, notesThisMonth, assessmentsThisMonth, itemsThisWeek, totalSaved }
+  }, [generations, quizzes])
+
+  return (
+    <div className="mb-8">
+      <SectionLabel>Your activity</SectionLabel>
+      <div className="flex flex-wrap gap-3">
+        <StatPill value={stats.lessonsThisMonth} label="Lesson plans · 30 days" accent="#ff7a2e" />
+        <StatPill value={stats.notesThisMonth}   label="Notes · 30 days"        accent="#16505d" />
+        <StatPill value={stats.assessmentsThisMonth} label="Assessments · 30 days" accent="#10864e" />
+        <StatPill value={stats.itemsThisWeek}    label="New this week"          accent="#b8651a" />
+        <StatPill value={stats.totalSaved}       label="Total in library"       accent="#0e2a32" />
+      </div>
     </div>
   )
 }
@@ -238,30 +319,6 @@ export default function TeacherDashboard() {
 
   return (
     <div>
-      {/* Page header — brand on the left, Library button on the right */}
-      <div className="flex items-center justify-between gap-3 mb-5">
-        <Link to="/teacher" className="flex items-center gap-2.5 no-underline" style={{ color: '#0e2a32' }}>
-          <Logo variant="icon" size="md" />
-          <div className="leading-tight">
-            <p style={{ fontFamily: "'Fraunces', serif", fontWeight: 800, fontSize: 16, margin: 0, color: '#0e2a32' }}>
-              ZedExams <span style={{ color: '#ff7a2e' }}>•</span>
-            </p>
-            <p style={{ fontSize: 11.5, color: '#566f76', margin: 0, fontWeight: 600 }}>
-              Lesson Plan Studio
-            </p>
-          </div>
-        </Link>
-        <Link
-          to="/teacher/library"
-          className="inline-flex items-center gap-2 rounded-xl border-2 font-bold no-underline transition-colors"
-          style={{ background: '#fff', borderColor: '#0e2a32', color: '#0e2a32', padding: '8px 14px', fontSize: 13 }}
-          onMouseEnter={e => { e.currentTarget.style.background = '#f5efe1' }}
-          onMouseLeave={e => { e.currentTarget.style.background = '#fff' }}
-        >
-          📚 Library
-        </Link>
-      </div>
-
       {/* Subscription banner */}
       {!isPremium && (
         <div
@@ -349,6 +406,9 @@ export default function TeacherDashboard() {
           🦊
         </div>
       </div>
+
+      {/* Progress / Stats */}
+      {!loading && <ProgressWidget generations={generations} quizzes={quizzes} />}
 
       {/* Studios */}
       <SectionLabel>Studios</SectionLabel>
