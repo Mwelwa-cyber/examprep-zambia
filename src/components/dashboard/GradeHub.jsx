@@ -48,6 +48,7 @@ import Button                   from '../ui/Button'
 import Skeleton                 from '../ui/Skeleton'
 import MobileBottomNav          from '../layout/MobileBottomNav'
 import { useSubscription }      from '../../hooks/useSubscription'
+import GameStickerStyles        from '../games/GameStickerStyles'
 
 // ── Sub-components ─────────────────────────────────────────────────────────
 
@@ -61,6 +62,59 @@ const DASHBOARD_CHARACTERS = {
   exams: { png: '/images/characters/lina-study.png?v=transparent-1',       webp: '/images/characters/lina-study.webp?v=1',       width: 1313, height: 1198 },
   games: { png: '/images/characters/max-gaming.png?v=transparent-1',       webp: '/images/characters/max-gaming.webp?v=1',       width: 1254, height: 1254 },
   zed:   { png: '/images/characters/zedbot-help.png?v=transparent-1',      webp: '/images/characters/zedbot-help.webp?v=1',      width: 1254, height: 1254 },
+}
+
+const GRADE_DARK_TONES = {
+  4: {
+    text: 'text-blue-200',
+    pill: 'bg-blue-500/15 text-blue-100 ring-1 ring-blue-400/35',
+  },
+  5: {
+    text: 'text-green-200',
+    pill: 'bg-green-500/15 text-green-100 ring-1 ring-green-400/35',
+  },
+  6: {
+    text: 'text-orange-200',
+    pill: 'bg-orange-500/15 text-orange-100 ring-1 ring-orange-400/35',
+  },
+}
+
+const SUBJECT_DARK_TONES = {
+  mathematics: {
+    text: 'text-blue-200',
+    tile: 'bg-blue-500/15 text-blue-100 ring-1 ring-blue-400/35',
+    action: 'bg-blue-500/15 text-blue-100 ring-1 ring-blue-400/35 hover:bg-blue-500/25',
+  },
+  english: {
+    text: 'text-green-200',
+    tile: 'bg-green-500/15 text-green-100 ring-1 ring-green-400/35',
+    action: 'bg-green-500/15 text-green-100 ring-1 ring-green-400/35 hover:bg-green-500/25',
+  },
+  science: {
+    text: 'text-purple-200',
+    tile: 'bg-purple-500/15 text-purple-100 ring-1 ring-purple-400/35',
+    action: 'bg-purple-500/15 text-purple-100 ring-1 ring-purple-400/35 hover:bg-purple-500/25',
+  },
+  'social-studies': {
+    text: 'text-orange-200',
+    tile: 'bg-orange-500/15 text-orange-100 ring-1 ring-orange-400/35',
+    action: 'bg-orange-500/15 text-orange-100 ring-1 ring-orange-400/35 hover:bg-orange-500/25',
+  },
+  technology: {
+    text: 'text-slate-200',
+    tile: 'bg-slate-500/20 text-slate-100 ring-1 ring-slate-300/30',
+    action: 'bg-slate-500/20 text-slate-100 ring-1 ring-slate-300/30 hover:bg-slate-500/30',
+  },
+  'home-economics': {
+    text: 'text-pink-200',
+    tile: 'bg-pink-500/15 text-pink-100 ring-1 ring-pink-400/35',
+    action: 'bg-pink-500/15 text-pink-100 ring-1 ring-pink-400/35 hover:bg-pink-500/25',
+  },
+  'expressive-arts': {
+    text: 'text-amber-200',
+    tile: 'bg-amber-500/15 text-amber-100 ring-1 ring-amber-400/35',
+    action: 'bg-amber-500/15 text-amber-100 ring-1 ring-amber-400/35 hover:bg-amber-500/25',
+  },
 }
 
 function getNotificationStorageKey(userId) {
@@ -154,7 +208,7 @@ function DashboardActionCard({
     <section>
       <Link
         to={to}
-        className={`group relative block min-h-[128px] overflow-hidden rounded-3xl border-2 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${className}`}
+        className={`zx-card group relative block min-h-[128px] overflow-hidden rounded-3xl border-2 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${className}`}
       >
         <div className="relative z-10 flex min-h-[128px] items-center gap-3 p-4 pr-28 sm:gap-4 sm:p-5 sm:pr-36">
           <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl shadow-sm ${iconClassName}`}>
@@ -190,10 +244,10 @@ function DashboardActionCard({
 function HeaderIconLink({ to, label, icon: ActionIcon }) {
   return (
     <Link to={to} className="group/tt relative flex flex-col items-center">
-      <span className="theme-card theme-border theme-text-muted flex h-11 w-11 items-center justify-center rounded-2xl border shadow-elev-sm transition-all group-hover/tt:theme-accent-bg group-hover/tt:theme-accent-text">
+      <span className="zx-card theme-card theme-border learner-chrome-icon flex h-11 w-11 items-center justify-center rounded-2xl border shadow-elev-sm transition-all group-hover/tt:theme-accent-bg group-hover/tt:theme-accent-text">
         <Icon as={ActionIcon} size="md" strokeWidth={2.1} />
       </span>
-      <span className="mt-1 text-[10px] font-black leading-none theme-text-muted">{label}</span>
+      <span className="learner-chrome-label mt-1 text-[10px] font-black leading-none">{label}</span>
     </Link>
   )
 }
@@ -203,12 +257,12 @@ function HeaderIconButton({ label, icon: ActionIcon, active = false, important =
     <div className="group/tt relative flex flex-col items-center">
       <button
         type="button"
-        className={`relative flex h-11 w-11 items-center justify-center rounded-2xl border shadow-elev-sm transition-all min-h-0 ${
+        className={`zx-card relative flex h-11 w-11 items-center justify-center rounded-2xl border shadow-elev-sm transition-all min-h-0 ${
           active
             ? 'border-blue-200 bg-blue-50 text-blue-700'
             : important
               ? 'border-amber-200 bg-amber-50 text-amber-700'
-              : 'theme-card theme-border theme-text-muted hover:theme-accent-bg hover:theme-accent-text'
+              : 'theme-card theme-border learner-chrome-icon hover:theme-accent-bg hover:theme-accent-text'
         }`}
         {...buttonProps}
       >
@@ -222,7 +276,7 @@ function HeaderIconButton({ label, icon: ActionIcon, active = false, important =
           </span>
         ) : null}
       </button>
-      <span className="mt-1 text-[10px] font-black leading-none theme-text-muted">{label}</span>
+      <span className="learner-chrome-label mt-1 text-[10px] font-black leading-none">{label}</span>
       {children}
     </div>
   )
@@ -230,13 +284,14 @@ function HeaderIconButton({ label, icon: ActionIcon, active = false, important =
 
 function GradeCard({ grade, meta, active, onClick }) {
   const { dataSaver } = useDataSaver()
+  const tone = GRADE_DARK_TONES[grade] || GRADE_DARK_TONES[4]
   return (
     <button
       onClick={onClick}
-      className={`relative w-full rounded-2xl p-4 sm:p-5 text-left transition-all duration-200 min-h-0 shadow-sm hover:shadow-md active:scale-95 overflow-hidden ${
+      className={`zx-card relative w-full rounded-2xl p-4 sm:p-5 text-left transition-all duration-200 min-h-0 shadow-sm hover:shadow-md active:scale-95 overflow-hidden ${
         active
           ? `${meta.tailwind.bg} text-white ring-4 ${meta.tailwind.ring} scale-105`
-          : `theme-card border-2 ${meta.tailwind.border} theme-text hover:opacity-90`
+          : 'theme-card theme-text hover:opacity-95'
       }`}
     >
       {/* Background accent blob */}
@@ -245,7 +300,7 @@ function GradeCard({ grade, meta, active, onClick }) {
       )}
 
       {/* Grade number */}
-      <div className={`text-3xl sm:text-4xl font-black mb-1 ${active ? 'text-white' : meta.tailwind.text}`}>
+      <div className={`text-3xl sm:text-4xl font-black mb-1 ${active ? 'text-white' : tone.text}`}>
         {grade}
       </div>
       <div className={`text-xs font-black uppercase tracking-wide mb-0.5 ${active ? 'text-white/80' : 'theme-text-muted'}`}>
@@ -257,7 +312,7 @@ function GradeCard({ grade, meta, active, onClick }) {
 
       {/* Subject count pill */}
       <div className={`mt-3 inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${
-        active ? 'bg-white/20 text-white' : `${meta.tailwind.light} ${meta.tailwind.text}`
+        active ? 'bg-white/20 text-white' : tone.pill
       }`}>
         <Icon as={BookOpen} size="xs" strokeWidth={2.1} /> 7 subjects
       </div>
@@ -275,16 +330,17 @@ function GradeCard({ grade, meta, active, onClick }) {
 function SubjectCard({ subject, grade }) {
   const quizPath    = `/quizzes?grade=${grade}&subject=${subject.id}`
   const lessonPath  = `/lessons?grade=${grade}&subject=${subject.id}`
+  const tone = SUBJECT_DARK_TONES[subject.id] || SUBJECT_DARK_TONES.mathematics
 
   return (
-    <div className={`theme-card rounded-2xl border-2 ${subject.tailwind.border} p-4 hover:shadow-sm transition-all`}>
+    <div className="zx-card theme-card rounded-2xl p-4 hover:shadow-sm transition-all">
       <div className="flex items-center gap-3 mb-3">
-        <div className={`w-10 h-10 ${subject.tailwind.light} rounded-xl flex items-center justify-center text-xl flex-shrink-0`}>
+        <div className={`w-10 h-10 ${tone.tile} rounded-xl flex items-center justify-center text-xl flex-shrink-0`}>
           {subject.icon}
         </div>
         <div className="min-w-0">
           <p className="font-black theme-text text-sm leading-tight truncate">{subject.label}</p>
-          <p className={`text-xs font-bold ${subject.tailwind.text} mt-0.5`}>Grade {grade}</p>
+          <p className={`text-xs font-bold ${tone.text} mt-0.5`}>Grade {grade}</p>
         </div>
       </div>
 
@@ -292,13 +348,13 @@ function SubjectCard({ subject, grade }) {
       <div className="flex gap-1.5">
         <Link
           to={quizPath}
-          className={`flex flex-1 items-center justify-center gap-1 text-xs font-bold py-1.5 rounded-lg ${subject.tailwind.light} ${subject.tailwind.text} hover:opacity-80 transition-opacity`}
+          className={`flex flex-1 items-center justify-center gap-1 text-xs font-bold py-1.5 rounded-lg transition-opacity ${tone.action}`}
         >
           <Icon as={PencilLine} size="xs" strokeWidth={2.1} /> Quiz
         </Link>
         <Link
           to={lessonPath}
-          className="flex flex-1 items-center justify-center gap-1 text-xs font-bold py-1.5 rounded-lg theme-bg-subtle theme-text-muted hover:opacity-80 transition-opacity"
+          className="flex flex-1 items-center justify-center gap-1 text-xs font-bold py-1.5 rounded-lg theme-bg-subtle theme-text-muted ring-1 ring-white/10 hover:opacity-80 transition-opacity"
         >
           <Icon as={BookOpen} size="xs" strokeWidth={2.1} /> Notes
         </Link>
@@ -308,7 +364,7 @@ function SubjectCard({ subject, grade }) {
 }
 
 function RecentResultRow({ result }) {
-  const pctColor = p => p >= 70 ? 'text-green-600' : p >= 50 ? 'text-yellow-600' : 'text-red-500'
+  const pctColor = p => p >= 70 ? 'text-green-300' : p >= 50 ? 'text-amber-300' : 'text-red-300'
   function fmt(ts) {
     if (!ts) return ''
     const d = ts.toDate ? ts.toDate() : new Date(ts)
@@ -338,9 +394,9 @@ function RecentResultRow({ result }) {
 function StreakBadge({ streak }) {
   if (!streak || streak < 2) return null
   return (
-    <div className="flex items-center gap-1 bg-orange-50 border border-orange-200 rounded-full px-2.5 py-1">
-      <Icon as={FireIcon} size="sm" strokeWidth={2.1} className="text-orange-600" />
-      <span className="text-xs font-black text-orange-700">{streak} day streak!</span>
+    <div className="flex items-center gap-1 bg-orange-500/15 border border-orange-300/40 rounded-full px-2.5 py-1">
+      <Icon as={FireIcon} size="sm" strokeWidth={2.1} className="text-orange-200" />
+      <span className="text-xs font-black text-orange-100">{streak} day streak!</span>
     </div>
   )
 }
@@ -351,7 +407,7 @@ function SkeletonCard() {
 
 function NotificationPanel({ notifications, unreadCount, onClose }) {
   return (
-    <div className="fixed right-3 top-20 z-50 w-[min(92vw,22rem)] theme-card rounded-2xl border theme-border p-3 shadow-xl animate-scale-in">
+    <div className="zx-card fixed right-3 top-20 z-50 w-[min(92vw,22rem)] theme-card rounded-2xl border theme-border p-3 shadow-xl animate-scale-in">
       <div className="flex items-center justify-between gap-3 border-b theme-border px-1 pb-2">
         <div>
           <p className="theme-text text-sm font-black">Notifications</p>
@@ -605,10 +661,11 @@ export default function GradeHub() {
   }, [notificationsOpen, activeNotificationIdsKey])
 
   return (
-    <div className="min-h-screen theme-bg flex flex-col">
+    <div className="learner-game-theme min-h-screen theme-bg flex flex-col">
+      <GameStickerStyles />
       <OnboardingOverlay />
       {/* ──────────── HEADER ─────────────────────────────────── */}
-      <header className="sticky top-0 z-30 theme-card border-b theme-border shadow-sm">
+      <header className="learner-dashboard-header sticky top-0 z-30 theme-card border-b theme-border shadow-sm">
         <div className="max-w-4xl mx-auto px-4 h-20 flex items-center justify-between gap-3">
           <Logo variant="full" size="sm" />
 
@@ -708,11 +765,11 @@ export default function GradeHub() {
       </header>
 
       {/* ──────────── MAIN CONTENT ───────────────────────────── */}
-      <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-5 pb-28 space-y-6 theme-text">
+      <main className="relative z-10 flex-1 max-w-4xl mx-auto w-full px-4 py-5 pb-28 space-y-6 theme-text">
 
         {/* ── HERO / WELCOME BANNER ───────────────────────────── */}
         <section
-          className={`relative min-h-[230px] overflow-hidden rounded-3xl ${
+          className={`zx-card relative min-h-[230px] overflow-hidden rounded-3xl ${
             dataSaver
               ? 'theme-accent-fill p-5'
               : 'theme-hero p-5 sm:p-6'
@@ -791,17 +848,17 @@ export default function GradeHub() {
 
         <DashboardActionCard
           to="/exams"
-          className="border-amber-300 bg-gradient-to-br from-amber-50 to-orange-50"
+          className="border-amber-400/80 bg-[linear-gradient(135deg,rgba(120,53,15,0.92)_0%,rgba(67,33,13,0.86)_38%,rgba(15,23,42,0.96)_100%)]"
           icon={TrophyIcon}
           iconClassName="bg-amber-400 text-white"
           kicker="Daily · Once per subject"
-          kickerClassName="text-amber-600"
+          kickerClassName="text-amber-200"
           title="Today's Exams"
-          titleClassName="text-amber-900"
+          titleClassName="text-amber-50"
           body="Timed competitive exams · Live leaderboard · One attempt per subject per day"
-          bodyClassName="text-amber-700"
+          bodyClassName="text-amber-100/75"
           action="Start"
-          actionClassName="bg-amber-400"
+          actionClassName="bg-amber-400 text-slate-950"
           image={DASHBOARD_CHARACTERS.exams}
           imageAlt="Lina studying"
           imageVariant="card"
@@ -809,17 +866,17 @@ export default function GradeHub() {
 
         <DashboardActionCard
           to="/games"
-          className="border-emerald-300 bg-gradient-to-br from-emerald-50 to-teal-50"
+          className="border-emerald-400/80 bg-[linear-gradient(135deg,rgba(6,95,70,0.92)_0%,rgba(20,83,45,0.82)_42%,rgba(15,23,42,0.96)_100%)]"
           icon={Gamepad2}
           iconClassName="bg-emerald-500 text-white"
           kicker="CBC · Grades 1-6"
-          kickerClassName="text-emerald-600"
+          kickerClassName="text-emerald-200"
           title="Zed Games"
-          titleClassName="text-emerald-900"
+          titleClassName="text-emerald-50"
           body="Maths, English, Science & Social Studies - earn badges and climb the leaderboard"
-          bodyClassName="text-emerald-700"
+          bodyClassName="text-emerald-100/75"
           action="Play"
-          actionClassName="bg-emerald-500"
+          actionClassName="bg-emerald-400 text-slate-950"
           image={DASHBOARD_CHARACTERS.games}
           imageAlt="Max playing a learning game"
           imageVariant="games"
@@ -827,7 +884,7 @@ export default function GradeHub() {
 
         <DashboardActionCard
           to="/study"
-          className="border-[rgba(212,175,55,0.2)] bg-[linear-gradient(135deg,#0A1128_0%,#1A2B48_60%,#132039_100%)] shadow-elev-md hover:shadow-elev-lg"
+          className="border-[rgba(212,175,55,0.5)] bg-[linear-gradient(135deg,#0A1128_0%,#1A2B48_60%,#132039_100%)] shadow-elev-md hover:shadow-elev-lg"
           icon={Bot}
           iconClassName="bg-white/95 text-[#D4AF37] ring-1 ring-[rgba(212,175,55,0.28)]"
           kicker="Study assistant · Beta"
@@ -846,7 +903,7 @@ export default function GradeHub() {
         {/* ── GRADE SELECTION ─────────────────────────────────── */}
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-display-md theme-text flex items-center gap-2">
+            <h2 className="learner-page-heading text-display-md flex items-center gap-2">
               <Icon as={AcademicCapIcon} size="lg" strokeWidth={2.1} /> Primary Hub
             </h2>
             {selectedGrade && (
@@ -879,7 +936,7 @@ export default function GradeHub() {
                 <div className={`w-6 h-6 ${GRADE_META[selectedGrade].tailwind.bg} rounded-lg flex items-center justify-center text-white text-xs font-black`}>
                   {selectedGrade}
                 </div>
-                <h3 className="font-black theme-text text-sm">
+                <h3 className="learner-page-heading text-sm font-black">
                   Grade {selectedGrade} — Choose a Learning Area
                 </h3>
               </div>
@@ -894,7 +951,7 @@ export default function GradeHub() {
 
           {/* Prompt when no grade selected */}
           {!selectedGrade && (
-            <div className="theme-card rounded-2xl border theme-border p-4 flex items-center gap-3">
+            <div className="zx-card theme-card rounded-2xl border theme-border p-4 flex items-center gap-3">
               {!dataSaver && <ProfessorPako size={48} mood="tip" animate={false} />}
               <div>
                 <p className="font-black theme-text text-sm">Select your grade above</p>
@@ -909,7 +966,7 @@ export default function GradeHub() {
         {/* ── RECENT ACTIVITY ─────────────────────────────────── */}
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-display-md theme-text flex items-center gap-2">
+            <h2 className="learner-page-heading text-display-md flex items-center gap-2">
               <Icon as={BarChart3} size="lg" strokeWidth={2.1} /> Recent Activity
             </h2>
             <Link to="/my-results" className="text-xs font-bold theme-accent-text hover:underline">
@@ -917,7 +974,7 @@ export default function GradeHub() {
             </Link>
           </div>
 
-          <div className="surface rounded-radius-lg px-4">
+          <div className="zx-card surface rounded-radius-lg px-4">
             {loading ? (
               <div className="py-4 space-y-3">
                 {Array.from({ length: 3 }).map((_, i) => (
@@ -959,7 +1016,7 @@ export default function GradeHub() {
         {/* ── BADGES ──────────────────────────────────────────── */}
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-display-md theme-text flex items-center gap-2">
+            <h2 className="learner-page-heading text-display-md flex items-center gap-2">
               <Icon as={TrophyIcon} size="lg" strokeWidth={2.1} /> Your Badges
             </h2>
             <Link to="/my-badges" className="text-xs font-bold theme-accent-text hover:underline">
@@ -972,7 +1029,7 @@ export default function GradeHub() {
               {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
             </div>
           ) : earnedBadges.length === 0 ? (
-            <div className="theme-card rounded-2xl border theme-border p-5 flex items-center gap-3">
+            <div className="zx-card theme-card rounded-2xl border theme-border p-5 flex items-center gap-3">
               {!dataSaver && <ProfessorPako size={52} mood="normal" animate={false} />}
               <div>
                 <p className="font-black theme-text text-sm">No badges yet — go earn one!</p>
@@ -1007,13 +1064,13 @@ export default function GradeHub() {
 
         {/* ── DATA SAVER INFO BANNER (only shown when on) ─────── */}
         {dataSaver && (
-          <div className="bg-green-50 border border-green-200 rounded-2xl p-4 flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-green-200 bg-white text-green-700">
+          <div className="zx-card bg-green-500/15 border border-green-300/40 rounded-2xl p-4 flex items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-green-300/40 bg-green-500/20 text-green-100">
               <Icon as={Battery} size="lg" strokeWidth={2.1} />
             </div>
             <div>
-              <p className="font-black text-green-800 text-sm">Data Saver is ON</p>
-              <p className="text-green-700 text-xs mt-0.5">
+              <p className="font-black text-green-100 text-sm">Data Saver is ON</p>
+              <p className="text-green-100/75 text-xs mt-0.5">
                 Larger motion is reduced to save mobile data. Use the control below to turn it off.
               </p>
               <div className="mt-2">
@@ -1025,7 +1082,7 @@ export default function GradeHub() {
       </main>
 
       {/* ──────────── MOBILE BOTTOM NAV ──────────────────────── */}
-      <MobileBottomNav />
+      <MobileBottomNav className="learner-bottom-nav" />
     </div>
   )
 }
