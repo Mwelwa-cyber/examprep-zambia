@@ -828,7 +828,7 @@ export default function GradeHub() {
                 </Link>
                 <Link
                   to="/my-results"
-                  className="flex items-center gap-1.5 rounded-full border border-white/20 bg-white/15 px-3 py-1.5 text-xs font-black text-white transition-colors hover:bg-white/25"
+                  className="flex items-center gap-1.5 rounded-full border border-white/40 bg-white/30 px-3 py-1.5 text-xs font-black text-white transition-colors hover:bg-white/40"
                 >
                   <Icon as={BarChart3} size="xs" strokeWidth={2.1} />
                   My Results
@@ -894,7 +894,7 @@ export default function GradeHub() {
           body="CBC-aligned explanations, practice questions, and study plans tailored to your grade."
           bodyClassName="text-[#A8B6C9]"
           action="Start"
-          actionClassName="border border-[rgba(212,175,55,0.28)] bg-[rgba(212,175,55,0.12)] text-[#D4AF37]"
+          actionClassName="bg-[#D4AF37] text-slate-950"
           image={DASHBOARD_CHARACTERS.zed}
           imageAlt="ZedBot ready to help"
           imageVariant="zed"
