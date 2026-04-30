@@ -263,7 +263,9 @@ $('#btn-generate').addEventListener('click', async () => {
       $('#scrim').classList.remove('show');
     }
   } catch (err) {
-    console.error(err); toast('Generation failed — try again');
+    console.error(err);
+    const msg = (err && (err.message || err.code)) || '';
+    toast(msg ? `Generation failed: ${msg}` : 'Generation failed — try again');
   } finally {
     if (loader) loader.classList.remove('show');
     $('#btn-generate').disabled = false;
