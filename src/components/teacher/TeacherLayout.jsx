@@ -67,8 +67,14 @@ export default function TeacherLayout({ children }) {
   return (
     <div className="theme-bg theme-text min-h-screen flex">
       {/* ── Desktop Sidebar ─────────────────────────────── */}
-      <aside className="theme-card theme-border shadow-elev-md hidden w-60 flex-shrink-0 flex-col border-r md:flex">
-        <div className="theme-border px-4 py-5 border-b">
+      <aside
+        className="theme-border shadow-elev-md hidden w-60 flex-shrink-0 flex-col border-r md:flex backdrop-blur-xl"
+        style={{ backgroundColor: 'color-mix(in srgb, var(--card) 65%, transparent)' }}
+      >
+        <div
+          className="theme-border px-4 py-5 border-b backdrop-blur-md"
+          style={{ backgroundColor: 'color-mix(in srgb, var(--card) 55%, transparent)' }}
+        >
           <Link to="/teacher" className="inline-flex">
             <Logo variant="full" size="md" />
           </Link>
@@ -122,7 +128,7 @@ export default function TeacherLayout({ children }) {
       </aside>
 
       {/* ── Mobile Header ───────────────────────────────── */}
-      <div className="theme-card theme-border shadow-elev-md fixed left-0 right-0 top-0 z-40 border-b md:hidden backdrop-blur-md" style={{ backgroundColor: 'color-mix(in srgb, var(--card) 92%, transparent)' }}>
+      <div className="theme-border shadow-elev-md fixed left-0 right-0 top-0 z-40 border-b md:hidden backdrop-blur-xl" style={{ backgroundColor: 'color-mix(in srgb, var(--card) 65%, transparent)' }}>
         <div className="flex items-center justify-between px-4 h-20">
           <Link to="/teacher" className="flex items-center gap-2.5">
             <Logo variant="icon" size="md" />
