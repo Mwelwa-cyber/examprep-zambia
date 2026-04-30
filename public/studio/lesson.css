@@ -6,7 +6,7 @@
 #view-plans .app{display:grid;grid-template-columns:360px 1fr;min-height:100vh}
 @media(max-width:980px){#view-plans .app{grid-template-columns:1fr}.sidebar{position:fixed;inset:0 12% 0 0;z-index:50;transform:translateX(-100%);transition:transform .3s;box-shadow:4px 0 24px rgba(0,0,0,.35);width:auto;max-width:420px}.sidebar.open{transform:translateX(0)}.scrim{position:fixed;inset:0;background:rgba(28,22,18,.55);z-index:49;opacity:0;pointer-events:none;transition:opacity .3s}.scrim.show{opacity:1;pointer-events:all}}
 @media(max-width:600px){#view-plans .sidebar{inset:0;max-width:none;padding:20px 18px 28px}}
-.sidebar{background:linear-gradient(135deg,#0e2a32 0%,#16505d 100%);color:#e8f2f3;padding:24px 22px 32px;overflow-y:auto;border-right:1px solid rgba(255,255,255,.08);box-shadow:inset -1px 0 0 rgba(0,0,0,.18)}
+.sidebar{background:#fffaf0;color:#0e2a32;padding:24px 22px 32px;overflow-y:auto;border-right:1px solid #e8dec4;box-shadow:inset -1px 0 0 rgba(14,42,50,.04)}
 .brand{display:flex;align-items:center;gap:12px;margin-bottom:26px;padding-bottom:22px;border-bottom:1px solid rgba(255,255,255,.08)}
 .brand-mark{width:42px;height:42px;border-radius:8px;background:linear-gradient(135deg,var(--accent) 0%,#0d6b6b 100%);display:grid;place-items:center;font:800 22px/1 var(--font-display);color:#faf6ef;box-shadow:inset 0 -2px 0 rgba(0,0,0,.2),0 4px 12px rgba(10,84,84,.4)}
 .brand-text h1{margin:0;font:700 16px/1.1 var(--font-display);color:#faf6ef;letter-spacing:-.01em}
@@ -230,29 +230,49 @@
   #view-plans .seg-toggle .seg{font-size:11.5px;padding:7px 8px;letter-spacing:0;line-height:1.1}
 }
 
-/* ============ DASHBOARD HERO THEME — sidebar surface ============
-   Sidebar matches the teacher dashboard hero: deep teal gradient
-   (#0e2a32 → #16505d) with orange #ff7a2e + cream #fde9b8 accents. */
-#view-plans .field label{color:#cfe2e4}
-#view-plans .field input,#view-plans .field select,#view-plans .field textarea{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);color:#f3fafa}
-#view-plans .field select option,#view-plans .field select optgroup{background:#0e2a32;color:#f3fafa}
-#view-plans .field input:focus,#view-plans .field select:focus,#view-plans .field textarea:focus{border-color:#ff7a2e;background:rgba(255,255,255,.08);box-shadow:0 0 0 3px rgba(255,122,46,.18)}
-#view-plans .seg-toggle{background:rgba(0,0,0,.28);border-color:rgba(255,255,255,.08)}
-#view-plans .seg-toggle .seg.active{background:#ff7a2e;color:#fff}
-#view-plans .toggle-row{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.10)}
-#view-plans .toggle-row.on .toggle-switch{background:#ff7a2e}
-#view-plans .toggle-row.on .toggle-switch::after{background:#fff}
-#view-plans .tabs{background:rgba(0,0,0,.28)}
-#view-plans .tab{color:#cfe2e4}
-#view-plans .tab.active{background:#ff7a2e;color:#fff;font-weight:600}
-#view-plans .helper{color:#9ec0c4}
+/* ============ TEACHER PANEL THEME — sidebar surface ============
+   Sidebar matches the teacher panel chrome: warm cream (#fffaf0) on
+   white with dark teal text (#0e2a32) and orange #ff7a2e accents. */
+#view-plans .brand{border-bottom-color:#e8dec4;align-items:flex-start}
+#view-plans .brand-mark-img{background:#fff;border-color:#e8dec4;box-shadow:0 4px 12px rgba(14,42,50,.08)}
+#view-plans .brand-text h1{color:#0e2a32;font-family:'Fraunces','Source Serif 4',Georgia,serif;font-weight:800;font-size:22px;letter-spacing:-.01em}
+#view-plans .brand-text .sub{color:#ff7a2e;font-weight:600;letter-spacing:.12em}
 #view-plans .section-label{color:#ff7a2e}
 #view-plans .section-label::before{background:#ff7a2e;width:18px;height:2px;border-radius:2px}
-#view-plans .brand{align-items:flex-start}
-#view-plans .brand-text h1{color:#fde9b8;font-family:'Fraunces','Source Serif 4',Georgia,serif;font-weight:800;font-size:22px;letter-spacing:-.01em}
-#view-plans .brand-text .sub{color:#ffb37a;font-weight:600;letter-spacing:.12em}
-#view-plans .format-card.active{background:rgba(255,122,46,.14);border-color:#ff7a2e}
-#view-plans .style-card.active{background:rgba(255,122,46,.14);border-color:#ff7a2e;color:#fde9b8}
+#view-plans .field label{color:#0e2a32;font-weight:600}
+#view-plans .field .opt{color:#8a9aa1}
+#view-plans .field input,#view-plans .field select,#view-plans .field textarea{background:#fff;border-color:#e8dec4;color:#0e2a32;color-scheme:light}
+#view-plans .field input::placeholder,#view-plans .field textarea::placeholder{color:#b8a98a}
+#view-plans .field select option,#view-plans .field select optgroup{background:#fff;color:#0e2a32}
+#view-plans .field input:focus,#view-plans .field select:focus,#view-plans .field textarea:focus{border-color:#ff7a2e;background:#fff;box-shadow:0 0 0 3px rgba(255,122,46,.18)}
+#view-plans .helper{color:#566f76}
+#view-plans .hint-inline{color:#8a9aa1}
+#view-plans .opt,#view-plans span.opt{color:#8a9aa1}
+#view-plans .seg-toggle{background:#f5efe1;border-color:#e8dec4}
+#view-plans .seg-toggle .seg{color:#566f76}
+#view-plans .seg-toggle .seg:hover{color:#0e2a32}
+#view-plans .seg-toggle .seg.active{background:#ff7a2e;color:#fff}
+#view-plans .tabs{background:#f5efe1}
+#view-plans .tab{color:#566f76}
+#view-plans .tab.active{background:#ff7a2e;color:#fff;font-weight:600}
+#view-plans .toggle-row{background:#fff;border-color:#e8dec4}
+#view-plans .toggle-row:hover{background:#fffaf0}
+#view-plans .toggle-row .lbl{color:#0e2a32}
+#view-plans .toggle-row .lbl small{color:#566f76}
+#view-plans .toggle-switch{background:#e8dec4}
+#view-plans .toggle-switch::after{background:#fff}
+#view-plans .toggle-row.on .toggle-switch{background:#ff7a2e}
+#view-plans .toggle-row.on .toggle-switch::after{background:#fff}
+#view-plans .format-card{background:#fff;border-color:#e8dec4}
+#view-plans .format-card:hover{background:#fffaf0}
+#view-plans .format-card .name{color:#0e2a32}
+#view-plans .format-card .desc{color:#566f76}
+#view-plans .format-card.active{background:rgba(255,122,46,.08);border-color:#ff7a2e}
+#view-plans .style-card{background:#fff;border-color:#e8dec4;color:#566f76}
+#view-plans .style-card:hover{background:#fffaf0}
+#view-plans .style-card.active{background:rgba(255,122,46,.08);border-color:#ff7a2e;color:#0e2a32}
 #view-plans .range-row input[type="range"]{accent-color:#ff7a2e}
+#view-plans .range-row .val{color:#566f76}
 #view-plans .btn-primary{background:linear-gradient(180deg,#ff7a2e 0%,#e6651a 100%);color:#fff;box-shadow:0 1px 0 rgba(255,255,255,.2) inset,0 4px 14px rgba(255,122,46,.3)}
 #view-plans .btn-primary:hover{box-shadow:0 1px 0 rgba(255,255,255,.2) inset,0 6px 18px rgba(255,122,46,.4)}
+@media(max-width:980px){#view-plans .sidebar{box-shadow:4px 0 24px rgba(14,42,50,.18)}}
