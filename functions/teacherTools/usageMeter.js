@@ -76,7 +76,9 @@ async function getUserTeacherPlan(uid) {
  * Returns `{ plan, used, limit, period }` on success.
  */
 async function assertAndIncrement(uid, tool) {
-  if (!PLAN_LIMITS.free[tool]) {
+  // Use `in` so that registered tools whose free-plan limit is 0
+  // (e.g. scheme_of_work) are still recognised as known tools.
+  if (!(tool in PLAN_LIMITS.free)) {
     throw new HttpsError("invalid-argument", `Unknown tool: ${tool}`);
   }
   const period = yyyymm();
