@@ -9,6 +9,7 @@ import {
   Menu,
   X,
   LogOut,
+  Settings,
 } from '../ui/icons'
 import { useAuth } from '../../contexts/AuthContext'
 import Logo from '../ui/Logo'
@@ -25,7 +26,7 @@ const NAV = [
 ]
 
 export default function TeacherLayout({ children }) {
-  const { logout, userProfile, canAccessLearnerPortal } = useAuth()
+  const { logout, userProfile, canAccessLearnerPortal, isAdmin } = useAuth()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [showSubscribe, setShowSubscribe] = useState(false)
@@ -99,6 +100,15 @@ export default function TeacherLayout({ children }) {
             <Icon as={Home} size="sm" />
             Learner Dashboard
           </button>
+          {isAdmin && (
+            <Link
+              to="/admin"
+              className="theme-bg-subtle theme-text hover:theme-accent-bg hover:theme-accent-text flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all duration-fast ease-out"
+            >
+              <Icon as={Settings} size="sm" />
+              Admin Panel
+            </Link>
+          )}
           <div className="theme-border my-2 border-t" />
           {NAV.map(item => (
             <NavLink key={item.to} to={item.to} end={item.end} className={navClass}>
@@ -176,6 +186,15 @@ export default function TeacherLayout({ children }) {
             >
               <Icon as={Home} size="sm" />Learner Dashboard
             </button>
+            {isAdmin && (
+              <Link
+                to="/admin"
+                onClick={() => setMobileOpen(false)}
+                className="theme-bg-subtle theme-text hover:theme-accent-bg hover:theme-accent-text flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-colors animate-slide-in-soft"
+              >
+                <Icon as={Settings} size="sm" />Admin Panel
+              </Link>
+            )}
             <div className="theme-border my-2 border-t" />
             {NAV.map(item => (
               <NavLink
