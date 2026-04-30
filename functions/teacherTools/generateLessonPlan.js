@@ -19,7 +19,6 @@ const {
   getAnthropicApiKey,
   getUserRole,
   isStaffRole,
-  stripJsonFences,
 } = require("../aiService");
 const {callClaude, DEFAULT_MODEL} = require("./anthropicClient");
 
@@ -32,6 +31,41 @@ const {assertAndIncrement} = require("./usageMeter");
 // Override at deploy-time without a code change. Set LESSON_PLAN_MODEL=claude-haiku-4-5
 // to drop generation time roughly in half at the cost of some reasoning depth.
 const LESSON_PLAN_MODEL = process.env.LESSON_PLAN_MODEL || DEFAULT_MODEL;
+
+// Permissive top-level shape — the post-call validateLessonPlan() does the
+// strict checking, so the schema's job here is just to anchor Claude to an
+// object response and force tool use (which eliminates JSON-parse failures).
+// `additionalProperties: true` keeps us forward-compatible with prompt tweaks
+// that add new sections.
+const LESSON_PLAN_TOOL_SCHEMA = {
+  type: "object",
+  description: "A complete Zambian CBC lesson plan in the v2 schema.",
+  additionalProperties: true,
+  properties: {
+    schemaVersion: {type: "string"},
+    header: {type: "object", additionalProperties: true},
+    lessonGoal: {type: "string"},
+    lessonProgression: {type: "object", additionalProperties: true},
+    lessonDevelopment: {type: "object", additionalProperties: true},
+    specificOutcomes: {type: "array", items: {type: "string"}},
+    keyCompetencies: {type: "array", items: {type: "string"}},
+    broadCompetences: {type: "array", items: {type: "string"}},
+    expectedTargetCompetence: {type: "string"},
+    values: {type: "array", items: {type: "string"}},
+    prerequisiteKnowledge: {type: "array", items: {type: "string"}},
+    teachingLearningMaterials: {type: "array", items: {type: "string"}},
+    interdisciplinaryConnections: {type: "array", items: {type: "string"}},
+    references: {type: "array", items: {type: "string"}},
+    assessment: {type: "object", additionalProperties: true},
+    homework: {type: "object", additionalProperties: true},
+    differentiation: {type: "object", additionalProperties: true},
+    teacherReflection: {type: "object", additionalProperties: true},
+    methodology: {type: "string"},
+    learningEnvironment: {type: "string"},
+    competenceContinuity: {type: "object", additionalProperties: true},
+  },
+  required: ["header", "lessonGoal"],
+};
 
 // Output scales roughly with lesson length. A 20-min lesson rarely fills 4000
 // tokens; a 90-min lesson sometimes truncates at 4000. Scaling cuts wall-clock
@@ -167,9 +201,14 @@ function createGenerateLessonPlan(anthropicApiKeySecret) {
         console.warn("Failed to reserve generation doc", err);
       });
 
-      // 4. Call Claude. The reservation write runs in parallel; by the time
-      //    we reach any genRef.update below, the reservation has resolved.
+      // 4. Call Claude in tool-use mode. Forcing the model to emit a
+      //    structured tool call (instead of freeform JSON in a text block)
+      //    eliminates the previous "AI returned non-JSON output" failure
+      //    mode entirely — there's no markdown-fence stripping or JSON.parse
+      //    needed. The reservation write runs in parallel; by the time we
+      //    reach any genRef write below, the reservation has resolved.
       const userPrompt = buildUserPrompt(inputs);
+      let parsed = null;
       let raw = "";
       let usageInfo = {inputTokens: 0, outputTokens: 0};
       let modelUsed = LESSON_PLAN_MODEL;
@@ -182,9 +221,17 @@ function createGenerateLessonPlan(anthropicApiKeySecret) {
             maxTokens: lessonPlanMaxTokens(inputs.durationMinutes),
             temperature: 0.3,
             model: LESSON_PLAN_MODEL,
+            mode: "tool",
+            toolName: "emit_lesson_plan",
+            toolDescription:
+              "Emit the complete Zambian CBC lesson plan as a single " +
+              "structured object. Do not include any prose or commentary " +
+              "outside this tool call.",
+            toolInputSchema: LESSON_PLAN_TOOL_SCHEMA,
           }),
           reservePromise,
         ]);
+        parsed = response.parsed;
         raw = response.text || "";
         usageInfo = response.usage || usageInfo;
         modelUsed = response.model || modelUsed;
@@ -197,24 +244,7 @@ function createGenerateLessonPlan(anthropicApiKeySecret) {
         throw err;
       }
 
-      // 5. Parse JSON (Claude is instructed to emit raw JSON, but we strip
-      //    fences defensively).
-      let parsed;
-      try {
-        parsed = JSON.parse(stripJsonFences(raw));
-      } catch (err) {
-        await genRef.set({
-          status: "failed",
-          errorMessage: "AI returned non-JSON output",
-          outputText: String(raw || "").slice(0, 12000),
-        }, {merge: true}).catch(() => {});
-        throw new HttpsError(
-          "internal",
-          "The AI returned an unexpected response. Please try again.",
-        );
-      }
-
-      // 6. Validate + normalise against our schema.
+      // 5. Validate + normalise against our schema.
       const validation = validateLessonPlan(parsed);
       const lessonPlan = validation.value;
       if (!validation.ok) {

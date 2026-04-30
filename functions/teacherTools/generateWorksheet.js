@@ -22,7 +22,6 @@ const {
   getAnthropicApiKey,
   getUserRole,
   isStaffRole,
-  stripJsonFences,
 } = require("../aiService");
 const {callClaude} = require("./anthropicClient");
 
@@ -35,6 +34,49 @@ const {assertAndIncrement} = require("./usageMeter");
 // Worksheet-specific model. Haiku is ~5× cheaper and plenty capable for
 // structured Q&A generation. Teacher can override via an admin toggle later.
 const WORKSHEET_MODEL = process.env.WORKSHEET_MODEL || "claude-haiku-4-5";
+
+// Permissive top-level shape — validateWorksheet() does strict checking
+// post-call, so the schema's job is just to anchor Claude to a structured
+// tool response (no markdown fences, no prose wrapping).
+const WORKSHEET_TOOL_SCHEMA = {
+  type: "object",
+  description: "A complete CBC worksheet matching the v1 schema.",
+  additionalProperties: true,
+  properties: {
+    schemaVersion: {type: "string"},
+    header: {
+      type: "object",
+      additionalProperties: true,
+      properties: {
+        title: {type: "string"},
+        grade: {type: "string"},
+        subject: {type: "string"},
+        topic: {type: "string"},
+        subtopic: {type: "string"},
+        duration: {type: "string"},
+        instructions: {type: "string"},
+        totalMarks: {type: "number"},
+      },
+      required: ["title", "grade", "subject", "topic"],
+    },
+    sections: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: true,
+        properties: {
+          title: {type: "string"},
+          questions: {
+            type: "array",
+            items: {type: "object", additionalProperties: true},
+          },
+        },
+      },
+    },
+    answerKey: {type: "array", items: {type: "object", additionalProperties: true}},
+  },
+  required: ["header", "sections"],
+};
 
 // Output scales with question count. 4000 was massive overkill for a 5-question
 // worksheet (most fit in ~1500 tokens) and generation time scales with output,
@@ -165,8 +207,10 @@ function createGenerateWorksheet(anthropicApiKeySecret) {
         console.warn("Failed to reserve generation doc", err);
       });
 
-      // 4. Call Claude.
+      // 4. Call Claude in tool-use mode. Forces structured JSON via tool_use,
+      //    eliminating markdown-fence stripping and JSON-parse failures.
       const userPrompt = buildUserPrompt(inputs);
+      let parsed = null;
       let raw = "";
       let usageInfo = {inputTokens: 0, outputTokens: 0};
       let modelUsed = WORKSHEET_MODEL;
@@ -182,9 +226,16 @@ function createGenerateWorksheet(anthropicApiKeySecret) {
             }),
             temperature: 0.4,
             model: WORKSHEET_MODEL,
+            mode: "tool",
+            toolName: "emit_worksheet",
+            toolDescription:
+              "Emit the complete worksheet as a single structured object. " +
+              "Do not include any prose or commentary outside this tool call.",
+            toolInputSchema: WORKSHEET_TOOL_SCHEMA,
           }),
           reservePromise,
         ]);
+        parsed = response.parsed;
         raw = response.text || "";
         usageInfo = response.usage || usageInfo;
         modelUsed = response.model || modelUsed;
@@ -197,23 +248,7 @@ function createGenerateWorksheet(anthropicApiKeySecret) {
         throw err;
       }
 
-      // 5. Parse JSON.
-      let parsed;
-      try {
-        parsed = JSON.parse(stripJsonFences(raw));
-      } catch (err) {
-        await genRef.set({
-          status: "failed",
-          errorMessage: "AI returned non-JSON output",
-          outputText: String(raw || "").slice(0, 12000),
-        }, {merge: true}).catch(() => {});
-        throw new HttpsError(
-          "internal",
-          "The AI returned an unexpected response. Please try again.",
-        );
-      }
-
-      // 6. Validate against schema.
+      // 5. Validate against schema.
       const validation = validateWorksheet(parsed);
       const worksheet = validation.value;
       if (!validation.ok) {

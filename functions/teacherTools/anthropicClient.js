@@ -5,17 +5,19 @@
  *   - It clips responses to 10,000 chars (too tight for full lesson plans).
  *   - It returns a plain string, losing token-usage info we need for cost.
  *
- * Follows the same fetch pattern so behaviour is consistent.
- *
  * Modes:
- *   - "json"   (default) — single blocking request, returns full text. Current
- *               behaviour. Caller parses JSON from the text.
- *   - "stream" — streams text deltas via an async iterator. Wired up in a later
- *               commit; throws NotImplemented for now so callers can opt in
- *               once the client side is ready.
- *   - "tool"   — uses Anthropic tool use to enforce a JSON schema. Returns the
- *               parsed object directly, eliminating JSON-fence stripping and
- *               parse failures. Wired up in a later commit.
+ *   - "json"   (default) — single blocking request. Returns full text; the
+ *               caller parses JSON from it.
+ *   - "tool"   — forces Claude to emit structured JSON via a single tool call,
+ *               eliminating JSON-fence stripping and "non-JSON output" parse
+ *               failures. The tool's `input_schema` is intentionally
+ *               permissive — the prompt already describes the schema in detail
+ *               and the existing post-call validators do strict checks. The
+ *               win here is the SHAPE of the response: Claude can no longer
+ *               wrap its output in prose, markdown fences, or commentary.
+ *   - "stream" — streams Anthropic SSE deltas to an `onToken(text)` callback;
+ *               returns the accumulated text + usage when the stream closes.
+ *               Used by the SSE-streaming HTTP endpoints in `index.js`.
  */
 
 const {HttpsError} = require("firebase-functions/v2/https");
@@ -25,68 +27,282 @@ const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION = "2023-06-01";
 const DEFAULT_MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5";
 
-async function callClaude(apiKey, {
-  systemPrompt,
-  cbcContextBlock = null,
-  messages,
-  maxTokens = 4000,
-  temperature = 0.3,
-  model = DEFAULT_MODEL,
-  mode = "json",
-  // Reserved for future modes:
-  tools = null,
-  toolChoice = null,
-}) {
-  if (mode === "stream") {
-    throw new HttpsError(
-      "unimplemented",
-      "Streaming mode is not yet wired up. Use mode: 'json'.",
-    );
-  }
-  if (mode === "tool") {
-    throw new HttpsError(
-      "unimplemented",
-      "Tool-use mode is not yet wired up. Use mode: 'json'.",
-    );
-  }
-  if (mode !== "json") {
-    throw new HttpsError(
-      "invalid-argument",
-      `Unknown callClaude mode: ${mode}`,
-    );
-  }
-
-  // Build system array. The static system prompt is cached so Anthropic skips
-  // re-processing it on repeated calls (same prompt, within 5-min TTL).
-  // The CBC context block (600-1200 tokens per call) is appended as a second
-  // cached block — it changes only when grade/subject/topic changes, so it
-  // hits the cache on most repeated uses of the same generator.
-  const systemBlocks = systemPrompt ? [
+function buildSystemBlocks(systemPrompt, cbcContextBlock) {
+  if (!systemPrompt) return undefined;
+  return [
     {type: "text", text: systemPrompt, cache_control: {type: "ephemeral"}},
     ...(cbcContextBlock ? [
       {type: "text", text: cbcContextBlock, cache_control: {type: "ephemeral"}},
     ] : []),
-  ] : undefined;
+  ];
+}
 
+function buildHeaders(apiKey) {
+  return {
+    "Content-Type": "application/json",
+    "x-api-key": apiKey,
+    "anthropic-version": ANTHROPIC_VERSION,
+  };
+}
+
+function unwrapApiError(res, errBody) {
+  console.error("Claude API error", {
+    status: res.status,
+    type: errBody?.error?.type,
+    message: errBody?.error?.message,
+  });
+  if (res.status === 429) {
+    return new HttpsError(
+      "resource-exhausted",
+      "AI is busy. Please wait a moment and try again.",
+    );
+  }
+  return new HttpsError(
+    "unavailable",
+    "AI is temporarily unavailable. Please try again.",
+  );
+}
+
+function extractUsage(data) {
+  return {
+    inputTokens: Number(data?.usage?.input_tokens || 0),
+    outputTokens: Number(data?.usage?.output_tokens || 0),
+    cacheReadTokens: Number(data?.usage?.cache_read_input_tokens || 0),
+    cacheCreationTokens: Number(data?.usage?.cache_creation_input_tokens || 0),
+  };
+}
+
+async function callClaude(apiKey, opts = {}) {
+  const {
+    systemPrompt,
+    cbcContextBlock = null,
+    messages,
+    maxTokens = 4000,
+    temperature = 0.3,
+    model = DEFAULT_MODEL,
+    mode = "json",
+    // Tool-mode params:
+    toolName,
+    toolDescription,
+    toolInputSchema,
+    // Stream-mode params:
+    onToken,
+  } = opts;
+
+  if (mode === "json") {
+    return callClaudeJson({
+      apiKey, systemPrompt, cbcContextBlock, messages,
+      maxTokens, temperature, model,
+    });
+  }
+  if (mode === "tool") {
+    if (!toolName || !toolInputSchema) {
+      throw new HttpsError(
+        "internal",
+        "callClaude(mode:'tool') requires toolName and toolInputSchema.",
+      );
+    }
+    return callClaudeTool({
+      apiKey, systemPrompt, cbcContextBlock, messages,
+      maxTokens, temperature, model,
+      toolName, toolDescription, toolInputSchema,
+    });
+  }
+  if (mode === "stream") {
+    if (typeof onToken !== "function") {
+      throw new HttpsError(
+        "internal",
+        "callClaude(mode:'stream') requires an onToken callback.",
+      );
+    }
+    return callClaudeStream({
+      apiKey, systemPrompt, cbcContextBlock, messages,
+      maxTokens, temperature, model, onToken,
+    });
+  }
+  throw new HttpsError("invalid-argument", `Unknown callClaude mode: ${mode}`);
+}
+
+async function callClaudeJson({
+  apiKey, systemPrompt, cbcContextBlock, messages,
+  maxTokens, temperature, model,
+}) {
   const body = {
     model,
     max_tokens: maxTokens,
     temperature,
-    ...(systemBlocks ? {system: systemBlocks} : {}),
+    ...(systemPrompt ?
+      {system: buildSystemBlocks(systemPrompt, cbcContextBlock)} : {}),
     messages,
-    ...(tools ? {tools} : {}),
-    ...(toolChoice ? {tool_choice: toolChoice} : {}),
+  };
+  const res = await postAnthropic(apiKey, body);
+  const data = await res.json();
+  const blocks = Array.isArray(data?.content) ? data.content : [];
+  const text = blocks
+    .filter((b) => b?.type === "text" && b?.text)
+    .map((b) => b.text)
+    .join("\n")
+    .trim();
+  return {
+    text,
+    usage: extractUsage(data),
+    stopReason: data?.stop_reason || null,
+    model: data?.model || model,
+  };
+}
+
+async function callClaudeTool({
+  apiKey, systemPrompt, cbcContextBlock, messages,
+  maxTokens, temperature, model,
+  toolName, toolDescription, toolInputSchema,
+}) {
+  const body = {
+    model,
+    max_tokens: maxTokens,
+    temperature,
+    ...(systemPrompt ?
+      {system: buildSystemBlocks(systemPrompt, cbcContextBlock)} : {}),
+    messages,
+    tools: [{
+      name: toolName,
+      description: toolDescription || "Emit the result as a structured object.",
+      input_schema: toolInputSchema,
+    }],
+    tool_choice: {type: "tool", name: toolName},
+  };
+  const res = await postAnthropic(apiKey, body);
+  const data = await res.json();
+  const blocks = Array.isArray(data?.content) ? data.content : [];
+  const toolUse = blocks.find(
+    (b) => b?.type === "tool_use" && b?.name === toolName,
+  );
+  if (!toolUse || !toolUse.input || typeof toolUse.input !== "object") {
+    console.error("Claude tool-use response missing tool_use block", {
+      stopReason: data?.stop_reason,
+      blockTypes: blocks.map((b) => b?.type),
+    });
+    throw new HttpsError(
+      "internal",
+      "AI returned an unexpected response shape. Please try again.",
+    );
+  }
+  // Surface any text the model emitted alongside the tool call so callers
+  // can persist it for debugging — usually empty when tool_choice forces a tool.
+  const text = blocks
+    .filter((b) => b?.type === "text" && b?.text)
+    .map((b) => b.text)
+    .join("\n")
+    .trim();
+  return {
+    parsed: toolUse.input,
+    text,
+    usage: extractUsage(data),
+    stopReason: data?.stop_reason || null,
+    model: data?.model || model,
+  };
+}
+
+async function callClaudeStream({
+  apiKey, systemPrompt, cbcContextBlock, messages,
+  maxTokens, temperature, model, onToken,
+}) {
+  const body = {
+    model,
+    max_tokens: maxTokens,
+    temperature,
+    stream: true,
+    ...(systemPrompt ?
+      {system: buildSystemBlocks(systemPrompt, cbcContextBlock)} : {}),
+    messages,
   };
 
   let res;
   try {
     res = await anthropicFetch(ANTHROPIC_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": ANTHROPIC_VERSION,
-      },
+      headers: buildHeaders(apiKey),
+      body: JSON.stringify(body),
+    }, {label: "teacherTools:stream"});
+  } catch (err) {
+    console.error("Claude stream fetch failed", err);
+    throw new HttpsError(
+      "unavailable",
+      "AI is temporarily unavailable. Please try again.",
+    );
+  }
+
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => ({}));
+    throw unwrapApiError(res, errBody);
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let fullText = "";
+  // Anthropic emits message_start and message_delta events with usage info.
+  // Accumulate as we go so the final return value is accurate.
+  const usage = {
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadTokens: 0,
+    cacheCreationTokens: 0,
+  };
+  let stopReason = null;
+  let modelOut = model;
+
+  while (true) {
+    const {done, value} = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, {stream: true});
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      if (!line.startsWith("data: ")) continue;
+      const raw = line.slice(6).trim();
+      if (!raw || raw === "[DONE]") continue;
+      let parsed;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        continue;
+      }
+      if (parsed.type === "message_start" && parsed.message) {
+        modelOut = parsed.message.model || modelOut;
+        const u = parsed.message.usage || {};
+        usage.inputTokens = Number(u.input_tokens || 0);
+        usage.cacheReadTokens = Number(u.cache_read_input_tokens || 0);
+        usage.cacheCreationTokens = Number(u.cache_creation_input_tokens || 0);
+      } else if (
+        parsed.type === "content_block_delta" &&
+        parsed.delta?.type === "text_delta" &&
+        typeof parsed.delta.text === "string"
+      ) {
+        const token = parsed.delta.text;
+        fullText += token;
+        try {
+          onToken(token);
+        } catch (err) {
+          console.warn("onToken callback threw", err);
+        }
+      } else if (parsed.type === "message_delta") {
+        if (parsed.delta?.stop_reason) stopReason = parsed.delta.stop_reason;
+        if (parsed.usage?.output_tokens != null) {
+          usage.outputTokens = Number(parsed.usage.output_tokens);
+        }
+      }
+    }
+  }
+
+  return {text: fullText, usage, stopReason, model: modelOut};
+}
+
+async function postAnthropic(apiKey, body) {
+  let res;
+  try {
+    res = await anthropicFetch(ANTHROPIC_URL, {
+      method: "POST",
+      headers: buildHeaders(apiKey),
       body: JSON.stringify(body),
     }, {label: "teacherTools"});
   } catch (err) {
@@ -96,45 +312,11 @@ async function callClaude(apiKey, {
       "AI is temporarily unavailable. Please try again.",
     );
   }
-
   if (!res.ok) {
     const errBody = await res.json().catch(() => ({}));
-    console.error("Claude API error", {
-      status: res.status,
-      type: errBody?.error?.type,
-      message: errBody?.error?.message,
-    });
-    if (res.status === 429) {
-      throw new HttpsError(
-        "resource-exhausted",
-        "AI is busy. Please wait a moment and try again.",
-      );
-    }
-    throw new HttpsError(
-      "unavailable",
-      "AI is temporarily unavailable. Please try again.",
-    );
+    throw unwrapApiError(res, errBody);
   }
-
-  const data = await res.json();
-  const blocks = Array.isArray(data?.content) ? data.content : [];
-  const text = blocks
-    .filter((b) => b?.type === "text" && b?.text)
-    .map((b) => b.text)
-    .join("\n")
-    .trim();
-
-  return {
-    text,
-    usage: {
-      inputTokens: Number(data?.usage?.input_tokens || 0),
-      outputTokens: Number(data?.usage?.output_tokens || 0),
-      cacheReadTokens: Number(data?.usage?.cache_read_input_tokens || 0),
-      cacheCreationTokens: Number(data?.usage?.cache_creation_input_tokens || 0),
-    },
-    stopReason: data?.stop_reason || null,
-    model: data?.model || model,
-  };
+  return res;
 }
 
 module.exports = {callClaude, DEFAULT_MODEL};
