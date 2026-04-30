@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { useFirestore } from '../../hooks/useFirestore'
 import { useAuth } from '../../contexts/AuthContext'
@@ -1040,21 +1040,59 @@ export default function AssessmentStudio() {
         </div>
       )}
 
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          aria-label="Go back"
-          className="theme-text-muted min-h-0 bg-transparent p-1 shadow-none hover:theme-text transition-colors"
+      {/* Page header — brand on the left, back link on the right */}
+      <div className="flex items-center justify-between gap-3 mb-5">
+        <Link to="/teacher" className="flex items-center gap-2.5 no-underline" style={{ color: '#0e2a32' }}>
+          <span style={{ fontSize: 22 }}>🦅</span>
+          <div className="leading-tight">
+            <p style={{ fontFamily: "'Fraunces', serif", fontWeight: 800, fontSize: 16, margin: 0, color: '#0e2a32' }}>
+              ZedExams <span style={{ color: '#ff7a2e' }}>•</span>
+            </p>
+            <p style={{ fontSize: 11.5, color: '#566f76', margin: 0, fontWeight: 600 }}>
+              Assessment Studio
+            </p>
+          </div>
+        </Link>
+        <Link
+          to="/teacher/assessments"
+          className="inline-flex items-center gap-2 rounded-xl border-2 font-bold no-underline transition-colors"
+          style={{ background: '#fff', borderColor: '#0e2a32', color: '#0e2a32', padding: '8px 14px', fontSize: 13 }}
+          onMouseEnter={e => { e.currentTarget.style.background = '#f5efe1' }}
+          onMouseLeave={e => { e.currentTarget.style.background = '#fff' }}
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
-        </button>
-        <div>
-          <p className="text-eyebrow">Assessment Studio</p>
-          <h1 className="text-display-xl theme-text mt-1 flex items-center gap-2">
-            <span aria-hidden="true">📝</span> Create assessment
+          ← My assessments
+        </Link>
+      </div>
+
+      {/* Dark brand hero */}
+      <div
+        className="rounded-3xl p-7 sm:p-9 mb-8 flex items-center gap-6 flex-wrap"
+        style={{ background: 'linear-gradient(135deg, #0e2a32 0%, #16505d 100%)', color: '#fff', boxShadow: '0 12px 32px rgba(14,42,50,.18)' }}
+      >
+        <div style={{ flex: 1, minWidth: 260 }}>
+          <span
+            className="inline-flex items-center gap-2 mb-3 rounded-full text-xs font-bold uppercase tracking-wider"
+            style={{ background: '#ff7a2e', color: '#fff', padding: '7px 14px' }}
+          >
+            ✨ New assessment
+          </span>
+          <h1 style={{ fontFamily: "'Fraunces', serif", fontWeight: 800, fontSize: 36, lineHeight: 1.05, margin: '0 0 8px', letterSpacing: '-.3px' }}>
+            Build your assessment
           </h1>
-          <p className="theme-text-muted text-body-sm mt-1">Build exam-style assessments for your class — saved privately to your library and ready to print.</p>
+          <p style={{ fontSize: 14.5, opacity: .88, marginBottom: 16, maxWidth: 520, lineHeight: 1.55 }}>
+            Set the cover page, drop in your questions, and save to your private library. Export as a printable paper or marking scheme any time.
+          </p>
+          <div className="flex gap-4 flex-wrap" style={{ fontSize: 13, opacity: .78, fontWeight: 500 }}>
+            <span>📝 Cover page</span>
+            <span>🔢 Marks per question</span>
+            <span>📄 Print-ready</span>
+          </div>
+        </div>
+        <div
+          className="flex-shrink-0 hidden sm:grid place-items-center"
+          style={{ width: 130, height: 130, borderRadius: '50%', background: '#fff', fontSize: 60, boxShadow: '0 8px 28px rgba(0,0,0,.25)' }}
+        >
+          🦅
         </div>
       </div>
 
