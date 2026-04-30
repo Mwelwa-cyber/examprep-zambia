@@ -192,57 +192,123 @@ export default function AssessmentList() {
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-eyebrow">My library</p>
-          <h1 className="text-display-xl theme-text mt-1 flex items-center gap-2">
-            <span aria-hidden="true">📝</span> Assessments
-          </h1>
-          <p className="theme-text-muted text-body-sm mt-1">
-            Tests and exam papers you've created for your class. Private to you — not shown to learners.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => navigate('/teacher/assessments/new')}
-          className="theme-accent-fill theme-on-accent rounded-xl px-5 py-2.5 text-sm font-black transition-all duration-fast ease-out shadow-elev-sm shadow-elev-inner-hl hover:-translate-y-px hover:shadow-elev-md"
+    <div>
+      {/* Page header — brand on the left, action on the right */}
+      <div className="flex items-center justify-between gap-3 mb-5">
+        <Link to="/teacher" className="flex items-center gap-2.5 no-underline" style={{ color: '#0e2a32' }}>
+          <span style={{ fontSize: 22 }}>🦅</span>
+          <div className="leading-tight">
+            <p style={{ fontFamily: "'Fraunces', serif", fontWeight: 800, fontSize: 16, margin: 0, color: '#0e2a32' }}>
+              ZedExams <span style={{ color: '#ff7a2e' }}>•</span>
+            </p>
+            <p style={{ fontSize: 11.5, color: '#566f76', margin: 0, fontWeight: 600 }}>
+              Assessment Studio
+            </p>
+          </div>
+        </Link>
+        <Link
+          to="/teacher"
+          className="inline-flex items-center gap-2 rounded-xl border-2 font-bold no-underline transition-colors"
+          style={{ background: '#fff', borderColor: '#0e2a32', color: '#0e2a32', padding: '8px 14px', fontSize: 13 }}
+          onMouseEnter={e => { e.currentTarget.style.background = '#f5efe1' }}
+          onMouseLeave={e => { e.currentTarget.style.background = '#fff' }}
         >
-          + New assessment
-        </button>
+          ← Dashboard
+        </Link>
+      </div>
+
+      {/* Dark brand hero */}
+      <div
+        className="rounded-3xl p-7 sm:p-9 mb-8 flex items-center gap-6 flex-wrap"
+        style={{ background: 'linear-gradient(135deg, #0e2a32 0%, #16505d 100%)', color: '#fff', boxShadow: '0 12px 32px rgba(14,42,50,.18)' }}
+      >
+        <div style={{ flex: 1, minWidth: 260 }}>
+          <span
+            className="inline-flex items-center gap-2 mb-3 rounded-full text-xs font-bold uppercase tracking-wider"
+            style={{ background: '#ff7a2e', color: '#fff', padding: '7px 14px' }}
+          >
+            🦅 Sharp Eagle
+          </span>
+          <h1 style={{ fontFamily: "'Fraunces', serif", fontWeight: 800, fontSize: 36, lineHeight: 1.05, margin: '0 0 8px', letterSpacing: '-.3px' }}>
+            My assessments
+          </h1>
+          <p style={{ fontSize: 14.5, opacity: .88, marginBottom: 16, maxWidth: 520, lineHeight: 1.55 }}>
+            Tests and exam papers you've created for your class — private to you, never shown to learners. Print, download as DOCX or PDF, or open the marking scheme.
+          </p>
+          <div className="flex gap-4 flex-wrap mb-5" style={{ fontSize: 13, opacity: .78, fontWeight: 500 }}>
+            <span>📄 DOCX + PDF export</span>
+            <span>🗒️ Marking scheme</span>
+            <span>🔒 Teacher-private</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/teacher/assessments/new')}
+            className="inline-flex items-center gap-2.5 rounded-2xl font-bold no-underline transition-colors"
+            style={{ background: '#ff7a2e', color: '#fff', padding: '13px 22px', fontSize: 14.5, border: 'none', cursor: 'pointer' }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#e6651a' }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#ff7a2e' }}
+          >
+            ▶ New assessment
+          </button>
+        </div>
+        <div
+          className="flex-shrink-0 hidden sm:grid place-items-center"
+          style={{ width: 150, height: 150, borderRadius: '50%', background: '#fff', fontSize: 68, boxShadow: '0 8px 28px rgba(0,0,0,.25)' }}
+        >
+          🦅
+        </div>
       </div>
 
       {error && (
-        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 mb-5">
           {error}
         </div>
       )}
 
       {assessments.length === 0 ? (
-        <div className="theme-card theme-border rounded-2xl border-2 border-dashed py-12 text-center">
-          <div className="text-5xl mb-3 opacity-50">📂</div>
-          <p className="theme-text font-black mb-1">No assessments yet</p>
-          <p className="theme-text-muted text-sm mb-5">Create your first weekly test, mid-term, or end-of-term paper.</p>
+        <div
+          className="text-center py-12 rounded-2xl border-2 border-dashed"
+          style={{ background: '#fff', borderColor: '#b8ad96' }}
+        >
+          <div style={{ fontSize: 40, marginBottom: 12, opacity: .5 }}>📂</div>
+          <p style={{ fontFamily: "'Fraunces', serif", fontWeight: 800, fontSize: 17, color: '#0e2a32', marginBottom: 6 }}>
+            No assessments yet
+          </p>
+          <p style={{ fontSize: 13, color: '#8a9aa1', margin: '0 0 16px' }}>
+            Create your first weekly test, mid-term, or end-of-term paper.
+          </p>
           <button
             type="button"
             onClick={() => navigate('/teacher/assessments/new')}
-            className="theme-accent-fill theme-on-accent rounded-xl px-5 py-2.5 text-sm font-black"
+            className="inline-flex items-center gap-2 rounded-xl font-bold transition-colors"
+            style={{ background: '#ff7a2e', color: '#fff', border: 'none', cursor: 'pointer', padding: '10px 18px', fontSize: 14 }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#e6651a' }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#ff7a2e' }}
           >
             + Create assessment
           </button>
         </div>
       ) : (
-        <div className="space-y-3">
-          {assessments.map(a => (
-            <AssessmentRow
-              key={a.id}
-              assessment={a}
-              onDelete={handleDelete}
-              onExport={handleExport}
-              busy={busyId === a.id}
-            />
-          ))}
-        </div>
+        <>
+          <div className="flex items-center gap-2.5 mb-3" style={{ fontSize: 11, fontWeight: 700, letterSpacing: '1.4px', textTransform: 'uppercase', color: '#ff7a2e' }}>
+            <span style={{ width: 32, height: 3, background: '#ff7a2e', borderRadius: 2, display: 'inline-block', flexShrink: 0 }} />
+            Saved
+          </div>
+          <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 800, fontSize: 24, color: '#0e2a32', margin: '0 0 16px' }}>
+            {assessments.length} assessment{assessments.length === 1 ? '' : 's'}
+          </h2>
+          <div className="space-y-3">
+            {assessments.map(a => (
+              <AssessmentRow
+                key={a.id}
+                assessment={a}
+                onDelete={handleDelete}
+                onExport={handleExport}
+                busy={busyId === a.id}
+              />
+            ))}
+          </div>
+        </>
       )}
     </div>
   )
