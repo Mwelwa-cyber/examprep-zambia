@@ -36,6 +36,18 @@ const {assertAndIncrement} = require("./usageMeter");
 // structured Q&A generation. Teacher can override via an admin toggle later.
 const WORKSHEET_MODEL = process.env.WORKSHEET_MODEL || "claude-haiku-4-5";
 
+// Output scales with question count. 4000 was massive overkill for a 5-question
+// worksheet (most fit in ~1500 tokens) and generation time scales with output,
+// so a tighter ceiling drops wall-clock for short worksheets without truncating
+// long ones. Tunable formula: ~220 tokens per question with answer keys, ~140
+// without, plus a fixed header. Capped at 5000 for the 25-question + answer
+// key case.
+function worksheetMaxTokens({count, includeAnswerKey}) {
+  const perQuestion = includeAnswerKey ? 220 : 140;
+  const scaled = 500 + Math.round(Number(count || 10) * perQuestion);
+  return Math.min(5000, Math.max(1200, scaled));
+}
+
 const ALLOWED_GRADES = new Set([
   "ECE", "G1", "G2", "G3", "G4", "G5", "G6", "G7",
   "G8", "G9", "G10", "G11", "G12",
@@ -112,20 +124,25 @@ function createGenerateWorksheet(anthropicApiKeySecret) {
         throw new HttpsError("invalid-argument", inputErrors.join(" "));
       }
 
-      // 2. CBC context (with graceful fallback).
-      const {contextBlock, kbMatch, kbWarning} = await resolveCbcContext({
-        grade: inputs.grade,
-        subject: inputs.subject,
-        topic: inputs.topic,
-        subtopic: inputs.subtopic,
-      });
+      // 2. Resolve CBC context + enforce monthly quota in parallel.
+      //    resolveCbcContext never throws (unknown topics surface as a soft
+      //    warning); only quota overflow can fail this step.
+      const [{contextBlock, kbMatch, kbWarning}, usage] = await Promise.all([
+        resolveCbcContext({
+          grade: inputs.grade,
+          subject: inputs.subject,
+          topic: inputs.topic,
+          subtopic: inputs.subtopic,
+        }),
+        assertAndIncrement(uid, "worksheet"),
+      ]);
 
-      // 3. Enforce monthly quota.
-      const usage = await assertAndIncrement(uid, "worksheet");
+      // 3. API key + reserve generation doc. Reservation write runs in
+      //    parallel with the Claude call; the final-result write waits on it.
+      const apiKey = getAnthropicApiKey(anthropicApiKeySecret);
 
-      // 4. Reserve generation doc.
       const genRef = admin.firestore().collection("aiGenerations").doc();
-      await genRef.set({
+      const reservePromise = genRef.set({
         ownerUid: uid,
         tool: "worksheet",
         inputs,
@@ -144,62 +161,63 @@ function createGenerateWorksheet(anthropicApiKeySecret) {
         teacherEdited: false,
         exportedFormats: [],
         visibility: "private",
+      }).catch((err) => {
+        console.warn("Failed to reserve generation doc", err);
       });
 
-      // 5. Call Claude.
-      let apiKey;
-      try {
-        apiKey = getAnthropicApiKey(anthropicApiKeySecret);
-      } catch (err) {
-        await genRef.update({status: "failed", errorMessage: "AI key missing"});
-        throw err;
-      }
-
+      // 4. Call Claude.
       const userPrompt = buildUserPrompt(inputs);
       let raw = "";
       let usageInfo = {inputTokens: 0, outputTokens: 0};
       let modelUsed = WORKSHEET_MODEL;
       try {
-        const response = await callClaude(apiKey, {
-          systemPrompt: SYSTEM_PROMPT,
-          cbcContextBlock: contextBlock,
-          messages: [{role: "user", content: userPrompt}],
-          maxTokens: 4000,
-          temperature: 0.4,
-          model: WORKSHEET_MODEL,
-        });
+        const [response] = await Promise.all([
+          callClaude(apiKey, {
+            systemPrompt: SYSTEM_PROMPT,
+            cbcContextBlock: contextBlock,
+            messages: [{role: "user", content: userPrompt}],
+            maxTokens: worksheetMaxTokens({
+              count: inputs.count,
+              includeAnswerKey: inputs.includeAnswerKey,
+            }),
+            temperature: 0.4,
+            model: WORKSHEET_MODEL,
+          }),
+          reservePromise,
+        ]);
         raw = response.text || "";
         usageInfo = response.usage || usageInfo;
         modelUsed = response.model || modelUsed;
       } catch (err) {
-        await genRef.update({
+        await reservePromise;
+        await genRef.set({
           status: "failed",
           errorMessage: String(err && err.message || err).slice(0, 500),
-        });
+        }, {merge: true}).catch(() => {});
         throw err;
       }
 
-      // 6. Parse JSON.
+      // 5. Parse JSON.
       let parsed;
       try {
         parsed = JSON.parse(stripJsonFences(raw));
       } catch (err) {
-        await genRef.update({
+        await genRef.set({
           status: "failed",
           errorMessage: "AI returned non-JSON output",
           outputText: String(raw || "").slice(0, 12000),
-        });
+        }, {merge: true}).catch(() => {});
         throw new HttpsError(
           "internal",
           "The AI returned an unexpected response. Please try again.",
         );
       }
 
-      // 7. Validate against schema.
+      // 6. Validate against schema.
       const validation = validateWorksheet(parsed);
       const worksheet = validation.value;
       if (!validation.ok) {
-        await genRef.update({
+        await genRef.set({
           status: "flagged",
           errorMessage: `Schema errors: ${validation.errors.join("; ")}`,
           output: worksheet,
@@ -208,7 +226,7 @@ function createGenerateWorksheet(anthropicApiKeySecret) {
           tokensIn: Number(usageInfo.inputTokens || 0),
           tokensOut: Number(usageInfo.outputTokens || 0),
           modelUsed,
-        });
+        }, {merge: true});
         return {
           generationId: genRef.id,
           worksheet,
@@ -221,14 +239,14 @@ function createGenerateWorksheet(anthropicApiKeySecret) {
         };
       }
 
-      // 8. Happy path.
+      // 7. Happy path.
       const tokensIn = Number(usageInfo.inputTokens || 0);
       const tokensOut = Number(usageInfo.outputTokens || 0);
       // Haiku 4.5 approx pricing: $1/M input, $5/M output (~5× cheaper than Sonnet).
       const costUsdCents = Math.round(
         ((tokensIn / 1e6) * 100) + ((tokensOut / 1e6) * 500),
       );
-      await genRef.update({
+      await genRef.set({
         status: "complete",
         output: worksheet,
         outputText: String(raw || "").slice(0, 20000),
@@ -237,7 +255,7 @@ function createGenerateWorksheet(anthropicApiKeySecret) {
         costUsdCents,
         modelUsed,
         completedAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
+      }, {merge: true});
 
       return {
         generationId: genRef.id,

@@ -29,6 +29,19 @@ const {PROMPT_VERSION, SYSTEM_PROMPT, buildUserPrompt} =
   require("./lessonPlanPrompt");
 const {assertAndIncrement} = require("./usageMeter");
 
+// Override at deploy-time without a code change. Set LESSON_PLAN_MODEL=claude-haiku-4-5
+// to drop generation time roughly in half at the cost of some reasoning depth.
+const LESSON_PLAN_MODEL = process.env.LESSON_PLAN_MODEL || DEFAULT_MODEL;
+
+// Output scales roughly with lesson length. A 20-min lesson rarely fills 4000
+// tokens; a 90-min lesson sometimes truncates at 4000. Scaling cuts wall-clock
+// for short lessons (generation time is ~linear in output tokens) while giving
+// long ones room. Capped at 5000 to keep runaway lessons in check.
+function lessonPlanMaxTokens(durationMinutes) {
+  const scaled = 2200 + Math.round(Number(durationMinutes || 40) * 35);
+  return Math.min(5000, Math.max(2500, scaled));
+}
+
 const ALLOWED_GRADES = new Set([
   "ECE", "G1", "G2", "G3", "G4", "G5", "G6", "G7",
   "G8", "G9", "G10", "G11", "G12",
@@ -107,30 +120,35 @@ function createGenerateLessonPlan(anthropicApiKeySecret) {
         throw new HttpsError("invalid-argument", inputErrors.join(" "));
       }
 
-      // 2. Resolve CBC context. Prefers curated KB but falls back to a
-      //    generic Zambian-CBC brief when the specific topic isn't seeded.
-      //    Unknown topics NEVER block generation — worst case we surface a
-      //    soft warning alongside the output.
-      const {contextBlock, kbMatch, kbWarning} = await resolveCbcContext({
-        grade: inputs.grade,
-        subject: inputs.subject,
-        topic: inputs.topic,
-        subtopic: inputs.subtopic,
-      });
+      // 2. Resolve CBC context + enforce per-tool monthly quota in parallel.
+      //    These are independent reads/writes; running them sequentially added
+      //    ~100-300ms of latency on cold paths. resolveCbcContext never throws
+      //    (unknown topics surface as a soft warning, not an error), so the
+      //    only failure path is assertAndIncrement throwing on quota overflow.
+      const [{contextBlock, kbMatch, kbWarning}, usage] = await Promise.all([
+        resolveCbcContext({
+          grade: inputs.grade,
+          subject: inputs.subject,
+          topic: inputs.topic,
+          subtopic: inputs.subtopic,
+        }),
+        assertAndIncrement(uid, "lesson_plan"),
+      ]);
 
-      // 3. Enforce per-tool monthly quota (throws on overflow).
-      const usage = await assertAndIncrement(uid, "lesson_plan");
+      // 3. Resolve API key (sync — just reads the secret) and reserve a
+      //    generation document. The Firestore write runs in parallel with the
+      //    Claude call below: it's just a status doc, the result write at the
+      //    end is the one teachers care about.
+      const apiKey = getAnthropicApiKey(anthropicApiKeySecret);
 
-      // 4. Reserve a generation document upfront so the client can render
-      //    a "generating..." state immediately if we add streaming later.
       const genRef = admin.firestore().collection("aiGenerations").doc();
-      await genRef.set({
+      const reservePromise = genRef.set({
         ownerUid: uid,
         tool: "lesson_plan",
         inputs,
         output: null,
         outputText: "",
-        modelUsed: "claude-sonnet-4-5",
+        modelUsed: LESSON_PLAN_MODEL,
         promptVersion: PROMPT_VERSION,
         kbVersion: KB_VERSION,
         tokensIn: 0,
@@ -143,63 +161,65 @@ function createGenerateLessonPlan(anthropicApiKeySecret) {
         teacherEdited: false,
         exportedFormats: [],
         visibility: "private",
+      }).catch((err) => {
+        // Don't block generation on the status-doc write. Log and continue;
+        // the final write at the end will create the doc if this one missed.
+        console.warn("Failed to reserve generation doc", err);
       });
 
-      // 5. Call Claude.
-      let apiKey;
-      try {
-        apiKey = getAnthropicApiKey(anthropicApiKeySecret);
-      } catch (err) {
-        await genRef.update({status: "failed", errorMessage: "AI key missing"});
-        throw err;
-      }
-
+      // 4. Call Claude. The reservation write runs in parallel; by the time
+      //    we reach any genRef.update below, the reservation has resolved.
       const userPrompt = buildUserPrompt(inputs);
       let raw = "";
       let usageInfo = {inputTokens: 0, outputTokens: 0};
-      let modelUsed = DEFAULT_MODEL;
+      let modelUsed = LESSON_PLAN_MODEL;
       try {
-        const response = await callClaude(apiKey, {
-          systemPrompt: SYSTEM_PROMPT,
-          cbcContextBlock: contextBlock,
-          messages: [{role: "user", content: userPrompt}],
-          maxTokens: 4000,
-          temperature: 0.3,
-        });
+        const [response] = await Promise.all([
+          callClaude(apiKey, {
+            systemPrompt: SYSTEM_PROMPT,
+            cbcContextBlock: contextBlock,
+            messages: [{role: "user", content: userPrompt}],
+            maxTokens: lessonPlanMaxTokens(inputs.durationMinutes),
+            temperature: 0.3,
+            model: LESSON_PLAN_MODEL,
+          }),
+          reservePromise,
+        ]);
         raw = response.text || "";
         usageInfo = response.usage || usageInfo;
         modelUsed = response.model || modelUsed;
       } catch (err) {
-        await genRef.update({
+        await reservePromise;
+        await genRef.set({
           status: "failed",
           errorMessage: String(err && err.message || err).slice(0, 500),
-        });
+        }, {merge: true}).catch(() => {});
         throw err;
       }
 
-      // 6. Parse JSON (Claude is instructed to emit raw JSON, but we strip
+      // 5. Parse JSON (Claude is instructed to emit raw JSON, but we strip
       //    fences defensively).
       let parsed;
       try {
         parsed = JSON.parse(stripJsonFences(raw));
       } catch (err) {
-        await genRef.update({
+        await genRef.set({
           status: "failed",
           errorMessage: "AI returned non-JSON output",
           outputText: String(raw || "").slice(0, 12000),
-        });
+        }, {merge: true}).catch(() => {});
         throw new HttpsError(
           "internal",
           "The AI returned an unexpected response. Please try again.",
         );
       }
 
-      // 7. Validate + normalise against our schema.
+      // 6. Validate + normalise against our schema.
       const validation = validateLessonPlan(parsed);
       const lessonPlan = validation.value;
       if (!validation.ok) {
         // We still store the partial, but flag the document.
-        await genRef.update({
+        await genRef.set({
           status: "flagged",
           errorMessage: `Schema errors: ${validation.errors.join("; ")}`,
           output: lessonPlan,
@@ -208,7 +228,7 @@ function createGenerateLessonPlan(anthropicApiKeySecret) {
           tokensIn: Number(usageInfo.inputTokens || 0),
           tokensOut: Number(usageInfo.outputTokens || 0),
           modelUsed,
-        });
+        }, {merge: true});
         // Still return what we have — better than erroring. The teacher can
         // regenerate or edit.
         return {
@@ -223,14 +243,14 @@ function createGenerateLessonPlan(anthropicApiKeySecret) {
         };
       }
 
-      // 8. Happy path — finalise the generation doc.
+      // 7. Happy path — finalise the generation doc.
       const tokensIn = Number(usageInfo.inputTokens || 0);
       const tokensOut = Number(usageInfo.outputTokens || 0);
       // Claude Sonnet 4.5 approx pricing: $3/M input, $15/M output.
       const costUsdCents = Math.round(
         ((tokensIn / 1e6) * 300) + ((tokensOut / 1e6) * 1500),
       );
-      await genRef.update({
+      await genRef.set({
         status: "complete",
         output: lessonPlan,
         outputText: String(raw || "").slice(0, 20000),
@@ -239,7 +259,7 @@ function createGenerateLessonPlan(anthropicApiKeySecret) {
         costUsdCents,
         modelUsed,
         completedAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
+      }, {merge: true});
 
       return {
         generationId: genRef.id,
