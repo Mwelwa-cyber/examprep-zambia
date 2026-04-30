@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   SYLLABI_CATALOG,
   SYLLABI_TOTAL_COUNT,
@@ -222,8 +222,23 @@ function SyllabusCard({ item, onOpen }) {
 }
 
 function PdfViewer({ item, onClose }) {
+  // 'checking' while we HEAD-probe the cloud URL; 'available' renders the
+  // iframe; 'missing' falls back to the placeholder card so a 404 (or CORS
+  // failure) never bleeds the raw Firebase JSON into the viewer.
+  const [status, setStatus] = useState('checking')
+
+  useEffect(() => {
+    if (!item) return
+    if (!item.e) { setStatus('missing'); return }
+    let cancelled = false
+    setStatus('checking')
+    fetch(getPdfUrl(item.k), { method: 'HEAD' })
+      .then(r => { if (!cancelled) setStatus(r.ok ? 'available' : 'missing') })
+      .catch(() => { if (!cancelled) setStatus('missing') })
+    return () => { cancelled = true }
+  }, [item])
+
   if (!item) return null
-  const pdfAvailable = !!item.e
   return (
     <div
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
@@ -283,7 +298,7 @@ function PdfViewer({ item, onClose }) {
         </button>
       </div>
       <div style={{ flex: 1, background: '#1a1410', position: 'relative', overflow: 'hidden' }}>
-        {pdfAvailable ? (
+        {status === 'available' ? (
           <iframe
             title={item.t}
             src={`${getPdfUrl(item.k)}#toolbar=0&navpanes=0&scrollbar=1`}
@@ -291,6 +306,10 @@ function PdfViewer({ item, onClose }) {
             onContextMenu={e => e.preventDefault()}
             style={{ width: '100%', height: '100%', border: 'none', background: '#fff' }}
           />
+        ) : status === 'checking' ? (
+          <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: COLORS.paper, font: "600 13px/1 system-ui", letterSpacing: '.4px' }}>
+            Loading syllabus…
+          </div>
         ) : (
           <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: COLORS.paper, textAlign: 'center', padding: 40 }}>
             <div
