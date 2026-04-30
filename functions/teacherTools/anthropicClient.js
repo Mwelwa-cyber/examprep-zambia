@@ -87,13 +87,23 @@ async function callClaude(apiKey, opts = {}) {
     toolInputSchema,
     // Stream-mode params:
     onToken,
+    // Optional reasoning controls. Both pass straight to Anthropic when set.
+    //   thinking:     {type: "disabled" | "adaptive" | "enabled", ...}
+    //   outputConfig: {effort: "low" | "medium" | "high" | "max"}
+    // For Sonnet 4.6, pair `thinking: {type: "disabled"}` + `effort: "low"` to
+    // match Sonnet 4.5 baseline latency. Without setting effort, 4.6 defaults
+    // to "high", which is slower and costlier.
+    thinking,
+    outputConfig,
   } = opts;
 
+  const sharedArgs = {
+    apiKey, systemPrompt, cbcContextBlock, messages,
+    maxTokens, temperature, model, thinking, outputConfig,
+  };
+
   if (mode === "json") {
-    return callClaudeJson({
-      apiKey, systemPrompt, cbcContextBlock, messages,
-      maxTokens, temperature, model,
-    });
+    return callClaudeJson(sharedArgs);
   }
   if (mode === "tool") {
     if (!toolName || !toolInputSchema) {
@@ -103,9 +113,7 @@ async function callClaude(apiKey, opts = {}) {
       );
     }
     return callClaudeTool({
-      apiKey, systemPrompt, cbcContextBlock, messages,
-      maxTokens, temperature, model,
-      toolName, toolDescription, toolInputSchema,
+      ...sharedArgs, toolName, toolDescription, toolInputSchema,
     });
   }
   if (mode === "stream") {
@@ -116,8 +124,7 @@ async function callClaude(apiKey, opts = {}) {
       );
     }
     return callClaudeStream({
-      apiKey, systemPrompt, cbcContextBlock, messages,
-      maxTokens, temperature, model, onToken,
+      ...sharedArgs, onToken,
       // Optional tool params — when set, stream tool input_json_delta
       // and return parsed JSON instead of plain text.
       toolName, toolDescription, toolInputSchema,
@@ -126,9 +133,19 @@ async function callClaude(apiKey, opts = {}) {
   throw new HttpsError("invalid-argument", `Unknown callClaude mode: ${mode}`);
 }
 
+// Helper: build the optional reasoning-control fields. Caller passes the
+// already-snake-cased keys via JSON (Anthropic uses `output_config` and
+// `thinking` at the top level of the request body).
+function buildReasoningFields({thinking, outputConfig}) {
+  return {
+    ...(thinking ? {thinking} : {}),
+    ...(outputConfig ? {output_config: outputConfig} : {}),
+  };
+}
+
 async function callClaudeJson({
   apiKey, systemPrompt, cbcContextBlock, messages,
-  maxTokens, temperature, model,
+  maxTokens, temperature, model, thinking, outputConfig,
 }) {
   const body = {
     model,
@@ -137,6 +154,7 @@ async function callClaudeJson({
     ...(systemPrompt ?
       {system: buildSystemBlocks(systemPrompt, cbcContextBlock)} : {}),
     messages,
+    ...buildReasoningFields({thinking, outputConfig}),
   };
   const res = await postAnthropic(apiKey, body);
   const data = await res.json();
@@ -156,7 +174,7 @@ async function callClaudeJson({
 
 async function callClaudeTool({
   apiKey, systemPrompt, cbcContextBlock, messages,
-  maxTokens, temperature, model,
+  maxTokens, temperature, model, thinking, outputConfig,
   toolName, toolDescription, toolInputSchema,
 }) {
   const body = {
@@ -172,6 +190,7 @@ async function callClaudeTool({
       input_schema: toolInputSchema,
     }],
     tool_choice: {type: "tool", name: toolName},
+    ...buildReasoningFields({thinking, outputConfig}),
   };
   const res = await postAnthropic(apiKey, body);
   const data = await res.json();
@@ -207,7 +226,7 @@ async function callClaudeTool({
 
 async function callClaudeStream({
   apiKey, systemPrompt, cbcContextBlock, messages,
-  maxTokens, temperature, model, onToken,
+  maxTokens, temperature, model, thinking, outputConfig, onToken,
   toolName, toolDescription, toolInputSchema,
 }) {
   const wantsTool = Boolean(toolName && toolInputSchema);
@@ -227,6 +246,7 @@ async function callClaudeStream({
       }],
       tool_choice: {type: "tool", name: toolName},
     } : {}),
+    ...buildReasoningFields({thinking, outputConfig}),
   };
 
   let res;
