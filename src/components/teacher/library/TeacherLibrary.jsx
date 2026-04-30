@@ -75,12 +75,13 @@ export default function TeacherLibrary() {
   const { getMyQuizzes } = useFirestore()
   const [searchParams] = useSearchParams()
   const initialFocus = searchParams.get('tool') || ''
+  const initialQuery = searchParams.get('q') || ''
 
   const [generations, setGenerations] = useState([])
   const [quizzes, setQuizzes] = useState([])
   const [status, setStatus] = useState('loading') // loading | ready | error
   const [errorMessage, setErrorMessage] = useState('')
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(initialQuery)
 
   useEffect(() => {
     if (!currentUser) return
