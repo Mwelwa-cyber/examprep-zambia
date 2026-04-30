@@ -19,7 +19,6 @@ const {
   getAnthropicApiKey,
   getUserRole,
   isStaffRole,
-  stripJsonFences,
 } = require("../aiService");
 const {callClaude, DEFAULT_MODEL} = require("./anthropicClient");
 
@@ -32,6 +31,41 @@ const {assertAndIncrement} = require("./usageMeter");
 // Override at deploy-time without a code change. Set LESSON_PLAN_MODEL=claude-haiku-4-5
 // to drop generation time roughly in half at the cost of some reasoning depth.
 const LESSON_PLAN_MODEL = process.env.LESSON_PLAN_MODEL || DEFAULT_MODEL;
+
+// Permissive top-level shape — the post-call validateLessonPlan() does the
+// strict checking, so the schema's job here is just to anchor Claude to an
+// object response and force tool use (which eliminates JSON-parse failures).
+// `additionalProperties: true` keeps us forward-compatible with prompt tweaks
+// that add new sections.
+const LESSON_PLAN_TOOL_SCHEMA = {
+  type: "object",
+  description: "A complete Zambian CBC lesson plan in the v2 schema.",
+  additionalProperties: true,
+  properties: {
+    schemaVersion: {type: "string"},
+    header: {type: "object", additionalProperties: true},
+    lessonGoal: {type: "string"},
+    lessonProgression: {type: "object", additionalProperties: true},
+    lessonDevelopment: {type: "object", additionalProperties: true},
+    specificOutcomes: {type: "array", items: {type: "string"}},
+    keyCompetencies: {type: "array", items: {type: "string"}},
+    broadCompetences: {type: "array", items: {type: "string"}},
+    expectedTargetCompetence: {type: "string"},
+    values: {type: "array", items: {type: "string"}},
+    prerequisiteKnowledge: {type: "array", items: {type: "string"}},
+    teachingLearningMaterials: {type: "array", items: {type: "string"}},
+    interdisciplinaryConnections: {type: "array", items: {type: "string"}},
+    references: {type: "array", items: {type: "string"}},
+    assessment: {type: "object", additionalProperties: true},
+    homework: {type: "object", additionalProperties: true},
+    differentiation: {type: "object", additionalProperties: true},
+    teacherReflection: {type: "object", additionalProperties: true},
+    methodology: {type: "string"},
+    learningEnvironment: {type: "string"},
+    competenceContinuity: {type: "object", additionalProperties: true},
+  },
+  required: ["header", "lessonGoal"],
+};
 
 // Output scales roughly with lesson length. A 20-min lesson rarely fills 4000
 // tokens; a 90-min lesson sometimes truncates at 4000. Scaling cuts wall-clock
@@ -94,6 +128,203 @@ function validateInputs(inputs) {
 }
 
 /**
+ * Core lesson-plan generation. Used by both the httpsCallable wrapper
+ * (`createGenerateLessonPlan`) and the SSE-streaming HTTP endpoint
+ * (`apiGenerateLessonPlan` in index.js).
+ *
+ * Pass `onProgress({phase, ...})` to receive lifecycle events:
+ *   - {phase: "queued"}              — context + quota resolved
+ *   - {phase: "claude_started"}      — about to call Anthropic
+ *   - {phase: "token", outputTokens} — every ~50 tokens during streaming
+ *   - {phase: "claude_done"}         — Claude returned, validation pending
+ *
+ * When onProgress is provided, the generator uses streaming tool-use and
+ * forwards progress events to the caller (so the SSE endpoint can push
+ * heartbeats to the browser). When omitted, it uses non-streaming tool-use
+ * — same end result, smaller code path.
+ */
+async function runLessonPlan({uid, rawInputs, apiKey, onProgress}) {
+  // 1. Sanitise + validate inputs.
+  const inputs = sanitizeInputs(rawInputs || {});
+  const inputErrors = validateInputs(inputs);
+  if (inputErrors.length > 0) {
+    throw new HttpsError("invalid-argument", inputErrors.join(" "));
+  }
+
+  // 2. Resolve CBC context + enforce per-tool monthly quota in parallel.
+  const [{contextBlock, kbMatch, kbWarning}, usage] = await Promise.all([
+    resolveCbcContext({
+      grade: inputs.grade,
+      subject: inputs.subject,
+      topic: inputs.topic,
+      subtopic: inputs.subtopic,
+    }),
+    assertAndIncrement(uid, "lesson_plan"),
+  ]);
+
+  if (onProgress) onProgress({phase: "queued"});
+
+  // 3. Reserve a generation doc. Runs in parallel with Claude.
+  const genRef = admin.firestore().collection("aiGenerations").doc();
+  const reservePromise = genRef.set({
+    ownerUid: uid,
+    tool: "lesson_plan",
+    inputs,
+    output: null,
+    outputText: "",
+    modelUsed: LESSON_PLAN_MODEL,
+    promptVersion: PROMPT_VERSION,
+    kbVersion: KB_VERSION,
+    tokensIn: 0,
+    tokensOut: 0,
+    costUsdCents: 0,
+    status: "generating",
+    errorMessage: null,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    completedAt: null,
+    teacherEdited: false,
+    exportedFormats: [],
+    visibility: "private",
+  }).catch((err) => {
+    console.warn("Failed to reserve generation doc", err);
+  });
+
+  // 4. Call Claude. Streaming-tool-use when onProgress is set, plain
+  //    tool-use otherwise. Both modes return parsed JSON on success and
+  //    eliminate "AI returned non-JSON output" failures.
+  if (onProgress) onProgress({phase: "claude_started"});
+
+  const userPrompt = buildUserPrompt(inputs);
+  let parsed = null;
+  let raw = "";
+  let usageInfo = {inputTokens: 0, outputTokens: 0};
+  let modelUsed = LESSON_PLAN_MODEL;
+
+  try {
+    const claudePromise = onProgress ?
+      callClaude(apiKey, {
+        systemPrompt: SYSTEM_PROMPT,
+        cbcContextBlock: contextBlock,
+        messages: [{role: "user", content: userPrompt}],
+        maxTokens: lessonPlanMaxTokens(inputs.durationMinutes),
+        temperature: 0.3,
+        model: LESSON_PLAN_MODEL,
+        mode: "stream",
+        toolName: "emit_lesson_plan",
+        toolDescription:
+          "Emit the complete Zambian CBC lesson plan as a single " +
+          "structured object. Do not include any prose or commentary " +
+          "outside this tool call.",
+        toolInputSchema: LESSON_PLAN_TOOL_SCHEMA,
+        onToken: makeTokenCounter(onProgress),
+      }) :
+      callClaude(apiKey, {
+        systemPrompt: SYSTEM_PROMPT,
+        cbcContextBlock: contextBlock,
+        messages: [{role: "user", content: userPrompt}],
+        maxTokens: lessonPlanMaxTokens(inputs.durationMinutes),
+        temperature: 0.3,
+        model: LESSON_PLAN_MODEL,
+        mode: "tool",
+        toolName: "emit_lesson_plan",
+        toolDescription:
+          "Emit the complete Zambian CBC lesson plan as a single " +
+          "structured object. Do not include any prose or commentary " +
+          "outside this tool call.",
+        toolInputSchema: LESSON_PLAN_TOOL_SCHEMA,
+      });
+
+    const [response] = await Promise.all([claudePromise, reservePromise]);
+    parsed = response.parsed;
+    raw = response.text || "";
+    usageInfo = response.usage || usageInfo;
+    modelUsed = response.model || modelUsed;
+  } catch (err) {
+    await reservePromise;
+    await genRef.set({
+      status: "failed",
+      errorMessage: String(err && err.message || err).slice(0, 500),
+    }, {merge: true}).catch(() => {});
+    throw err;
+  }
+
+  if (onProgress) onProgress({phase: "claude_done"});
+
+  // 5. Validate + normalise against our schema.
+  const validation = validateLessonPlan(parsed);
+  const lessonPlan = validation.value;
+  if (!validation.ok) {
+    await genRef.set({
+      status: "flagged",
+      errorMessage: `Schema errors: ${validation.errors.join("; ")}`,
+      output: lessonPlan,
+      outputText: String(raw || "").slice(0, 20000),
+      completedAt: admin.firestore.FieldValue.serverTimestamp(),
+      tokensIn: Number(usageInfo.inputTokens || 0),
+      tokensOut: Number(usageInfo.outputTokens || 0),
+      modelUsed,
+    }, {merge: true});
+    return {
+      generationId: genRef.id,
+      lessonPlan,
+      usage,
+      warning: [
+        "Some fields were incomplete — please review carefully.",
+        kbWarning,
+      ].filter(Boolean).join(" "),
+      kbGrounded: Boolean(kbMatch),
+    };
+  }
+
+  // 6. Happy path — finalise the generation doc.
+  const tokensIn = Number(usageInfo.inputTokens || 0);
+  const tokensOut = Number(usageInfo.outputTokens || 0);
+  // Claude Sonnet 4.5 approx pricing: $3/M input, $15/M output.
+  const costUsdCents = Math.round(
+    ((tokensIn / 1e6) * 300) + ((tokensOut / 1e6) * 1500),
+  );
+  await genRef.set({
+    status: "complete",
+    output: lessonPlan,
+    outputText: String(raw || "").slice(0, 20000),
+    tokensIn,
+    tokensOut,
+    costUsdCents,
+    modelUsed,
+    completedAt: admin.firestore.FieldValue.serverTimestamp(),
+  }, {merge: true});
+
+  return {
+    generationId: genRef.id,
+    lessonPlan,
+    usage,
+    warning: kbWarning || null,
+    kbGrounded: Boolean(kbMatch),
+  };
+}
+
+// Coalesce per-token callbacks into one progress event per ~50 output tokens
+// so the SSE stream isn't flooded with one event per byte.
+function makeTokenCounter(onProgress) {
+  let approxOutputTokens = 0;
+  let lastReported = 0;
+  return (chunk) => {
+    // Anthropic doesn't give us the running output_tokens during streaming;
+    // approximate as ~4 chars per token for progress display only. The final
+    // usage figures come from message_delta, not this counter.
+    approxOutputTokens += Math.max(1, Math.round((chunk || "").length / 4));
+    if (approxOutputTokens - lastReported >= 50) {
+      lastReported = approxOutputTokens;
+      try {
+        onProgress({phase: "token", approxOutputTokens});
+      } catch (err) {
+        console.warn("onProgress threw", err);
+      }
+    }
+  };
+}
+
+/**
  * Factory so we can inject the secret parameter from index.js (following
  * the existing pattern in functions/index.js for MoMo + Anthropic).
  */
@@ -112,164 +343,15 @@ function createGenerateLessonPlan(anthropicApiKeySecret) {
           "Teacher tools are available to approved teachers only.",
         );
       }
-
-      // 1. Sanitise + validate inputs.
-      const inputs = sanitizeInputs(request.data || {});
-      const inputErrors = validateInputs(inputs);
-      if (inputErrors.length > 0) {
-        throw new HttpsError("invalid-argument", inputErrors.join(" "));
-      }
-
-      // 2. Resolve CBC context + enforce per-tool monthly quota in parallel.
-      //    These are independent reads/writes; running them sequentially added
-      //    ~100-300ms of latency on cold paths. resolveCbcContext never throws
-      //    (unknown topics surface as a soft warning, not an error), so the
-      //    only failure path is assertAndIncrement throwing on quota overflow.
-      const [{contextBlock, kbMatch, kbWarning}, usage] = await Promise.all([
-        resolveCbcContext({
-          grade: inputs.grade,
-          subject: inputs.subject,
-          topic: inputs.topic,
-          subtopic: inputs.subtopic,
-        }),
-        assertAndIncrement(uid, "lesson_plan"),
-      ]);
-
-      // 3. Resolve API key (sync — just reads the secret) and reserve a
-      //    generation document. The Firestore write runs in parallel with the
-      //    Claude call below: it's just a status doc, the result write at the
-      //    end is the one teachers care about.
       const apiKey = getAnthropicApiKey(anthropicApiKeySecret);
-
-      const genRef = admin.firestore().collection("aiGenerations").doc();
-      const reservePromise = genRef.set({
-        ownerUid: uid,
-        tool: "lesson_plan",
-        inputs,
-        output: null,
-        outputText: "",
-        modelUsed: LESSON_PLAN_MODEL,
-        promptVersion: PROMPT_VERSION,
-        kbVersion: KB_VERSION,
-        tokensIn: 0,
-        tokensOut: 0,
-        costUsdCents: 0,
-        status: "generating",
-        errorMessage: null,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        completedAt: null,
-        teacherEdited: false,
-        exportedFormats: [],
-        visibility: "private",
-      }).catch((err) => {
-        // Don't block generation on the status-doc write. Log and continue;
-        // the final write at the end will create the doc if this one missed.
-        console.warn("Failed to reserve generation doc", err);
-      });
-
-      // 4. Call Claude. The reservation write runs in parallel; by the time
-      //    we reach any genRef.update below, the reservation has resolved.
-      const userPrompt = buildUserPrompt(inputs);
-      let raw = "";
-      let usageInfo = {inputTokens: 0, outputTokens: 0};
-      let modelUsed = LESSON_PLAN_MODEL;
-      try {
-        const [response] = await Promise.all([
-          callClaude(apiKey, {
-            systemPrompt: SYSTEM_PROMPT,
-            cbcContextBlock: contextBlock,
-            messages: [{role: "user", content: userPrompt}],
-            maxTokens: lessonPlanMaxTokens(inputs.durationMinutes),
-            temperature: 0.3,
-            model: LESSON_PLAN_MODEL,
-          }),
-          reservePromise,
-        ]);
-        raw = response.text || "";
-        usageInfo = response.usage || usageInfo;
-        modelUsed = response.model || modelUsed;
-      } catch (err) {
-        await reservePromise;
-        await genRef.set({
-          status: "failed",
-          errorMessage: String(err && err.message || err).slice(0, 500),
-        }, {merge: true}).catch(() => {});
-        throw err;
-      }
-
-      // 5. Parse JSON (Claude is instructed to emit raw JSON, but we strip
-      //    fences defensively).
-      let parsed;
-      try {
-        parsed = JSON.parse(stripJsonFences(raw));
-      } catch (err) {
-        await genRef.set({
-          status: "failed",
-          errorMessage: "AI returned non-JSON output",
-          outputText: String(raw || "").slice(0, 12000),
-        }, {merge: true}).catch(() => {});
-        throw new HttpsError(
-          "internal",
-          "The AI returned an unexpected response. Please try again.",
-        );
-      }
-
-      // 6. Validate + normalise against our schema.
-      const validation = validateLessonPlan(parsed);
-      const lessonPlan = validation.value;
-      if (!validation.ok) {
-        // We still store the partial, but flag the document.
-        await genRef.set({
-          status: "flagged",
-          errorMessage: `Schema errors: ${validation.errors.join("; ")}`,
-          output: lessonPlan,
-          outputText: String(raw || "").slice(0, 20000),
-          completedAt: admin.firestore.FieldValue.serverTimestamp(),
-          tokensIn: Number(usageInfo.inputTokens || 0),
-          tokensOut: Number(usageInfo.outputTokens || 0),
-          modelUsed,
-        }, {merge: true});
-        // Still return what we have — better than erroring. The teacher can
-        // regenerate or edit.
-        return {
-          generationId: genRef.id,
-          lessonPlan,
-          usage,
-          warning: [
-            "Some fields were incomplete — please review carefully.",
-            kbWarning,
-          ].filter(Boolean).join(" "),
-          kbGrounded: Boolean(kbMatch),
-        };
-      }
-
-      // 7. Happy path — finalise the generation doc.
-      const tokensIn = Number(usageInfo.inputTokens || 0);
-      const tokensOut = Number(usageInfo.outputTokens || 0);
-      // Claude Sonnet 4.5 approx pricing: $3/M input, $15/M output.
-      const costUsdCents = Math.round(
-        ((tokensIn / 1e6) * 300) + ((tokensOut / 1e6) * 1500),
-      );
-      await genRef.set({
-        status: "complete",
-        output: lessonPlan,
-        outputText: String(raw || "").slice(0, 20000),
-        tokensIn,
-        tokensOut,
-        costUsdCents,
-        modelUsed,
-        completedAt: admin.firestore.FieldValue.serverTimestamp(),
-      }, {merge: true});
-
-      return {
-        generationId: genRef.id,
-        lessonPlan,
-        usage,
-        warning: kbWarning || null,
-        kbGrounded: Boolean(kbMatch),
-      };
+      return runLessonPlan({uid, rawInputs: request.data, apiKey});
     },
   );
 }
 
-module.exports = {createGenerateLessonPlan};
+module.exports = {
+  createGenerateLessonPlan,
+  runLessonPlan,
+  sanitizeInputs,
+  validateInputs,
+};

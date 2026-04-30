@@ -6,7 +6,8 @@
  */
 
 import { getFunctions, httpsCallable } from 'firebase/functions'
-import app from '../firebase/config'
+import app, { auth } from '../firebase/config'
+import { apiUrl, isNativePlatform } from './runtime'
 
 const functions = getFunctions(app, 'us-central1')
 
@@ -370,6 +371,184 @@ export async function generateNotes(inputs) {
       code: error?.code || 'unknown',
       rawMessage: error?.message || '',
     }
+  }
+}
+
+/**
+ * Streaming variants of the lesson-plan and worksheet generators.
+ *
+ * Hits the `apiGenerateLessonPlan` / `apiGenerateWorksheet` SSE endpoints,
+ * which forward Anthropic's token deltas through as `progress` events and
+ * deliver the parsed result on a final `result` event. The non-streaming
+ * `generateLessonPlan` / `generateWorksheet` callables above remain the
+ * canonical fallback path — Capacitor and DEV use them, since the SSE
+ * ReadableStream is unreliable inside the Android WebView and is awkward
+ * to point at the local Functions emulator.
+ *
+ * Callbacks:
+ *   onProgress({phase, approxOutputTokens?, elapsedMs}) — fired periodically
+ *     while the model is generating. `phase` ∈ "queued" | "claude_started" |
+ *     "token" | "claude_done".
+ *   onResult(data) — final parsed output ({lessonPlan|worksheet, generationId,
+ *     usage, warning, kbGrounded}).
+ *   onError(error) — terminal failure; nothing more will fire after this.
+ *
+ * Returns a `cancel()` function the caller invokes on unmount or
+ * "stop generating" — cancellation aborts the fetch and skips remaining
+ * callbacks. The server-side generation may still complete (and a quota
+ * slot is still consumed), but the client stops reacting.
+ */
+export function generateLessonPlanStream(inputs, callbacks = {}) {
+  return runStreamingGenerator({
+    inputs,
+    streamPath: '/api/teacher/lesson-plan/stream',
+    callableFallback: generateLessonPlanCallable,
+    resultKey: 'lessonPlan',
+    label: 'generateLessonPlanStream',
+    callbacks,
+  })
+}
+
+export function generateWorksheetStream(inputs, callbacks = {}) {
+  return runStreamingGenerator({
+    inputs,
+    streamPath: '/api/teacher/worksheet/stream',
+    callableFallback: generateWorksheetCallable,
+    resultKey: 'worksheet',
+    label: 'generateWorksheetStream',
+    callbacks,
+  })
+}
+
+function runStreamingGenerator({
+  inputs, streamPath, callableFallback, resultKey, label, callbacks,
+}) {
+  const { onProgress, onResult, onError } = callbacks
+  let cancelled = false
+  let abortController = null
+
+  // DEV uses the Functions emulator (no hosting rewrite), and the Android
+  // WebView buffers SSE in some versions. Both fall back to the existing
+  // non-streaming callable — same business logic on the server, just no
+  // live progress.
+  if (import.meta.env.DEV || isNativePlatform()) {
+    ;(async () => {
+      try {
+        onProgress?.({ phase: 'queued', elapsedMs: 0 })
+        const result = await callableFallback(inputs)
+        if (!cancelled) {
+          onResult?.(result.data)
+        }
+      } catch (err) {
+        if (!cancelled) {
+          onError?.(new Error(messageFromError(err)))
+        }
+      }
+    })()
+    return () => { cancelled = true }
+  }
+
+  ;(async () => {
+    let token
+    try {
+      token = await auth.currentUser?.getIdToken()
+      if (!token) throw new Error('Please sign in before generating.')
+    } catch (err) {
+      onError?.(new Error(messageFromError(err)))
+      return
+    }
+
+    abortController = new AbortController()
+    const startedAt = Date.now()
+    console.info(`[zedexams] ${label} → streaming`, {
+      grade: inputs?.grade, subject: inputs?.subject, topic: inputs?.topic,
+    })
+
+    let response
+    try {
+      response = await fetch(apiUrl(streamPath), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(inputs || {}),
+        signal: abortController.signal,
+      })
+    } catch (err) {
+      if (cancelled) return
+      // Network failure before any SSE bytes — fall back to the callable
+      // so the user still gets their generation.
+      console.warn(`[zedexams] ${label} fetch failed, falling back`, err?.message)
+      try {
+        const result = await callableFallback(inputs)
+        if (!cancelled) onResult?.(result.data)
+      } catch (fallbackErr) {
+        if (!cancelled) onError?.(new Error(messageFromError(fallbackErr)))
+      }
+      return
+    }
+
+    if (!response.ok || !response.body) {
+      const data = await response.json().catch(() => ({}))
+      if (!cancelled) {
+        onError?.(new Error(data.error || 'Generation is unavailable right now. Please try again.'))
+      }
+      return
+    }
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    let resultDelivered = false
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done || cancelled) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          const raw = line.slice(6).trim()
+          if (!raw || raw === '[DONE]') continue
+          if (raw.startsWith('[ERROR]')) {
+            try {
+              const { error } = JSON.parse(raw.slice(7).trim())
+              throw new Error(error || 'Generation failed.')
+            } catch (parseErr) {
+              throw new Error('Generation failed. Please try again.')
+            }
+          }
+          let payload
+          try { payload = JSON.parse(raw) } catch { continue }
+          if (payload.type === 'progress') {
+            onProgress?.(payload)
+          } else if (payload.type === 'result') {
+            resultDelivered = true
+            const { type, ...data } = payload
+            console.info(`[zedexams] ${label} ← ok in`, Date.now() - startedAt, 'ms', {
+              generationId: data.generationId, warning: data.warning,
+            })
+            if (!cancelled) onResult?.(data)
+          }
+        }
+      }
+      if (!resultDelivered && !cancelled) {
+        // Stream closed without a result event — treat as failure.
+        onError?.(new Error('Generation ended unexpectedly. Please try again.'))
+      }
+    } catch (err) {
+      if (cancelled) return
+      console.error(`[zedexams] ${label} stream error after`, Date.now() - startedAt, 'ms', err?.message)
+      onError?.(new Error(err?.message || 'Generation failed. Please try again.'))
+    }
+  })()
+
+  return () => {
+    cancelled = true
+    try { abortController?.abort() } catch { /* ignore */ }
   }
 }
 

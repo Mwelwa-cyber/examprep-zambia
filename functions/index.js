@@ -39,10 +39,12 @@ const {
 // Teacher Tools — Lesson Plan Generator (Zambian CBC).
 const {
   createGenerateLessonPlan,
+  runLessonPlan,
 } = require("./teacherTools/generateLessonPlan");
 // Teacher Tools — Worksheet Generator.
 const {
   createGenerateWorksheet,
+  runWorksheet,
 } = require("./teacherTools/generateWorksheet");
 // Teacher Tools — Flashcard Generator.
 const {
@@ -1086,6 +1088,154 @@ exports.generateLessonPlan = createGenerateLessonPlan(anthropicApiKey);
 
 // Teacher Tools — Zambian CBC Worksheet Generator.
 exports.generateWorksheet = createGenerateWorksheet(anthropicApiKey);
+
+// SSE-streaming variants of the two heaviest generators. The non-streaming
+// callables (above) are kept as the fallback path — Capacitor and DEV use
+// them. Browsers on web hit these instead so the user sees live progress
+// instead of staring at a 15-30s spinner. Both endpoints emit:
+//   data: {"type":"progress","phase":"queued|claude_started|token|claude_done","approxOutputTokens":N,"elapsedMs":N}
+//   data: {"type":"result","lessonPlan|worksheet":{...},"generationId":"...","usage":{...},"warning":null,"kbGrounded":true}
+//   data: [DONE]
+// On error, before [DONE]:
+//   data: [ERROR] {"error":"..."}
+function makeStreamingEndpoint({tool, runCore}) {
+  return onRequest(
+    {secrets: [anthropicApiKey], region: "us-central1", timeoutSeconds: 120},
+    async (req, res) => {
+      res.set("Access-Control-Allow-Origin", "*");
+      res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+      res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+
+      if (req.method === "OPTIONS") {
+        res.status(204).send("");
+        return;
+      }
+      if (req.method !== "POST") {
+        res.status(405).json({error: `Use POST for ${tool} streaming.`});
+        return;
+      }
+
+      // Auth + role check before any SSE headers go out, so we can still
+      // return a clean JSON error response.
+      let uid;
+      let apiKey;
+      try {
+        const token = (req.get("authorization") || "")
+          .replace(/^Bearer\s+/i, "");
+        if (!token) {
+          throw new HttpsError("unauthenticated", "Please sign in first.");
+        }
+        const decoded = await admin.auth().verifyIdToken(token);
+        uid = decoded.uid;
+        const {getUserRole, isStaffRole} = require("./aiService");
+        const role = await getUserRole(uid);
+        if (!isStaffRole(role)) {
+          throw new HttpsError(
+            "permission-denied",
+            "Teacher tools are available to approved teachers only.",
+          );
+        }
+        const {getAnthropicApiKey} = require("./aiService");
+        apiKey = getAnthropicApiKey(anthropicApiKey);
+      } catch (error) {
+        console.error(`api${tool} auth error`, {
+          code: error?.code,
+          message: error?.message,
+        });
+        res.status(httpStatusForError(error)).json({
+          error: error?.message || "Sign-in required.",
+        });
+        return;
+      }
+
+      // Open the SSE stream.
+      res.set("Content-Type", "text/event-stream; charset=utf-8");
+      res.set("Cache-Control", "no-cache");
+      res.set("Connection", "keep-alive");
+      res.set("X-Accel-Buffering", "no");
+      res.status(200);
+      res.write(": connected\n\n");
+
+      const startTime = Date.now();
+      const writeEvent = (payload) => {
+        try {
+          res.write(`data: ${JSON.stringify(payload)}\n\n`);
+        } catch (err) {
+          console.warn(`api${tool} write failed`, err?.message);
+        }
+      };
+      const onProgress = (p) => {
+        writeEvent({
+          type: "progress",
+          ...p,
+          elapsedMs: Date.now() - startTime,
+        });
+      };
+
+      // Heartbeat every 5s — covers the gap between phase transitions
+      // (especially "claude_started" → first "token" event, which can be
+      // 2-3s on a cold cache) so proxies don't close idle connections.
+      const heartbeat = setInterval(() => {
+        try {
+          res.write(": heartbeat\n\n");
+        } catch (err) {
+          // Connection already closed — clearInterval below handles it.
+        }
+      }, 5000);
+
+      // Detect client disconnect so we don't keep doing work for a closed
+      // connection. (The actual Anthropic call will still complete, but
+      // we'll skip writes.)
+      let clientGone = false;
+      req.on("close", () => {
+        clientGone = true;
+      });
+
+      try {
+        const result = await runCore({
+          uid,
+          rawInputs: req.body || {},
+          apiKey,
+          onProgress: clientGone ? null : onProgress,
+        });
+        clearInterval(heartbeat);
+        if (!clientGone) {
+          writeEvent({type: "result", ...result});
+          res.write("data: [DONE]\n\n");
+        }
+      } catch (error) {
+        clearInterval(heartbeat);
+        console.error(`api${tool} run error`, {
+          code: error?.code,
+          message: error?.message,
+        });
+        if (!clientGone) {
+          res.write(`data: [ERROR] ${JSON.stringify({
+            error: error?.message || "Generation failed. Please try again.",
+            code: error?.code || "internal",
+          })}\n\n`);
+        }
+      } finally {
+        clearInterval(heartbeat);
+        try {
+          res.end();
+        } catch {
+          // already ended
+        }
+      }
+    },
+  );
+}
+
+exports.apiGenerateLessonPlan = makeStreamingEndpoint({
+  tool: "GenerateLessonPlan",
+  runCore: runLessonPlan,
+});
+
+exports.apiGenerateWorksheet = makeStreamingEndpoint({
+  tool: "GenerateWorksheet",
+  runCore: runWorksheet,
+});
 
 // Teacher Tools — Zambian CBC Flashcard Generator.
 exports.generateFlashcards = createGenerateFlashcards(anthropicApiKey);
