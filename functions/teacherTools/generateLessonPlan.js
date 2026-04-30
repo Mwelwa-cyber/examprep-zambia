@@ -20,7 +20,7 @@ const {
   getUserRole,
   isStaffRole,
 } = require("../aiService");
-const {callClaude, DEFAULT_MODEL} = require("./anthropicClient");
+const {callClaude} = require("./anthropicClient");
 
 const {resolveCbcContext, KB_VERSION} = require("./cbcKnowledge");
 const {validateLessonPlan} = require("./lessonPlanSchema");
@@ -29,8 +29,22 @@ const {PROMPT_VERSION, SYSTEM_PROMPT, buildUserPrompt} =
 const {assertAndIncrement} = require("./usageMeter");
 
 // Override at deploy-time without a code change. Set LESSON_PLAN_MODEL=claude-haiku-4-5
-// to drop generation time roughly in half at the cost of some reasoning depth.
-const LESSON_PLAN_MODEL = process.env.LESSON_PLAN_MODEL || DEFAULT_MODEL;
+// to drop generation time roughly in half at the cost of some reasoning depth,
+// or LESSON_PLAN_MODEL=claude-sonnet-4-5 to roll back this migration.
+//
+// Hard-coded default (rather than DEFAULT_MODEL fallthrough) keeps this
+// migration scoped to the lesson plan tool — generateNotes still gets its
+// own model decision via NOTES_MODEL.
+const LESSON_PLAN_MODEL = process.env.LESSON_PLAN_MODEL || "claude-sonnet-4-6";
+
+// Sonnet 4.6 defaults to `effort: "high"` if unset, which is materially slower
+// and more expensive than 4.5's baseline. Pin to "low" + disabled thinking to
+// preserve current latency — lesson plan generation is structured template-
+// fill under tool_choice, not multi-step reasoning, so heavy thinking is
+// overkill. Bump these later (effort:"medium" + thinking:"adaptive") if
+// quality regresses.
+const LESSON_PLAN_THINKING = {type: "disabled"};
+const LESSON_PLAN_OUTPUT_CONFIG = {effort: "low"};
 
 // Permissive top-level shape — the post-call validateLessonPlan() does the
 // strict checking, so the schema's job here is just to anchor Claude to an
@@ -201,38 +215,30 @@ async function runLessonPlan({uid, rawInputs, apiKey, onProgress}) {
   let modelUsed = LESSON_PLAN_MODEL;
 
   try {
+    const baseClaudeArgs = {
+      systemPrompt: SYSTEM_PROMPT,
+      cbcContextBlock: contextBlock,
+      messages: [{role: "user", content: userPrompt}],
+      maxTokens: lessonPlanMaxTokens(inputs.durationMinutes),
+      temperature: 0.3,
+      model: LESSON_PLAN_MODEL,
+      thinking: LESSON_PLAN_THINKING,
+      outputConfig: LESSON_PLAN_OUTPUT_CONFIG,
+      toolName: "emit_lesson_plan",
+      toolDescription:
+        "Emit the complete Zambian CBC lesson plan as a single " +
+        "structured object. Do not include any prose or commentary " +
+        "outside this tool call.",
+      toolInputSchema: LESSON_PLAN_TOOL_SCHEMA,
+    };
+
     const claudePromise = onProgress ?
       callClaude(apiKey, {
-        systemPrompt: SYSTEM_PROMPT,
-        cbcContextBlock: contextBlock,
-        messages: [{role: "user", content: userPrompt}],
-        maxTokens: lessonPlanMaxTokens(inputs.durationMinutes),
-        temperature: 0.3,
-        model: LESSON_PLAN_MODEL,
+        ...baseClaudeArgs,
         mode: "stream",
-        toolName: "emit_lesson_plan",
-        toolDescription:
-          "Emit the complete Zambian CBC lesson plan as a single " +
-          "structured object. Do not include any prose or commentary " +
-          "outside this tool call.",
-        toolInputSchema: LESSON_PLAN_TOOL_SCHEMA,
         onToken: makeTokenCounter(onProgress),
       }) :
-      callClaude(apiKey, {
-        systemPrompt: SYSTEM_PROMPT,
-        cbcContextBlock: contextBlock,
-        messages: [{role: "user", content: userPrompt}],
-        maxTokens: lessonPlanMaxTokens(inputs.durationMinutes),
-        temperature: 0.3,
-        model: LESSON_PLAN_MODEL,
-        mode: "tool",
-        toolName: "emit_lesson_plan",
-        toolDescription:
-          "Emit the complete Zambian CBC lesson plan as a single " +
-          "structured object. Do not include any prose or commentary " +
-          "outside this tool call.",
-        toolInputSchema: LESSON_PLAN_TOOL_SCHEMA,
-      });
+      callClaude(apiKey, {...baseClaudeArgs, mode: "tool"});
 
     const [response] = await Promise.all([claudePromise, reservePromise]);
     parsed = response.parsed;
@@ -279,7 +285,7 @@ async function runLessonPlan({uid, rawInputs, apiKey, onProgress}) {
   // 6. Happy path — finalise the generation doc.
   const tokensIn = Number(usageInfo.inputTokens || 0);
   const tokensOut = Number(usageInfo.outputTokens || 0);
-  // Claude Sonnet 4.5 approx pricing: $3/M input, $15/M output.
+  // Claude Sonnet 4.6 approx pricing: $3/M input, $15/M output (same as 4.5).
   const costUsdCents = Math.round(
     ((tokensIn / 1e6) * 300) + ((tokensOut / 1e6) * 1500),
   );
