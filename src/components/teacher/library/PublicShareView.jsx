@@ -56,7 +56,7 @@ export default function PublicShareView() {
             <Logo />
             <span className="hidden sm:inline text-xs font-bold text-slate-500">Shared teacher resource</span>
           </Link>
-          <Link to="/" className="text-xs font-black text-emerald-700 hover:underline">
+          <Link to="/" className="text-xs font-black text-orange-600 hover:underline">
             About ZedExams →
           </Link>
         </div>
@@ -87,12 +87,12 @@ export default function PublicShareView() {
         {status === 'ready' && share && (
           <article className="bg-white rounded-2xl border theme-border shadow-sm p-6 sm:p-8 print:rounded-none print:border-0 print:shadow-none print:p-0">
             <header className="mb-6 pb-4 border-b theme-border print:hidden">
-              <p className="text-xs font-black uppercase tracking-wider text-emerald-700">{share.tool?.replace(/_/g, ' ') || 'Teacher resource'}</p>
+              <p className="text-xs font-black uppercase tracking-wider text-orange-600">{share.tool?.replace(/_/g, ' ') || 'Teacher resource'}</p>
               <h1 className="text-2xl font-black text-slate-800 mt-1">{share.title}</h1>
             </header>
             <RenderPlanByTool tool={share.tool} plan={share.plan} />
             <footer className="mt-8 pt-4 border-t theme-border text-xs text-slate-400 text-center print:hidden">
-              Generated with the <Link to="/" className="font-bold text-emerald-700 hover:underline">ZedExams Teacher Suite</Link>.
+              Generated with the <Link to="/" className="font-bold text-orange-600 hover:underline">ZedExams Teacher Suite</Link>.
             </footer>
           </article>
         )}

@@ -21,11 +21,12 @@ export default function FlashcardsView({ flashcards }) {
           key={i}
           type="button"
           onClick={() => toggle(i)}
-          className={`text-left rounded-2xl border-2 p-4 min-h-[140px] transition-all ${
+          className="text-left rounded-2xl border-2 p-4 min-h-[140px] transition-all hover:-translate-y-0.5 hover:shadow-md"
+          style={
             flipped[i]
-              ? 'bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-300'
-              : 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-300'
-          } hover:-translate-y-0.5 hover:shadow-md`}
+              ? { background: '#fff5e6', borderColor: '#ff7a2e' }
+              : { background: '#ffffff', borderColor: '#0e2a32' }
+          }
         >
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] font-black uppercase tracking-wide text-slate-500">

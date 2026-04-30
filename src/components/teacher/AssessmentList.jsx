@@ -52,22 +52,22 @@ function AssessmentRow({ assessment, onDelete, onExport, busy }) {
   }
 
   return (
-    <div className="theme-card theme-border space-y-3 rounded-2xl border p-4">
+    <div className="studio-card space-y-3 p-4">
       <div className="flex items-start gap-3">
-        <div className="theme-accent-bg theme-accent-text flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-lg">
-          📝
+        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-lg" style={{ background: '#e8d8f0' }}>
+          🦅
         </div>
         <div className="flex-1 min-w-0">
-          <p className="theme-text font-black text-sm leading-snug">{assessment.title || 'Untitled assessment'}</p>
+          <p className="font-black text-sm leading-snug" style={{ color: '#0e2a32' }}>{assessment.title || 'Untitled assessment'}</p>
           <div className="flex flex-wrap gap-1.5 mt-1.5 items-center">
-            <span className="theme-text-muted text-xs font-bold">{typeLabel}</span>
-            {assessment.grade && <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">Grade {assessment.grade}</span>}
-            {assessment.subject && <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-0.5 rounded-full">{assessment.subject}</span>}
-            {assessment.term && <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-0.5 rounded-full">T{assessment.term}</span>}
-            {assessment.totalMarks != null && <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-0.5 rounded-full">{assessment.totalMarks} marks</span>}
-            {assessment.duration != null && <span className="bg-orange-100 text-orange-700 text-xs font-bold px-2 py-0.5 rounded-full">{assessment.duration} min</span>}
+            <span className="text-xs font-bold" style={{ color: '#566f76' }}>{typeLabel}</span>
+            {assessment.grade && <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#e6f5ed', color: '#0a5a35' }}>Grade {assessment.grade}</span>}
+            {assessment.subject && <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#e3eef0', color: '#16505d' }}>{assessment.subject}</span>}
+            {assessment.term && <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#f5efe1', color: '#566f76' }}>T{assessment.term}</span>}
+            {assessment.totalMarks != null && <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#fde9b8', color: '#8a3d12' }}>{assessment.totalMarks} marks</span>}
+            {assessment.duration != null && <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#fff5e6', color: '#c2531a' }}>{assessment.duration} min</span>}
           </div>
-          <p className="theme-text-muted mt-1.5 text-xs">
+          <p className="mt-1.5 text-xs" style={{ color: '#566f76' }}>
             {assessment.questionCount ?? 0} questions · Created {formatDate(assessment.createdAt)}
             {assessment.updatedAt && ` · Updated ${formatDate(assessment.updatedAt)}`}
           </p>
@@ -77,7 +77,8 @@ function AssessmentRow({ assessment, onDelete, onExport, busy }) {
       <div className="flex flex-wrap gap-2">
         <Link
           to={`/teacher/assessments/${id}/edit`}
-          className="theme-card theme-border theme-text hover:border-[var(--accent)] hover:theme-accent-text rounded-xl border-2 px-3 py-1.5 text-xs font-bold transition-colors"
+          className="rounded-xl border-2 px-3 py-1.5 text-xs font-bold no-underline transition-colors"
+          style={{ background: '#fff', borderColor: '#0e2a32', color: '#0e2a32' }}
         >
           ✏️ Edit
         </Link>
@@ -85,7 +86,8 @@ function AssessmentRow({ assessment, onDelete, onExport, busy }) {
           type="button"
           onClick={() => handleExport('docx', 'paper')}
           disabled={!!exporting || busy}
-          className="theme-card theme-border theme-text hover:border-[var(--accent)] hover:theme-accent-text rounded-xl border-2 px-3 py-1.5 text-xs font-bold transition-colors disabled:opacity-50"
+          className="rounded-xl border-2 px-3 py-1.5 text-xs font-bold transition-colors disabled:opacity-50"
+          style={{ background: '#fff', borderColor: '#0e2a32', color: '#0e2a32' }}
         >
           {exporting === 'docx-paper' ? 'Building…' : '📄 Paper (DOCX)'}
         </button>
@@ -93,7 +95,8 @@ function AssessmentRow({ assessment, onDelete, onExport, busy }) {
           type="button"
           onClick={() => handleExport('pdf', 'paper')}
           disabled={!!exporting || busy}
-          className="theme-card theme-border theme-text hover:border-[var(--accent)] hover:theme-accent-text rounded-xl border-2 px-3 py-1.5 text-xs font-bold transition-colors disabled:opacity-50"
+          className="rounded-xl border-2 px-3 py-1.5 text-xs font-bold transition-colors disabled:opacity-50"
+          style={{ background: '#fff', borderColor: '#0e2a32', color: '#0e2a32' }}
         >
           {exporting === 'pdf-paper' ? 'Opening…' : '📄 Paper (PDF)'}
         </button>
@@ -101,7 +104,8 @@ function AssessmentRow({ assessment, onDelete, onExport, busy }) {
           type="button"
           onClick={() => handleExport('docx', 'scheme')}
           disabled={!!exporting || busy}
-          className="theme-card theme-border theme-text hover:border-[var(--accent)] hover:theme-accent-text rounded-xl border-2 px-3 py-1.5 text-xs font-bold transition-colors disabled:opacity-50"
+          className="rounded-xl border-2 px-3 py-1.5 text-xs font-bold transition-colors disabled:opacity-50"
+          style={{ background: '#fff', borderColor: '#0e2a32', color: '#0e2a32' }}
         >
           {exporting === 'docx-scheme' ? 'Building…' : '🗒️ Scheme (DOCX)'}
         </button>
@@ -109,7 +113,8 @@ function AssessmentRow({ assessment, onDelete, onExport, busy }) {
           type="button"
           onClick={() => handleExport('pdf', 'scheme')}
           disabled={!!exporting || busy}
-          className="theme-card theme-border theme-text hover:border-[var(--accent)] hover:theme-accent-text rounded-xl border-2 px-3 py-1.5 text-xs font-bold transition-colors disabled:opacity-50"
+          className="rounded-xl border-2 px-3 py-1.5 text-xs font-bold transition-colors disabled:opacity-50"
+          style={{ background: '#fff', borderColor: '#0e2a32', color: '#0e2a32' }}
         >
           {exporting === 'pdf-scheme' ? 'Opening…' : '🗒️ Scheme (PDF)'}
         </button>
@@ -117,7 +122,8 @@ function AssessmentRow({ assessment, onDelete, onExport, busy }) {
           type="button"
           onClick={() => onDelete(assessment)}
           disabled={busy}
-          className="text-danger hover:bg-danger-subtle rounded-xl border-2 border-red-200 px-3 py-1.5 text-xs font-bold transition-colors disabled:opacity-50"
+          className="rounded-xl border-2 px-3 py-1.5 text-xs font-bold transition-colors disabled:opacity-50"
+          style={{ borderColor: '#fecaca', color: '#b91c1c', background: '#fff' }}
         >
           🗑 Delete
         </button>
@@ -185,7 +191,7 @@ export default function AssessmentList() {
     return (
       <div className="space-y-3">
         {[1, 2, 3].map(n => (
-          <div key={n} className="theme-card theme-border theme-bg-subtle h-24 animate-pulse rounded-2xl border" />
+          <div key={n} className="h-24 animate-pulse rounded-2xl" style={{ background: '#ece4d2', border: '2px solid #d9cfb8' }} />
         ))}
       </div>
     )

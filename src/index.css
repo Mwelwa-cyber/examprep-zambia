@@ -289,6 +289,95 @@ body.theme-solar {
     --text-muted:      #475569;
     --border:          #E2E8F0;
   }
+
+  /*
+   * Teacher Studio theme — the mascot/cream palette used by the teacher
+   * dashboard. Applied via the `studio-theme` class on the TeacherLayout
+   * root. Scopes theme variables to this palette so all descendant
+   * components using theme-* classes render in the studio look without
+   * needing per-component changes.
+   */
+  .studio-theme {
+    --bg:              #f5efe1;
+    --bg-subtle:       #ece4d2;
+    --card:            #ffffff;
+    --card-hover:      #f7f1e3;
+    --text:            #0e2a32;
+    --text-muted:      #566f76;
+    --border:          #d9cfb8;
+    --accent:          #ff7a2e;
+    --accent-text:     #ffffff;
+    --accent-bg:       #fff5e6;
+    --accent-fg:       #c2531a;
+    --input-bg:        #ffffff;
+    --input-border:    #d9cfb8;
+    --shadow:          rgba(14,42,50,0.10);
+    --hero-gradient:   linear-gradient(135deg, #0e2a32 0%, #16505d 100%);
+    --hero-muted:      #fde9b8;
+    --success:         #10864e; --success-bg: #e6f5ed; --success-fg: #0a5a35;
+    --warning:         #c2531a; --warning-bg: #fff5e6; --warning-fg: #8a3d12;
+    --danger:          #b91c1c; --danger-bg:  #fee2e2; --danger-fg:  #7f1414;
+    --info:            #16505d; --info-bg:    #e3eef0; --info-fg:    #0e2a32;
+  }
+  .studio-theme,
+  .studio-theme h1,
+  .studio-theme h2,
+  .studio-theme h3 { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+  .studio-theme .studio-display { font-family: 'Fraunces', serif; font-weight: 800; letter-spacing: -.3px; }
+  .studio-theme .studio-eyebrow {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-size: 11px; font-weight: 700; letter-spacing: 1.4px;
+    text-transform: uppercase; color: #ff7a2e;
+  }
+  .studio-theme .studio-eyebrow::before {
+    content: ''; width: 32px; height: 3px; background: #ff7a2e; border-radius: 2px;
+  }
+  .studio-theme .studio-card {
+    background: #ffffff; border: 2px solid #0e2a32; border-radius: 18px;
+    transition: transform .18s ease, box-shadow .18s ease;
+  }
+  .studio-theme .studio-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(14,42,50,.12); }
+  .studio-theme .studio-card-soft {
+    background: #ffffff; border: 1.5px solid #d9cfb8; border-radius: 16px;
+  }
+  .studio-theme .studio-btn-primary {
+    background: #ff7a2e; color: #fff; border: none; font-weight: 800;
+    border-radius: 14px; padding: 11px 18px;
+    transition: background .15s ease, transform .15s ease;
+  }
+  .studio-theme .studio-btn-primary:hover:not(:disabled) { background: #e6651a; }
+  .studio-theme .studio-btn-primary:disabled { opacity: .55; cursor: not-allowed; }
+  .studio-theme .studio-btn-ghost {
+    background: #ffffff; color: #0e2a32; border: 2px solid #0e2a32;
+    font-weight: 700; border-radius: 14px; padding: 9px 16px;
+    transition: background .15s ease;
+  }
+  .studio-theme .studio-btn-ghost:hover { background: #f5efe1; }
+  .studio-theme .studio-input {
+    width: 100%; background: #ffffff; border: 1.5px solid #d9cfb8;
+    color: #0e2a32; border-radius: 12px; padding: 9px 12px;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .studio-theme .studio-input:focus {
+    outline: none; border-color: #ff7a2e; box-shadow: 0 0 0 3px rgba(255,122,46,.18);
+  }
+  .studio-theme .studio-label {
+    display: block; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .8px; color: #566f76; margin-bottom: 6px;
+  }
+  .studio-theme .studio-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 99px; font-size: 10px;
+    font-weight: 700; letter-spacing: .5px;
+    background: #0e2a32; color: #fde9b8;
+  }
+  .studio-theme .studio-badge-accent { background: #ff7a2e; color: #fff; }
+  .studio-theme .studio-badge-success { background: #10864e; color: #fff; }
+  .studio-theme .studio-hero {
+    background: linear-gradient(135deg, #0e2a32 0%, #16505d 100%);
+    color: #fff; border-radius: 24px;
+    box-shadow: 0 12px 32px rgba(14,42,50,.18);
+  }
   .theme-accent-bg    { background-color: var(--accent-bg); }
   .theme-accent-text  { color: var(--accent-fg); }
   .theme-accent-fill  { background-color: var(--accent); }

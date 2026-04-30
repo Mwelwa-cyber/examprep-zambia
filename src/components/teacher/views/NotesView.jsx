@@ -12,13 +12,14 @@ export default function NotesView({ notes }) {
       <HeaderBlock header={notes.header} />
 
       {notes.header?.lessonPlanId && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm">
-          <p className="font-bold text-emerald-900 mb-0.5">📘 Built from a lesson plan</p>
-          <p className="text-emerald-800 text-xs">
+        <div className="rounded-xl px-4 py-3 text-sm" style={{ background: '#fff5e6', border: '1.5px solid #ff7a2e' }}>
+          <p className="font-bold mb-0.5" style={{ color: '#0e2a32' }}>📘 Built from a lesson plan</p>
+          <p className="text-xs" style={{ color: '#566f76' }}>
             These notes use your saved lesson plan as their backbone — same SMART goal, same competencies.{' '}
             <Link
               to={`/teacher/library/${notes.header.lessonPlanId}`}
               className="underline font-bold"
+              style={{ color: '#c2531a' }}
             >
               Open the source plan
             </Link>
