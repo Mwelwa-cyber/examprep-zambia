@@ -243,7 +243,8 @@
 #view-plans .toggle-row.on .toggle-switch{background:#ff7a2e}
 #view-plans .toggle-row.on .toggle-switch::after{background:#fff}
 #view-plans .tabs{background:rgba(0,0,0,.28)}
-#view-plans .tab.active{background:rgba(255,122,46,.18);color:#fde9b8}
+#view-plans .tab{color:#cfe2e4}
+#view-plans .tab.active{background:#ff7a2e;color:#fff;font-weight:600}
 #view-plans .helper{color:#9ec0c4}
 #view-plans .section-label{color:#ff7a2e}
 #view-plans .section-label::before{background:#ff7a2e;width:18px;height:2px;border-radius:2px}
