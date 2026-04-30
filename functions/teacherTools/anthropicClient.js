@@ -6,6 +6,16 @@
  *   - It returns a plain string, losing token-usage info we need for cost.
  *
  * Follows the same fetch pattern so behaviour is consistent.
+ *
+ * Modes:
+ *   - "json"   (default) — single blocking request, returns full text. Current
+ *               behaviour. Caller parses JSON from the text.
+ *   - "stream" — streams text deltas via an async iterator. Wired up in a later
+ *               commit; throws NotImplemented for now so callers can opt in
+ *               once the client side is ready.
+ *   - "tool"   — uses Anthropic tool use to enforce a JSON schema. Returns the
+ *               parsed object directly, eliminating JSON-fence stripping and
+ *               parse failures. Wired up in a later commit.
  */
 
 const {HttpsError} = require("firebase-functions/v2/https");
@@ -22,21 +32,54 @@ async function callClaude(apiKey, {
   maxTokens = 4000,
   temperature = 0.3,
   model = DEFAULT_MODEL,
+  mode = "json",
+  // Reserved for future modes:
+  tools = null,
+  toolChoice = null,
 }) {
+  if (mode === "stream") {
+    throw new HttpsError(
+      "unimplemented",
+      "Streaming mode is not yet wired up. Use mode: 'json'.",
+    );
+  }
+  if (mode === "tool") {
+    throw new HttpsError(
+      "unimplemented",
+      "Tool-use mode is not yet wired up. Use mode: 'json'.",
+    );
+  }
+  if (mode !== "json") {
+    throw new HttpsError(
+      "invalid-argument",
+      `Unknown callClaude mode: ${mode}`,
+    );
+  }
+
+  // Build system array. The static system prompt is cached so Anthropic skips
+  // re-processing it on repeated calls (same prompt, within 5-min TTL).
+  // The CBC context block (600-1200 tokens per call) is appended as a second
+  // cached block — it changes only when grade/subject/topic changes, so it
+  // hits the cache on most repeated uses of the same generator.
+  const systemBlocks = systemPrompt ? [
+    {type: "text", text: systemPrompt, cache_control: {type: "ephemeral"}},
+    ...(cbcContextBlock ? [
+      {type: "text", text: cbcContextBlock, cache_control: {type: "ephemeral"}},
+    ] : []),
+  ] : undefined;
+
+  const body = {
+    model,
+    max_tokens: maxTokens,
+    temperature,
+    ...(systemBlocks ? {system: systemBlocks} : {}),
+    messages,
+    ...(tools ? {tools} : {}),
+    ...(toolChoice ? {tool_choice: toolChoice} : {}),
+  };
+
   let res;
   try {
-    // Build system array. The static system prompt is cached so Anthropic skips
-    // re-processing it on repeated calls (same prompt, within 5-min TTL).
-    // The CBC context block (600-1200 tokens per call) is appended as a second
-    // cached block — it changes only when grade/subject/topic changes, so it
-    // hits the cache on most repeated uses of the same generator.
-    const systemBlocks = systemPrompt ? [
-      {type: "text", text: systemPrompt, cache_control: {type: "ephemeral"}},
-      ...(cbcContextBlock ? [
-        {type: "text", text: cbcContextBlock, cache_control: {type: "ephemeral"}},
-      ] : []),
-    ] : undefined;
-
     res = await anthropicFetch(ANTHROPIC_URL, {
       method: "POST",
       headers: {
@@ -44,13 +87,7 @@ async function callClaude(apiKey, {
         "x-api-key": apiKey,
         "anthropic-version": ANTHROPIC_VERSION,
       },
-      body: JSON.stringify({
-        model,
-        max_tokens: maxTokens,
-        temperature,
-        ...(systemBlocks ? {system: systemBlocks} : {}),
-        messages,
-      }),
+      body: JSON.stringify(body),
     }, {label: "teacherTools"});
   } catch (err) {
     console.error("Claude fetch failed", err);
@@ -61,11 +98,11 @@ async function callClaude(apiKey, {
   }
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
+    const errBody = await res.json().catch(() => ({}));
     console.error("Claude API error", {
       status: res.status,
-      type: body?.error?.type,
-      message: body?.error?.message,
+      type: errBody?.error?.type,
+      message: errBody?.error?.message,
     });
     if (res.status === 429) {
       throw new HttpsError(
@@ -92,6 +129,8 @@ async function callClaude(apiKey, {
     usage: {
       inputTokens: Number(data?.usage?.input_tokens || 0),
       outputTokens: Number(data?.usage?.output_tokens || 0),
+      cacheReadTokens: Number(data?.usage?.cache_read_input_tokens || 0),
+      cacheCreationTokens: Number(data?.usage?.cache_creation_input_tokens || 0),
     },
     stopReason: data?.stop_reason || null,
     model: data?.model || model,
