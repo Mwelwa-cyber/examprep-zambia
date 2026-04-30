@@ -47,10 +47,10 @@ const STUDIOS = [
   {
     emoji: '🦅',
     mascotBg: '#e8d8f0',
-    badge: 'SOON',
-    title: 'Tests',
-    tagline: 'Topic, weekly, monthly, mid-term & end-of-term tests.',
-    to: null,
+    badge: 'NEW',
+    title: 'Assessments',
+    tagline: 'Topic, weekly, monthly, mid-term & end-of-term assessments.',
+    to: '/teacher/quizzes/new',
     mascot: 'Sharp Eagle',
   },
   {
