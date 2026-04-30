@@ -118,6 +118,9 @@ async function callClaude(apiKey, opts = {}) {
     return callClaudeStream({
       apiKey, systemPrompt, cbcContextBlock, messages,
       maxTokens, temperature, model, onToken,
+      // Optional tool params — when set, stream tool input_json_delta
+      // and return parsed JSON instead of plain text.
+      toolName, toolDescription, toolInputSchema,
     });
   }
   throw new HttpsError("invalid-argument", `Unknown callClaude mode: ${mode}`);
@@ -205,7 +208,9 @@ async function callClaudeTool({
 async function callClaudeStream({
   apiKey, systemPrompt, cbcContextBlock, messages,
   maxTokens, temperature, model, onToken,
+  toolName, toolDescription, toolInputSchema,
 }) {
+  const wantsTool = Boolean(toolName && toolInputSchema);
   const body = {
     model,
     max_tokens: maxTokens,
@@ -214,6 +219,14 @@ async function callClaudeStream({
     ...(systemPrompt ?
       {system: buildSystemBlocks(systemPrompt, cbcContextBlock)} : {}),
     messages,
+    ...(wantsTool ? {
+      tools: [{
+        name: toolName,
+        description: toolDescription || "Emit the result as a structured object.",
+        input_schema: toolInputSchema,
+      }],
+      tool_choice: {type: "tool", name: toolName},
+    } : {}),
   };
 
   let res;
@@ -239,9 +252,11 @@ async function callClaudeStream({
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  // For text streams, fullText accumulates content; for tool streams,
+  // toolJsonBuffer accumulates partial_json deltas (Anthropic emits the
+  // tool input as a JSON string in chunks via input_json_delta).
   let fullText = "";
-  // Anthropic emits message_start and message_delta events with usage info.
-  // Accumulate as we go so the final return value is accurate.
+  let toolJsonBuffer = "";
   const usage = {
     inputTokens: 0,
     outputTokens: 0,
@@ -273,17 +288,23 @@ async function callClaudeStream({
         usage.inputTokens = Number(u.input_tokens || 0);
         usage.cacheReadTokens = Number(u.cache_read_input_tokens || 0);
         usage.cacheCreationTokens = Number(u.cache_creation_input_tokens || 0);
-      } else if (
-        parsed.type === "content_block_delta" &&
-        parsed.delta?.type === "text_delta" &&
-        typeof parsed.delta.text === "string"
-      ) {
-        const token = parsed.delta.text;
-        fullText += token;
-        try {
-          onToken(token);
-        } catch (err) {
-          console.warn("onToken callback threw", err);
+      } else if (parsed.type === "content_block_delta" && parsed.delta) {
+        const d = parsed.delta;
+        if (d.type === "text_delta" && typeof d.text === "string") {
+          fullText += d.text;
+          try {
+            onToken(d.text, "text");
+          } catch (err) {
+            console.warn("onToken callback threw", err);
+          }
+        } else if (d.type === "input_json_delta" &&
+                   typeof d.partial_json === "string") {
+          toolJsonBuffer += d.partial_json;
+          try {
+            onToken(d.partial_json, "tool_json");
+          } catch (err) {
+            console.warn("onToken callback threw", err);
+          }
         }
       } else if (parsed.type === "message_delta") {
         if (parsed.delta?.stop_reason) stopReason = parsed.delta.stop_reason;
@@ -294,7 +315,38 @@ async function callClaudeStream({
     }
   }
 
-  return {text: fullText, usage, stopReason, model: modelOut};
+  // For tool streams, parse the accumulated JSON. Empty/invalid JSON throws
+  // through to the caller for the same handling as a non-streaming tool call.
+  let parsedTool = null;
+  if (wantsTool) {
+    if (!toolJsonBuffer.trim()) {
+      console.error("Tool stream produced no input_json_delta", {stopReason});
+      throw new HttpsError(
+        "internal",
+        "AI returned an unexpected response shape. Please try again.",
+      );
+    }
+    try {
+      parsedTool = JSON.parse(toolJsonBuffer);
+    } catch (err) {
+      console.error("Tool stream JSON parse failed", {
+        bufferLen: toolJsonBuffer.length,
+        message: err?.message,
+      });
+      throw new HttpsError(
+        "internal",
+        "AI returned malformed structured output. Please try again.",
+      );
+    }
+  }
+
+  return {
+    text: fullText,
+    parsed: parsedTool,
+    usage,
+    stopReason,
+    model: modelOut,
+  };
 }
 
 async function postAnthropic(apiKey, body) {

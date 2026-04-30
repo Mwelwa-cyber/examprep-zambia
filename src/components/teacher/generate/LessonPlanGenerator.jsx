@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '../../../contexts/AuthContext'
 import {
-  generateLessonPlan,
+  generateLessonPlanStream,
   TEACHER_GRADES,
   TEACHER_SUBJECTS,
   TEACHER_LANGUAGES,
@@ -44,40 +44,60 @@ export default function LessonPlanGenerator() {
   const [generationId, setGenerationId] = useState(null)
   const [usage, setUsage] = useState(null)
   const [warning, setWarning] = useState('')
+  const [progress, setProgress] = useState(null) // {phase, approxOutputTokens?, elapsedMs}
+  const cancelRef = useRef(null)
+
+  // Cancel any in-flight stream when the component unmounts.
+  useEffect(() => {
+    return () => {
+      try { cancelRef.current?.() } catch { /* ignore */ }
+    }
+  }, [])
 
   function updateField(key, value) {
     setForm((f) => ({ ...f, [key]: value }))
   }
 
-  async function onGenerate(e) {
+  function onGenerate(e) {
     e.preventDefault()
     if (!form.topic.trim()) {
       setErrorMessage('Please enter a topic.')
       setStatus('error')
       return
     }
+    // Abort any prior in-flight generation before kicking off a new one.
+    try { cancelRef.current?.() } catch { /* ignore */ }
     setStatus('generating')
     setErrorMessage('')
     setErrorDetail('')
     setWarning('')
     setLessonPlan(null)
+    setProgress({ phase: 'queued', elapsedMs: 0 })
 
-    const res = await generateLessonPlan(form)
-    if (!res.ok) {
-      setStatus('error')
-      setErrorMessage(res.error)
-      setErrorDetail(
-        [res.code && `code: ${res.code}`, res.rawMessage && `detail: ${res.rawMessage}`]
-          .filter(Boolean)
-          .join(' · '),
-      )
-      return
-    }
-    setLessonPlan(res.data.lessonPlan)
-    setGenerationId(res.data.generationId)
-    setUsage(res.data.usage)
-    setWarning(res.data.warning || '')
-    setStatus('success')
+    cancelRef.current = generateLessonPlanStream(form, {
+      onProgress: (p) => setProgress(p),
+      onResult: (data) => {
+        setLessonPlan(data.lessonPlan)
+        setGenerationId(data.generationId)
+        setUsage(data.usage)
+        setWarning(data.warning || '')
+        setStatus('success')
+        cancelRef.current = null
+      },
+      onError: (err) => {
+        setStatus('error')
+        setErrorMessage(err?.message || 'Generation failed.')
+        setErrorDetail('')
+        cancelRef.current = null
+      },
+    })
+  }
+
+  function onCancel() {
+    try { cancelRef.current?.() } catch { /* ignore */ }
+    cancelRef.current = null
+    setStatus('idle')
+    setProgress(null)
   }
 
   function onExportDocx() {
@@ -232,7 +252,7 @@ export default function LessonPlanGenerator() {
               <EmptyState />
             )}
             {status === 'generating' && (
-              <GeneratingState />
+              <GeneratingState progress={progress} onCancel={onCancel} />
             )}
             {status === 'error' && (
               <ErrorState
@@ -392,14 +412,44 @@ function EmptyState() {
   )
 }
 
-function GeneratingState() {
+function GeneratingState({ progress, onCancel }) {
+  // progress is null on the very first paint, then {phase, approxOutputTokens?, elapsedMs}
+  // once the SSE stream emits its first event. Translate phase → user-friendly label.
+  const phase = progress?.phase
+  const tokens = progress?.approxOutputTokens
+  const seconds = progress?.elapsedMs ? Math.round(progress.elapsedMs / 1000) : null
+  const phaseLabel = (() => {
+    if (!phase || phase === 'queued') return 'Loading curriculum context…'
+    if (phase === 'claude_started') return 'Asking the AI to draft your plan…'
+    if (phase === 'token') {
+      return tokens
+        ? `Drafting your plan… ~${tokens.toLocaleString()} tokens written`
+        : 'Drafting your plan…'
+    }
+    if (phase === 'claude_done') return 'Polishing the lesson plan…'
+    return 'Working…'
+  })()
+
   return (
     <div className="flex flex-col items-center justify-center h-full py-12 text-center">
       <div className="text-5xl mb-3 animate-bounce">🧠</div>
-      <h3 className="studio-display" style={{ fontSize: 20, color: '#0e2a32' }}>Writing your lesson plan…</h3>
+      <h3 className="studio-display" style={{ fontSize: 20, color: '#0e2a32' }}>
+        Writing your lesson plan…
+      </h3>
       <p className="text-sm max-w-md mt-1" style={{ color: '#566f76' }}>
-        Usually takes 15–30 seconds. Please don't refresh the page.
+        {phaseLabel}
+        {seconds != null && phase !== 'queued' ? ` · ${seconds}s` : ''}
       </p>
+      {onCancel && (
+        <button
+          type="button"
+          onClick={onCancel}
+          className="mt-4 text-xs underline"
+          style={{ color: '#566f76' }}
+        >
+          Cancel
+        </button>
+      )}
     </div>
   )
 }

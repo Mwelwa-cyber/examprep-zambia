@@ -143,6 +143,171 @@ function validateInputs(inputs) {
   return errs;
 }
 
+/**
+ * Core worksheet generation. Used by both `createGenerateWorksheet` and
+ * the SSE-streaming HTTP endpoint. See generateLessonPlan.js for the
+ * onProgress contract.
+ */
+async function runWorksheet({uid, rawInputs, apiKey, onProgress}) {
+  const inputs = sanitizeInputs(rawInputs || {});
+  const inputErrors = validateInputs(inputs);
+  if (inputErrors.length > 0) {
+    throw new HttpsError("invalid-argument", inputErrors.join(" "));
+  }
+
+  const [{contextBlock, kbMatch, kbWarning}, usage] = await Promise.all([
+    resolveCbcContext({
+      grade: inputs.grade,
+      subject: inputs.subject,
+      topic: inputs.topic,
+      subtopic: inputs.subtopic,
+    }),
+    assertAndIncrement(uid, "worksheet"),
+  ]);
+
+  if (onProgress) onProgress({phase: "queued"});
+
+  const genRef = admin.firestore().collection("aiGenerations").doc();
+  const reservePromise = genRef.set({
+    ownerUid: uid,
+    tool: "worksheet",
+    inputs,
+    output: null,
+    outputText: "",
+    modelUsed: WORKSHEET_MODEL,
+    promptVersion: PROMPT_VERSION,
+    kbVersion: KB_VERSION,
+    tokensIn: 0,
+    tokensOut: 0,
+    costUsdCents: 0,
+    status: "generating",
+    errorMessage: null,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    completedAt: null,
+    teacherEdited: false,
+    exportedFormats: [],
+    visibility: "private",
+  }).catch((err) => {
+    console.warn("Failed to reserve generation doc", err);
+  });
+
+  if (onProgress) onProgress({phase: "claude_started"});
+
+  const userPrompt = buildUserPrompt(inputs);
+  let parsed = null;
+  let raw = "";
+  let usageInfo = {inputTokens: 0, outputTokens: 0};
+  let modelUsed = WORKSHEET_MODEL;
+
+  try {
+    const baseClaudeArgs = {
+      systemPrompt: SYSTEM_PROMPT,
+      cbcContextBlock: contextBlock,
+      messages: [{role: "user", content: userPrompt}],
+      maxTokens: worksheetMaxTokens({
+        count: inputs.count,
+        includeAnswerKey: inputs.includeAnswerKey,
+      }),
+      temperature: 0.4,
+      model: WORKSHEET_MODEL,
+      toolName: "emit_worksheet",
+      toolDescription:
+        "Emit the complete worksheet as a single structured object. " +
+        "Do not include any prose or commentary outside this tool call.",
+      toolInputSchema: WORKSHEET_TOOL_SCHEMA,
+    };
+
+    const claudePromise = onProgress ?
+      callClaude(apiKey, {
+        ...baseClaudeArgs,
+        mode: "stream",
+        onToken: makeTokenCounter(onProgress),
+      }) :
+      callClaude(apiKey, {...baseClaudeArgs, mode: "tool"});
+
+    const [response] = await Promise.all([claudePromise, reservePromise]);
+    parsed = response.parsed;
+    raw = response.text || "";
+    usageInfo = response.usage || usageInfo;
+    modelUsed = response.model || modelUsed;
+  } catch (err) {
+    await reservePromise;
+    await genRef.set({
+      status: "failed",
+      errorMessage: String(err && err.message || err).slice(0, 500),
+    }, {merge: true}).catch(() => {});
+    throw err;
+  }
+
+  if (onProgress) onProgress({phase: "claude_done"});
+
+  const validation = validateWorksheet(parsed);
+  const worksheet = validation.value;
+  if (!validation.ok) {
+    await genRef.set({
+      status: "flagged",
+      errorMessage: `Schema errors: ${validation.errors.join("; ")}`,
+      output: worksheet,
+      outputText: String(raw || "").slice(0, 20000),
+      completedAt: admin.firestore.FieldValue.serverTimestamp(),
+      tokensIn: Number(usageInfo.inputTokens || 0),
+      tokensOut: Number(usageInfo.outputTokens || 0),
+      modelUsed,
+    }, {merge: true});
+    return {
+      generationId: genRef.id,
+      worksheet,
+      usage,
+      warning: [
+        "Some fields were incomplete — please review carefully.",
+        kbWarning,
+      ].filter(Boolean).join(" "),
+      kbGrounded: Boolean(kbMatch),
+    };
+  }
+
+  const tokensIn = Number(usageInfo.inputTokens || 0);
+  const tokensOut = Number(usageInfo.outputTokens || 0);
+  // Haiku 4.5 approx pricing: $1/M input, $5/M output (~5× cheaper than Sonnet).
+  const costUsdCents = Math.round(
+    ((tokensIn / 1e6) * 100) + ((tokensOut / 1e6) * 500),
+  );
+  await genRef.set({
+    status: "complete",
+    output: worksheet,
+    outputText: String(raw || "").slice(0, 20000),
+    tokensIn,
+    tokensOut,
+    costUsdCents,
+    modelUsed,
+    completedAt: admin.firestore.FieldValue.serverTimestamp(),
+  }, {merge: true});
+
+  return {
+    generationId: genRef.id,
+    worksheet,
+    usage,
+    warning: kbWarning || null,
+    kbGrounded: Boolean(kbMatch),
+  };
+}
+
+function makeTokenCounter(onProgress) {
+  let approxOutputTokens = 0;
+  let lastReported = 0;
+  return (chunk) => {
+    approxOutputTokens += Math.max(1, Math.round((chunk || "").length / 4));
+    if (approxOutputTokens - lastReported >= 50) {
+      lastReported = approxOutputTokens;
+      try {
+        onProgress({phase: "token", approxOutputTokens});
+      } catch (err) {
+        console.warn("onProgress threw", err);
+      }
+    }
+  };
+}
+
 function createGenerateWorksheet(anthropicApiKeySecret) {
   return onCall(
     {secrets: [anthropicApiKeySecret], timeoutSeconds: 120, memory: "512MiB"},
@@ -158,149 +323,10 @@ function createGenerateWorksheet(anthropicApiKeySecret) {
           "Teacher tools are available to approved teachers only.",
         );
       }
-
-      // 1. Sanitise + validate inputs.
-      const inputs = sanitizeInputs(request.data || {});
-      const inputErrors = validateInputs(inputs);
-      if (inputErrors.length > 0) {
-        throw new HttpsError("invalid-argument", inputErrors.join(" "));
-      }
-
-      // 2. Resolve CBC context + enforce monthly quota in parallel.
-      //    resolveCbcContext never throws (unknown topics surface as a soft
-      //    warning); only quota overflow can fail this step.
-      const [{contextBlock, kbMatch, kbWarning}, usage] = await Promise.all([
-        resolveCbcContext({
-          grade: inputs.grade,
-          subject: inputs.subject,
-          topic: inputs.topic,
-          subtopic: inputs.subtopic,
-        }),
-        assertAndIncrement(uid, "worksheet"),
-      ]);
-
-      // 3. API key + reserve generation doc. Reservation write runs in
-      //    parallel with the Claude call; the final-result write waits on it.
       const apiKey = getAnthropicApiKey(anthropicApiKeySecret);
-
-      const genRef = admin.firestore().collection("aiGenerations").doc();
-      const reservePromise = genRef.set({
-        ownerUid: uid,
-        tool: "worksheet",
-        inputs,
-        output: null,
-        outputText: "",
-        modelUsed: WORKSHEET_MODEL,
-        promptVersion: PROMPT_VERSION,
-        kbVersion: KB_VERSION,
-        tokensIn: 0,
-        tokensOut: 0,
-        costUsdCents: 0,
-        status: "generating",
-        errorMessage: null,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        completedAt: null,
-        teacherEdited: false,
-        exportedFormats: [],
-        visibility: "private",
-      }).catch((err) => {
-        console.warn("Failed to reserve generation doc", err);
-      });
-
-      // 4. Call Claude in tool-use mode. Forces structured JSON via tool_use,
-      //    eliminating markdown-fence stripping and JSON-parse failures.
-      const userPrompt = buildUserPrompt(inputs);
-      let parsed = null;
-      let raw = "";
-      let usageInfo = {inputTokens: 0, outputTokens: 0};
-      let modelUsed = WORKSHEET_MODEL;
-      try {
-        const [response] = await Promise.all([
-          callClaude(apiKey, {
-            systemPrompt: SYSTEM_PROMPT,
-            cbcContextBlock: contextBlock,
-            messages: [{role: "user", content: userPrompt}],
-            maxTokens: worksheetMaxTokens({
-              count: inputs.count,
-              includeAnswerKey: inputs.includeAnswerKey,
-            }),
-            temperature: 0.4,
-            model: WORKSHEET_MODEL,
-            mode: "tool",
-            toolName: "emit_worksheet",
-            toolDescription:
-              "Emit the complete worksheet as a single structured object. " +
-              "Do not include any prose or commentary outside this tool call.",
-            toolInputSchema: WORKSHEET_TOOL_SCHEMA,
-          }),
-          reservePromise,
-        ]);
-        parsed = response.parsed;
-        raw = response.text || "";
-        usageInfo = response.usage || usageInfo;
-        modelUsed = response.model || modelUsed;
-      } catch (err) {
-        await reservePromise;
-        await genRef.set({
-          status: "failed",
-          errorMessage: String(err && err.message || err).slice(0, 500),
-        }, {merge: true}).catch(() => {});
-        throw err;
-      }
-
-      // 5. Validate against schema.
-      const validation = validateWorksheet(parsed);
-      const worksheet = validation.value;
-      if (!validation.ok) {
-        await genRef.set({
-          status: "flagged",
-          errorMessage: `Schema errors: ${validation.errors.join("; ")}`,
-          output: worksheet,
-          outputText: String(raw || "").slice(0, 20000),
-          completedAt: admin.firestore.FieldValue.serverTimestamp(),
-          tokensIn: Number(usageInfo.inputTokens || 0),
-          tokensOut: Number(usageInfo.outputTokens || 0),
-          modelUsed,
-        }, {merge: true});
-        return {
-          generationId: genRef.id,
-          worksheet,
-          usage,
-          warning: [
-            "Some fields were incomplete — please review carefully.",
-            kbWarning,
-          ].filter(Boolean).join(" "),
-          kbGrounded: Boolean(kbMatch),
-        };
-      }
-
-      // 7. Happy path.
-      const tokensIn = Number(usageInfo.inputTokens || 0);
-      const tokensOut = Number(usageInfo.outputTokens || 0);
-      // Haiku 4.5 approx pricing: $1/M input, $5/M output (~5× cheaper than Sonnet).
-      const costUsdCents = Math.round(
-        ((tokensIn / 1e6) * 100) + ((tokensOut / 1e6) * 500),
-      );
-      await genRef.set({
-        status: "complete",
-        output: worksheet,
-        outputText: String(raw || "").slice(0, 20000),
-        tokensIn,
-        tokensOut,
-        costUsdCents,
-        modelUsed,
-        completedAt: admin.firestore.FieldValue.serverTimestamp(),
-      }, {merge: true});
-
-      return {
-        generationId: genRef.id,
-        worksheet,
-        usage,
-        warning: kbWarning || null,
-        kbGrounded: Boolean(kbMatch),
-      };
+      return runWorksheet({uid, rawInputs: request.data, apiKey});
     },
   );
 }
 
-module.exports = {createGenerateWorksheet};
+module.exports = {createGenerateWorksheet, runWorksheet};

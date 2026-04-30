@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
-  generateWorksheet,
+  generateWorksheetStream,
   TEACHER_GRADES,
   TEACHER_SUBJECTS,
   TEACHER_LANGUAGES,
@@ -38,39 +38,58 @@ export default function WorksheetGenerator() {
   const [usage, setUsage] = useState(null)
   const [warning, setWarning] = useState('')
   const [showAnswers, setShowAnswers] = useState(false)
+  const [progress, setProgress] = useState(null)
+  const cancelRef = useRef(null)
+
+  useEffect(() => {
+    return () => {
+      try { cancelRef.current?.() } catch { /* ignore */ }
+    }
+  }, [])
 
   function updateField(key, value) {
     setForm((f) => ({ ...f, [key]: value }))
   }
 
-  async function onGenerate(e) {
+  function onGenerate(e) {
     e.preventDefault()
     if (!form.topic.trim()) {
       setErrorMessage('Please enter a topic.')
       setStatus('error')
       return
     }
+    try { cancelRef.current?.() } catch { /* ignore */ }
     setStatus('generating')
     setErrorMessage('')
     setErrorDetail('')
     setWarning('')
     setWorksheet(null)
+    setProgress({ phase: 'queued', elapsedMs: 0 })
 
-    const res = await generateWorksheet(form)
-    if (!res.ok) {
-      setStatus('error')
-      setErrorMessage(res.error)
-      setErrorDetail(
-        [res.code && `code: ${res.code}`, res.rawMessage && `detail: ${res.rawMessage}`]
-          .filter(Boolean).join(' · '),
-      )
-      return
-    }
-    setWorksheet(res.data.worksheet)
-    setGenerationId(res.data.generationId)
-    setUsage(res.data.usage)
-    setWarning(res.data.warning || '')
-    setStatus('success')
+    cancelRef.current = generateWorksheetStream(form, {
+      onProgress: (p) => setProgress(p),
+      onResult: (data) => {
+        setWorksheet(data.worksheet)
+        setGenerationId(data.generationId)
+        setUsage(data.usage)
+        setWarning(data.warning || '')
+        setStatus('success')
+        cancelRef.current = null
+      },
+      onError: (err) => {
+        setStatus('error')
+        setErrorMessage(err?.message || 'Generation failed.')
+        setErrorDetail('')
+        cancelRef.current = null
+      },
+    })
+  }
+
+  function onCancel() {
+    try { cancelRef.current?.() } catch { /* ignore */ }
+    cancelRef.current = null
+    setStatus('idle')
+    setProgress(null)
   }
 
   function buildFilename(mode) {
@@ -193,7 +212,9 @@ export default function WorksheetGenerator() {
           {/* Output panel */}
           <section className="studio-card p-5 min-h-[400px]">
             {status === 'idle' && <EmptyState />}
-            {status === 'generating' && <GeneratingState />}
+            {status === 'generating' && (
+              <GeneratingState progress={progress} onCancel={onCancel} />
+            )}
             {status === 'error' && (
               <ErrorState
                 message={errorMessage}
@@ -337,14 +358,42 @@ function EmptyState() {
   )
 }
 
-function GeneratingState() {
+function GeneratingState({ progress, onCancel }) {
+  const phase = progress?.phase
+  const tokens = progress?.approxOutputTokens
+  const seconds = progress?.elapsedMs ? Math.round(progress.elapsedMs / 1000) : null
+  const phaseLabel = (() => {
+    if (!phase || phase === 'queued') return 'Loading curriculum context…'
+    if (phase === 'claude_started') return 'Asking the AI to draft your worksheet…'
+    if (phase === 'token') {
+      return tokens
+        ? `Writing questions… ~${tokens.toLocaleString()} tokens written`
+        : 'Writing questions…'
+    }
+    if (phase === 'claude_done') return 'Polishing the answer key…'
+    return 'Working…'
+  })()
+
   return (
     <div className="flex flex-col items-center justify-center h-full py-12 text-center">
       <div className="text-5xl mb-3 animate-bounce">✍️</div>
-      <h3 className="studio-display" style={{ fontSize: 20, color: '#0e2a32' }}>Writing questions…</h3>
+      <h3 className="studio-display" style={{ fontSize: 20, color: '#0e2a32' }}>
+        Writing questions…
+      </h3>
       <p className="text-sm max-w-md mt-1" style={{ color: '#566f76' }}>
-        Usually takes 10–20 seconds. Answer key is generated at the same time.
+        {phaseLabel}
+        {seconds != null && phase !== 'queued' ? ` · ${seconds}s` : ''}
       </p>
+      {onCancel && (
+        <button
+          type="button"
+          onClick={onCancel}
+          className="mt-4 text-xs underline"
+          style={{ color: '#566f76' }}
+        >
+          Cancel
+        </button>
+      )}
     </div>
   )
 }
