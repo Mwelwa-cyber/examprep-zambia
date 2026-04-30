@@ -56,7 +56,7 @@ const STUDIOS = [
     badge: 'NEW',
     title: 'Assessments',
     tagline: 'Topic, weekly, monthly, mid-term & end-of-term assessments.',
-    to: '/teacher/quizzes/new',
+    to: '/teacher/assessments',
     mascot: 'Sharp Eagle',
   },
   {
@@ -221,7 +221,7 @@ export default function TeacherDashboard() {
         timestamp: q.createdAt,
         kind: 'assessment',
         tool: 'assessments',
-        to: `/teacher/quizzes/${q.id}`,
+        to: `/teacher/assessments/${q.id}/edit`,
       })),
     ]
     const toMs = (t) => {

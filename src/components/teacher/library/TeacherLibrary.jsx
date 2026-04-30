@@ -23,7 +23,7 @@ const SECTIONS = [
     label: 'Assessments',
     icon: '🦅',
     accent: '#e8d8f0',
-    createTo: '/teacher/quizzes/new',
+    createTo: '/teacher/assessments',
     emptyHint: 'Create a topic, monthly or end-of-term assessment.',
     source: 'quizzes',
   },
@@ -145,7 +145,7 @@ export default function TeacherLibrary() {
         title: q.title || q.topic || 'Untitled assessment',
         subtitle: quizSubtitle(q),
         metaLabel: q.createdAt ? formatDate(q.createdAt) : '',
-        to: `/teacher/quizzes/${q.id}`,
+        to: `/teacher/assessments/${q.id}/edit`,
       })
     })
     return result
