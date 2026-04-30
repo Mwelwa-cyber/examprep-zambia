@@ -194,6 +194,12 @@ export const TOOL_META = {
     route: '/teacher/generate/rubric',
     colour: 'rose',
   },
+  notes: {
+    label: 'Teacher Notes',
+    icon: '📓',
+    route: '/teacher/generate/notes',
+    colour: 'sky',
+  },
 }
 
 export const TOOL_FILTER_OPTIONS = [
@@ -203,6 +209,7 @@ export const TOOL_FILTER_OPTIONS = [
   {value: 'worksheet', label: 'Worksheets'},
   {value: 'flashcards', label: 'Flashcards'},
   {value: 'rubric', label: 'Rubrics'},
+  {value: 'notes', label: 'Teacher notes'},
 ]
 
 /**
@@ -231,6 +238,12 @@ export function titleForGeneration(gen) {
   if (gen.tool === 'rubric') {
     return out?.header?.title ||
       `${gen.inputs?.grade || ''} ${gen.inputs?.subject || ''} — ${gen.inputs?.taskType || 'rubric'}`.trim()
+  }
+  if (gen.tool === 'notes') {
+    if (out?.header?.title) return out.header.title
+    const topic = out?.header?.topic || gen.inputs?.topic || 'Notes'
+    const grade = out?.header?.grade || gen.inputs?.grade || ''
+    return [`Teacher notes — ${topic}`, grade].filter(Boolean).join(' · ')
   }
   return gen.inputs?.topic || 'Generation'
 }

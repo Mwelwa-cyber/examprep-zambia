@@ -25,6 +25,9 @@ const generateSchemeOfWorkCallable = httpsCallable(functions, 'generateSchemeOfW
 const generateRubricCallable = httpsCallable(functions, 'generateRubric', {
   timeout: 90_000, // server: 90s
 })
+const generateNotesCallable = httpsCallable(functions, 'generateNotes', {
+  timeout: 130_000, // server: 120s
+})
 
 // Grades grouped by Zambia CBC phase.
 // Items with `group` (no `value`) render as <optgroup> labels in FieldSelect.
@@ -326,6 +329,38 @@ export async function generateWorksheet(inputs) {
     return { ok: true, data: result.data }
   } catch (error) {
     console.error('[zedexams] generateWorksheet ← FAILED after',
+      Date.now() - startedAt, 'ms',
+      { code: error?.code, message: error?.message, details: error?.details },
+    )
+    return {
+      ok: false,
+      error: messageFromError(error),
+      code: error?.code || 'unknown',
+      rawMessage: error?.message || '',
+    }
+  }
+}
+
+export async function generateNotes(inputs) {
+  console.info('[zedexams] generateNotes →', {
+    grade: inputs?.grade, subject: inputs?.subject, topic: inputs?.topic,
+    lessonPlanId: inputs?.lessonPlanId || null,
+  })
+  const startedAt = Date.now()
+  try {
+    const result = await withTimeout(
+      generateNotesCallable(inputs),
+      HARD_CLIENT_TIMEOUT_MS,
+      'generateNotes',
+    )
+    console.info(
+      '[zedexams] generateNotes ← ok in',
+      Date.now() - startedAt, 'ms',
+      { generationId: result?.data?.generationId, warning: result?.data?.warning },
+    )
+    return { ok: true, data: result.data }
+  } catch (error) {
+    console.error('[zedexams] generateNotes ← FAILED after',
       Date.now() - startedAt, 'ms',
       { code: error?.code, message: error?.message, details: error?.details },
     )
