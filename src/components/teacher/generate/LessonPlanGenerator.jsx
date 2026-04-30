@@ -10,6 +10,7 @@ import {
 import { downloadLessonPlanDocx } from '../../../utils/lessonPlanToDocx'
 import { useFormDefaultsFromUrl } from '../../../utils/useFormDefaultsFromUrl'
 import { printLessonPlanAsPdf } from '../../../utils/lessonPlanToPdf'
+import StudioPageHeader from '../StudioPageHeader'
 
 /**
  * Zambian CBC Lesson Plan Generator — teacher-facing MVP.
@@ -104,24 +105,20 @@ export default function LessonPlanGenerator() {
   }
 
   return (
-    <div className="min-h-screen theme-bg p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen p-4 sm:p-6 lg:p-8" style={{ background: '#f5efe1' }}>
       <div className="max-w-7xl mx-auto">
-        <header className="mb-6">
-          <h1 className="text-2xl sm:text-3xl font-black theme-text">
-            Lesson Plan Generator
-          </h1>
-          <p className="text-sm theme-text-secondary mt-1">
-            Zambian CBC format — SMART goal, three-tier Competencies, Methodology,
-            Learning Environment, Interdisciplinary Connections, 5E Lesson Progression,
-            and Competence Continuity.
-          </p>
-        </header>
+        <StudioPageHeader
+          eyebrow="Lesson Plan Studio"
+          title="Build a CBC lesson plan"
+          subtitle="SMART goal · three-tier Competencies · 5E Lesson Progression · Reflection — print-ready in seconds."
+          emoji="🦊"
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-6">
           {/* ── Input panel ─────────────────────────────────────── */}
           <form
             onSubmit={onGenerate}
-            className="theme-card border theme-border rounded-2xl p-5 space-y-4 h-fit sticky top-4"
+            className="studio-card p-5 space-y-4 h-fit sticky top-4"
           >
             <FieldSelect
               label="Grade"
@@ -216,9 +213,9 @@ export default function LessonPlanGenerator() {
             <button
               type="submit"
               disabled={status === 'generating'}
-              className="w-full py-3 rounded-xl font-black text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              className="studio-btn-primary w-full py-3"
             >
-              {status === 'generating' ? 'Generating…' : '✨ Generate Lesson Plan'}
+              {status === 'generating' ? 'Generating…' : '▶ Generate Lesson Plan'}
             </button>
 
             {usage && (
@@ -230,7 +227,7 @@ export default function LessonPlanGenerator() {
           </form>
 
           {/* ── Output panel ────────────────────────────────────── */}
-          <section className="theme-card border theme-border rounded-2xl p-5 min-h-[400px]">
+          <section className="studio-card p-5 min-h-[400px]">
             {status === 'idle' && (
               <EmptyState />
             )}
@@ -248,8 +245,8 @@ export default function LessonPlanGenerator() {
               <>
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
                   <div>
-                    <h2 className="text-lg font-black theme-text">Your Lesson Plan</h2>
-                    <p className="text-xs theme-text-secondary">
+                    <h2 className="studio-display" style={{ fontSize: 22, color: '#0e2a32', margin: '0 0 2px' }}>Your Lesson Plan</h2>
+                    <p className="text-xs" style={{ color: '#566f76' }}>
                       Review, edit in your document editor, and print for your head teacher.
                     </p>
                   </div>
@@ -257,21 +254,21 @@ export default function LessonPlanGenerator() {
                     <button
                       onClick={onExportPdf}
                       title="Opens the system print dialog — choose 'Save as PDF' as the destination"
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-black border theme-border theme-card theme-text transition-all duration-fast ease-out shadow-elev-sm hover:-translate-y-px hover:border-[var(--accent)] hover:shadow-elev-md"
+                      className="studio-btn-ghost inline-flex items-center gap-1.5"
                     >
                       📑 Download PDF
                     </button>
                     <button
                       onClick={onExportDocx}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-black border theme-border theme-card theme-text transition-all duration-fast ease-out shadow-elev-sm hover:-translate-y-px hover:border-[var(--accent)] hover:shadow-elev-md"
+                      className="studio-btn-ghost inline-flex items-center gap-1.5"
                     >
                       📄 Download .docx
                     </button>
                     <button
                       onClick={() => setStatus('idle')}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-black text-white bg-gradient-to-r from-emerald-500 to-teal-500 shadow-elev-sm shadow-elev-inner-hl transition-all duration-fast ease-out hover:-translate-y-px hover:shadow-elev-md"
+                      className="studio-btn-primary inline-flex items-center gap-1.5"
                     >
-                      ✨ Generate Another
+                      ▶ Generate Another
                     </button>
                   </div>
                 </div>
@@ -298,11 +295,7 @@ export default function LessonPlanGenerator() {
 /* ── Small input components ─────────────────────────────────────── */
 
 function FieldLabel({ children }) {
-  return (
-    <label className="block text-xs font-bold uppercase tracking-wide theme-text-secondary mb-1">
-      {children}
-    </label>
-  )
+  return <label className="studio-label">{children}</label>
 }
 
 function FieldText({ label, value, onChange, placeholder, maxLength }) {
@@ -315,7 +308,7 @@ function FieldText({ label, value, onChange, placeholder, maxLength }) {
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         maxLength={maxLength}
-        className="w-full px-3 py-2 rounded-lg border theme-border bg-transparent theme-text focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        className="studio-input"
       />
     </div>
   )
@@ -331,7 +324,7 @@ function FieldNumber({ label, value, onChange, min, max }) {
         onChange={(e) => onChange(Number(e.target.value))}
         min={min}
         max={max}
-        className="w-full px-3 py-2 rounded-lg border theme-border bg-transparent theme-text focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        className="studio-input"
       />
     </div>
   )
@@ -347,7 +340,7 @@ function FieldTextarea({ label, value, onChange, placeholder, maxLength }) {
         placeholder={placeholder}
         maxLength={maxLength}
         rows={3}
-        className="w-full px-3 py-2 rounded-lg border theme-border bg-transparent theme-text focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+        className="studio-input resize-none"
       />
     </div>
   )
@@ -368,7 +361,7 @@ function FieldSelect({ label, value, options, onChange }) {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 rounded-lg border theme-border bg-transparent theme-text focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        className="studio-input"
       >
         {flat
           ? groups[0].items.map(o => <option key={o.value} value={o.value}>{o.label}</option>)
@@ -387,9 +380,11 @@ function FieldSelect({ label, value, options, onChange }) {
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center h-full py-12 text-center">
-      <div className="text-5xl mb-3">📝</div>
-      <h3 className="text-lg font-black theme-text mb-1">Ready when you are</h3>
-      <p className="text-sm theme-text-secondary max-w-md">
+      <div style={{ width: 86, height: 86, borderRadius: '50%', background: '#fde2c4', display: 'grid', placeItems: 'center', fontSize: 44 }}>
+        🦊
+      </div>
+      <h3 className="studio-display mt-4" style={{ fontSize: 20, color: '#0e2a32' }}>Ready when you are</h3>
+      <p className="text-sm max-w-md mt-1" style={{ color: '#566f76' }}>
         Fill in the grade, subject and topic on the left, then tap Generate.
         Your lesson plan will appear here — fully formatted in the Zambian CBC style.
       </p>
@@ -401,8 +396,8 @@ function GeneratingState() {
   return (
     <div className="flex flex-col items-center justify-center h-full py-12 text-center">
       <div className="text-5xl mb-3 animate-bounce">🧠</div>
-      <h3 className="text-lg font-black theme-text mb-1">Writing your lesson plan…</h3>
-      <p className="text-sm theme-text-secondary max-w-md">
+      <h3 className="studio-display" style={{ fontSize: 20, color: '#0e2a32' }}>Writing your lesson plan…</h3>
+      <p className="text-sm max-w-md mt-1" style={{ color: '#566f76' }}>
         Usually takes 15–30 seconds. Please don't refresh the page.
       </p>
     </div>
@@ -413,20 +408,17 @@ function ErrorState({ message, detail, onDismiss }) {
   return (
     <div className="flex flex-col items-center justify-center h-full py-12 text-center">
       <div className="text-5xl mb-3">⚠️</div>
-      <h3 className="text-lg font-black theme-text mb-1">Something went wrong</h3>
-      <p className="text-sm theme-text-secondary max-w-md mb-3">{message}</p>
+      <h3 className="studio-display" style={{ fontSize: 20, color: '#0e2a32' }}>Something went wrong</h3>
+      <p className="text-sm max-w-md mt-1 mb-3" style={{ color: '#566f76' }}>{message}</p>
       {detail && (
-        <p className="text-xs theme-text-secondary/70 max-w-md mb-4 font-mono break-all px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800">
+        <p className="text-xs max-w-md mb-4 font-mono break-all px-3 py-2 rounded-lg" style={{ background: '#f5efe1', color: '#566f76' }}>
           {detail}
         </p>
       )}
-      <button
-        onClick={onDismiss}
-        className="px-4 py-2 rounded-xl text-sm font-bold border theme-border"
-      >
+      <button onClick={onDismiss} className="studio-btn-ghost">
         Try again
       </button>
-      <p className="text-[10px] theme-text-secondary/60 mt-4 max-w-md">
+      <p className="text-[10px] mt-4 max-w-md" style={{ color: '#8a9aa1' }}>
         See DEBUG_LESSON_PLAN.md in your project root for the diagnostic checklist.
       </p>
     </div>

@@ -108,7 +108,7 @@ function HeaderBlock({ header = {}, overview = {} }) {
       </div>
 
       {overview.termTheme && (
-        <div className="rounded-xl border theme-border p-4 bg-teal-50/40">
+        <div className="rounded-xl border theme-border p-4" style={{ background: '#fff5e6' }}>
           <p className="text-xs font-black uppercase tracking-wide theme-text-secondary mb-1">Term Theme</p>
           <p className="theme-text text-sm">{overview.termTheme}</p>
           {(overview.overallCompetencies?.length > 0 || overview.overallValues?.length > 0) && (

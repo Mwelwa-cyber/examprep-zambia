@@ -42,9 +42,9 @@ export default function WorksheetView({ worksheet, showAnswers = false }) {
       ))}
 
       {showAnswers && worksheet.answerKey?.markingNotes && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-          <h4 className="font-bold text-sm text-emerald-900 mb-1">Marking Guidance</h4>
-          <p className="text-sm text-emerald-800">{worksheet.answerKey.markingNotes}</p>
+        <div className="rounded-xl p-4" style={{ background: '#e6f5ed', border: '1.5px solid #10864e' }}>
+          <h4 className="font-bold text-sm mb-1" style={{ color: '#0a5a35' }}>Marking Guidance</h4>
+          <p className="text-sm" style={{ color: '#0a5a35' }}>{worksheet.answerKey.markingNotes}</p>
         </div>
       )}
     </article>
@@ -70,7 +70,7 @@ function QuestionView({ q, showAnswers }) {
           )}
           {showAnswers && q.answer && (
             <div className="mt-2 pt-2 border-t theme-border">
-              <p className="text-sm text-emerald-700">
+              <p className="text-sm" style={{ color: '#0a5a35' }}>
                 <span className="font-bold">✓ Answer: </span>{renderText(q.answer)}
               </p>
               {q.workingNotes && (

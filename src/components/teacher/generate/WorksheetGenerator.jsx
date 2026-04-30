@@ -10,6 +10,7 @@ import {
 } from '../../../utils/teacherTools'
 import { downloadWorksheetDocx } from '../../../utils/worksheetToDocx'
 import { useFormDefaultsFromUrl } from '../../../utils/useFormDefaultsFromUrl'
+import StudioPageHeader from '../StudioPageHeader'
 
 /**
  * Worksheet Generator — pupil-facing worksheet + separate answer-key export.
@@ -96,22 +97,20 @@ export default function WorksheetGenerator() {
   }
 
   return (
-    <div className="min-h-screen theme-bg p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen p-4 sm:p-6 lg:p-8" style={{ background: '#f5efe1' }}>
       <div className="max-w-7xl mx-auto">
-        <header className="mb-6">
-          <h1 className="text-2xl sm:text-3xl font-black theme-text">
-            Worksheet Generator
-          </h1>
-          <p className="text-sm theme-text-secondary mt-1">
-            Printable Zambian CBC worksheets with complete answer keys — in seconds.
-          </p>
-        </header>
+        <StudioPageHeader
+          eyebrow="Worksheet Studio"
+          title="Print-ready practice"
+          subtitle="Zambian CBC worksheets with a separate, fully-answered marking key — in under a minute."
+          emoji="🐢"
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-6">
           {/* Input panel */}
           <form
             onSubmit={onGenerate}
-            className="theme-card border theme-border rounded-2xl p-5 space-y-4 h-fit sticky top-4"
+            className="studio-card p-5 space-y-4 h-fit sticky top-4"
           >
             <FieldSelect
               label="Grade"
@@ -178,9 +177,9 @@ export default function WorksheetGenerator() {
             <button
               type="submit"
               disabled={status === 'generating'}
-              className="w-full py-3 rounded-xl font-black text-white bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              className="studio-btn-primary w-full py-3"
             >
-              {status === 'generating' ? 'Generating…' : '📝 Generate Worksheet'}
+              {status === 'generating' ? 'Generating…' : '▶ Generate Worksheet'}
             </button>
 
             {usage && (
@@ -192,7 +191,7 @@ export default function WorksheetGenerator() {
           </form>
 
           {/* Output panel */}
-          <section className="theme-card border theme-border rounded-2xl p-5 min-h-[400px]">
+          <section className="studio-card p-5 min-h-[400px]">
             {status === 'idle' && <EmptyState />}
             {status === 'generating' && <GeneratingState />}
             {status === 'error' && (
@@ -206,33 +205,30 @@ export default function WorksheetGenerator() {
               <>
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
                   <div>
-                    <h2 className="text-lg font-black theme-text">
+                    <h2 className="studio-display" style={{ fontSize: 22, color: '#0e2a32', margin: '0 0 2px' }}>
                       {worksheet.header?.title || 'Worksheet'}
                     </h2>
-                    <p className="text-xs theme-text-secondary">
+                    <p className="text-xs" style={{ color: '#566f76' }}>
                       {worksheet.header?.totalMarks} marks · review, export, print.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <label className="flex items-center gap-2 text-sm theme-text px-3 py-2 rounded-xl border theme-border cursor-pointer">
+                    <label
+                      className="flex items-center gap-2 text-sm px-3 py-2 rounded-xl cursor-pointer"
+                      style={{ color: '#0e2a32', border: '1.5px solid #d9cfb8' }}
+                    >
                       <input
                         type="checkbox"
                         checked={showAnswers}
                         onChange={(e) => setShowAnswers(e.target.checked)}
-                        className="accent-indigo-500"
+                        style={{ accentColor: '#ff7a2e' }}
                       />
                       Show answers
                     </label>
-                    <button
-                      onClick={onExportPupil}
-                      className="px-4 py-2 rounded-xl text-sm font-bold border theme-border hover:bg-slate-50 dark:hover:bg-slate-800 transition"
-                    >
+                    <button onClick={onExportPupil} className="studio-btn-ghost">
                       📄 Worksheet .docx
                     </button>
-                    <button
-                      onClick={onExportAnswerKey}
-                      className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-500"
-                    >
+                    <button onClick={onExportAnswerKey} className="studio-btn-primary">
                       🔑 Answer Key .docx
                     </button>
                   </div>
@@ -260,11 +256,7 @@ export default function WorksheetGenerator() {
 /* ── Inputs ─────────────────────────────────────────────────── */
 
 function FieldLabel({ children }) {
-  return (
-    <label className="block text-xs font-bold uppercase tracking-wide theme-text-secondary mb-1">
-      {children}
-    </label>
-  )
+  return <label className="studio-label">{children}</label>
 }
 
 function FieldText({ label, value, onChange, placeholder, maxLength }) {
@@ -277,7 +269,7 @@ function FieldText({ label, value, onChange, placeholder, maxLength }) {
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         maxLength={maxLength}
-        className="w-full px-3 py-2 rounded-lg border theme-border bg-transparent theme-text focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        className="studio-input"
       />
     </div>
   )
@@ -293,7 +285,7 @@ function FieldTextarea({ label, value, onChange, placeholder, maxLength }) {
         placeholder={placeholder}
         maxLength={maxLength}
         rows={3}
-        className="w-full px-3 py-2 rounded-lg border theme-border bg-transparent theme-text focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+        className="studio-input resize-none"
       />
     </div>
   )
@@ -314,7 +306,7 @@ function FieldSelect({ label, value, options, onChange }) {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 rounded-lg border theme-border bg-transparent theme-text focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        className="studio-input"
       >
         {flat
           ? groups[0].items.map(o => <option key={o.value} value={o.value}>{o.label}</option>)
@@ -333,9 +325,11 @@ function FieldSelect({ label, value, options, onChange }) {
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center h-full py-12 text-center">
-      <div className="text-5xl mb-3">📝</div>
-      <h3 className="text-lg font-black theme-text mb-1">Ready to make a worksheet</h3>
-      <p className="text-sm theme-text-secondary max-w-md">
+      <div style={{ width: 86, height: 86, borderRadius: '50%', background: '#d8ecd0', display: 'grid', placeItems: 'center', fontSize: 44 }}>
+        🐢
+      </div>
+      <h3 className="studio-display mt-4" style={{ fontSize: 20, color: '#0e2a32' }}>Ready to make a worksheet</h3>
+      <p className="text-sm max-w-md mt-1" style={{ color: '#566f76' }}>
         Pick the grade, subject and topic on the left. You'll get a printable
         worksheet plus a separate answer key file for marking.
       </p>
@@ -347,8 +341,8 @@ function GeneratingState() {
   return (
     <div className="flex flex-col items-center justify-center h-full py-12 text-center">
       <div className="text-5xl mb-3 animate-bounce">✍️</div>
-      <h3 className="text-lg font-black theme-text mb-1">Writing questions…</h3>
-      <p className="text-sm theme-text-secondary max-w-md">
+      <h3 className="studio-display" style={{ fontSize: 20, color: '#0e2a32' }}>Writing questions…</h3>
+      <p className="text-sm max-w-md mt-1" style={{ color: '#566f76' }}>
         Usually takes 10–20 seconds. Answer key is generated at the same time.
       </p>
     </div>
@@ -359,17 +353,14 @@ function ErrorState({ message, detail, onDismiss }) {
   return (
     <div className="flex flex-col items-center justify-center h-full py-12 text-center">
       <div className="text-5xl mb-3">⚠️</div>
-      <h3 className="text-lg font-black theme-text mb-1">Something went wrong</h3>
-      <p className="text-sm theme-text-secondary max-w-md mb-3">{message}</p>
+      <h3 className="studio-display" style={{ fontSize: 20, color: '#0e2a32' }}>Something went wrong</h3>
+      <p className="text-sm max-w-md mb-3 mt-1" style={{ color: '#566f76' }}>{message}</p>
       {detail && (
-        <p className="text-xs theme-text-secondary/70 max-w-md mb-4 font-mono break-all px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800">
+        <p className="text-xs max-w-md mb-4 font-mono break-all px-3 py-2 rounded-lg" style={{ background: '#f5efe1', color: '#566f76' }}>
           {detail}
         </p>
       )}
-      <button
-        onClick={onDismiss}
-        className="px-4 py-2 rounded-xl text-sm font-bold border theme-border"
-      >
+      <button onClick={onDismiss} className="studio-btn-ghost">
         Try again
       </button>
     </div>

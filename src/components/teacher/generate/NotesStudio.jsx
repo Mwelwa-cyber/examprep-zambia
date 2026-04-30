@@ -16,6 +16,7 @@ import {
   formatDate,
 } from '../../../utils/teacherLibraryService'
 import NotesView from '../views/NotesView'
+import StudioPageHeader from '../StudioPageHeader'
 
 const MODE_FROM_PLAN = 'from_plan'
 const MODE_STANDALONE = 'standalone'
@@ -133,29 +134,26 @@ export default function NotesStudio() {
   }
 
   return (
-    <div className="min-h-screen theme-bg p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen p-4 sm:p-6 lg:p-8" style={{ background: '#f5efe1' }}>
       <div className="max-w-7xl mx-auto">
-        <header className="mb-6">
-          <h1 className="text-2xl sm:text-3xl font-black theme-text">
-            Notes Studio
-          </h1>
-          <p className="text-sm theme-text-secondary mt-1">
-            Teacher delivery notes — hooks, worked examples, common pupil
-            questions, misconceptions, and discussion prompts. Build them from
-            a saved lesson plan, or start from scratch.
-          </p>
-        </header>
+        <StudioPageHeader
+          eyebrow="Notes Studio"
+          title="Write delivery notes"
+          subtitle="Hooks, worked examples, common pupil questions, misconceptions, and discussion prompts — built from a saved plan or from scratch."
+          emoji="🦉"
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-6">
           {/* ── Input panel ─────────────────────────────────────── */}
           <form
             onSubmit={onGenerate}
-            className="theme-card border theme-border rounded-2xl p-5 space-y-4 h-fit lg:sticky lg:top-4"
+            className="studio-card p-5 space-y-4 h-fit lg:sticky lg:top-4"
           >
             {/* Mode tabs */}
             <div
               role="tablist"
-              className="flex rounded-xl border theme-border overflow-hidden"
+              className="flex rounded-xl overflow-hidden"
+              style={{ border: '2px solid #0e2a32' }}
             >
               <ModeTab
                 active={mode === MODE_FROM_PLAN}
@@ -260,9 +258,9 @@ export default function NotesStudio() {
             <button
               type="submit"
               disabled={status === 'generating'}
-              className="w-full py-3 rounded-xl font-black text-white bg-gradient-to-r from-sky-500 to-indigo-500 hover:from-sky-600 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              className="studio-btn-primary w-full py-3"
             >
-              {status === 'generating' ? 'Writing notes…' : '✨ Generate Notes'}
+              {status === 'generating' ? 'Writing notes…' : '▶ Generate Notes'}
             </button>
 
             {usage && (
@@ -274,7 +272,7 @@ export default function NotesStudio() {
           </form>
 
           {/* ── Output panel ────────────────────────────────────── */}
-          <section className="theme-card border theme-border rounded-2xl p-5 min-h-[400px]">
+          <section className="studio-card p-5 min-h-[400px]">
             {status === 'idle' && <EmptyState mode={mode} />}
             {status === 'generating' && <GeneratingState />}
             {status === 'error' && (
@@ -288,23 +286,17 @@ export default function NotesStudio() {
               <>
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
                   <div>
-                    <h2 className="text-lg font-black theme-text">Your Teacher Notes</h2>
-                    <p className="text-xs theme-text-secondary">
+                    <h2 className="studio-display" style={{ fontSize: 22, color: '#0e2a32', margin: '0 0 2px' }}>Your Teacher Notes</h2>
+                    <p className="text-xs" style={{ color: '#566f76' }}>
                       Skim before class — or print and tuck into your lesson plan.
                     </p>
                   </div>
                   <div className="flex gap-2 flex-wrap">
-                    <button
-                      onClick={onExportDocx}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-black border theme-border theme-card theme-text transition-all hover:-translate-y-px"
-                    >
+                    <button onClick={onExportDocx} className="studio-btn-ghost">
                       📄 Download .docx
                     </button>
-                    <button
-                      onClick={() => setStatus('idle')}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-black text-white bg-gradient-to-r from-sky-500 to-indigo-500 transition-all hover:-translate-y-px"
-                    >
-                      ✨ Generate Another
+                    <button onClick={() => setStatus('idle')} className="studio-btn-primary">
+                      ▶ Generate Another
                     </button>
                   </div>
                 </div>
@@ -337,11 +329,12 @@ function ModeTab({ active, onClick, children }) {
       role="tab"
       aria-selected={active}
       onClick={onClick}
-      className={`flex-1 px-3 py-2 text-sm font-black transition ${
+      className="flex-1 px-3 py-2 text-sm font-black transition"
+      style={
         active
-          ? 'bg-gradient-to-r from-sky-500 to-indigo-500 text-white'
-          : 'theme-text hover:bg-slate-50 dark:hover:bg-slate-800'
-      }`}
+          ? { background: '#ff7a2e', color: '#fff' }
+          : { background: 'transparent', color: '#0e2a32' }
+      }
     >
       {children}
     </button>
@@ -351,18 +344,18 @@ function ModeTab({ active, onClick, children }) {
 function PlanPicker({ plans, loading, selectedId, onSelect, onBrowseLibrary }) {
   if (loading) {
     return (
-      <div className="rounded-xl border-2 border-dashed theme-border p-4 text-center text-sm theme-text-secondary">
+      <div className="rounded-xl border-2 border-dashed p-4 text-center text-sm" style={{ borderColor: '#d9cfb8', color: '#566f76' }}>
         Loading your lesson plans…
       </div>
     )
   }
   if (plans.length === 0) {
     return (
-      <div className="rounded-xl border-2 border-dashed theme-border p-4 text-center">
-        <p className="text-sm theme-text mb-2">
+      <div className="rounded-xl border-2 border-dashed p-4 text-center" style={{ borderColor: '#d9cfb8' }}>
+        <p className="text-sm mb-2" style={{ color: '#0e2a32' }}>
           You don't have any saved lesson plans yet.
         </p>
-        <p className="text-xs theme-text-secondary">
+        <p className="text-xs" style={{ color: '#566f76' }}>
           Switch to <strong>Standalone</strong> for now, or generate a plan in
           the Lesson Plan Studio first.
         </p>
@@ -375,7 +368,7 @@ function PlanPicker({ plans, loading, selectedId, onSelect, onBrowseLibrary }) {
       <select
         value={selectedId || ''}
         onChange={(e) => onSelect(e.target.value)}
-        className="w-full px-3 py-2 rounded-lg border theme-border bg-transparent theme-text focus:outline-none focus:ring-2 focus:ring-sky-500"
+        className="studio-input"
       >
         <option value="">— Choose a saved plan —</option>
         {plans.map((p) => (
@@ -387,7 +380,8 @@ function PlanPicker({ plans, loading, selectedId, onSelect, onBrowseLibrary }) {
       <button
         type="button"
         onClick={onBrowseLibrary}
-        className="mt-1.5 text-xs font-bold theme-text-secondary hover:underline"
+        className="mt-1.5 text-xs font-bold hover:underline"
+        style={{ color: '#ff7a2e' }}
       >
         Browse in library →
       </button>
@@ -398,14 +392,14 @@ function PlanPicker({ plans, loading, selectedId, onSelect, onBrowseLibrary }) {
 function SelectedPlanSummary({ plan }) {
   const h = plan.output?.header || {}
   return (
-    <div className="rounded-xl border-2 border-sky-200 bg-sky-50 p-3">
-      <p className="text-[10px] font-black uppercase tracking-wide text-sky-900 mb-1">
+    <div className="rounded-xl p-3" style={{ background: '#fff5e6', border: '1.5px solid #ff7a2e' }}>
+      <p className="text-[10px] font-black uppercase tracking-wide mb-1" style={{ color: '#ff7a2e' }}>
         Source plan
       </p>
-      <p className="text-sm font-bold text-sky-900">
+      <p className="text-sm font-bold" style={{ color: '#0e2a32' }}>
         {titleForGeneration(plan)}
       </p>
-      <p className="text-xs text-sky-800 mt-0.5">
+      <p className="text-xs mt-0.5" style={{ color: '#566f76' }}>
         {[h.class || plan.inputs?.grade, h.subject || plan.inputs?.subject]
           .filter(Boolean).join(' · ')}
       </p>
@@ -416,11 +410,7 @@ function SelectedPlanSummary({ plan }) {
 /* ── Form fields ──────────────────────────────────────────────── */
 
 function FieldLabel({ children }) {
-  return (
-    <label className="block text-xs font-bold uppercase tracking-wide theme-text-secondary mb-1">
-      {children}
-    </label>
-  )
+  return <label className="studio-label">{children}</label>
 }
 
 function FieldText({ label, value, onChange, placeholder, maxLength }) {
@@ -433,7 +423,7 @@ function FieldText({ label, value, onChange, placeholder, maxLength }) {
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         maxLength={maxLength}
-        className="w-full px-3 py-2 rounded-lg border theme-border bg-transparent theme-text focus:outline-none focus:ring-2 focus:ring-sky-500"
+        className="studio-input"
       />
     </div>
   )
@@ -449,7 +439,7 @@ function FieldTextarea({ label, value, onChange, placeholder, maxLength }) {
         placeholder={placeholder}
         maxLength={maxLength}
         rows={3}
-        className="w-full px-3 py-2 rounded-lg border theme-border bg-transparent theme-text focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
+        className="studio-input resize-none"
       />
     </div>
   )
@@ -470,7 +460,7 @@ function FieldSelect({ label, value, options, onChange }) {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 rounded-lg border theme-border bg-transparent theme-text focus:outline-none focus:ring-2 focus:ring-sky-500"
+        className="studio-input"
       >
         {flat
           ? groups[0].items.map(o => <option key={o.value} value={o.value}>{o.label}</option>)
@@ -489,11 +479,13 @@ function FieldSelect({ label, value, options, onChange }) {
 function EmptyState({ mode }) {
   return (
     <div className="flex flex-col items-center justify-center h-full py-12 text-center">
-      <div className="text-5xl mb-3">📓</div>
-      <h3 className="text-lg font-black theme-text mb-1">Notes ready when you are</h3>
-      <p className="text-sm theme-text-secondary max-w-md">
+      <div style={{ width: 86, height: 86, borderRadius: '50%', background: '#dbe7f4', display: 'grid', placeItems: 'center', fontSize: 44 }}>
+        🦉
+      </div>
+      <h3 className="studio-display mt-4" style={{ fontSize: 20, color: '#0e2a32' }}>Notes ready when you are</h3>
+      <p className="text-sm max-w-md mt-1" style={{ color: '#566f76' }}>
         {mode === MODE_FROM_PLAN
-          ? 'Pick one of your saved lesson plans on the left and we\'ll write delivery notes that match it — same goal, same competencies.'
+          ? 'Pick one of your saved lesson plans on the left and we\'ll write delivery notes that match it.'
           : 'Tell us the grade, subject and topic on the left and we\'ll write teacher notes you can skim before class.'}
       </p>
     </div>
@@ -504,8 +496,8 @@ function GeneratingState() {
   return (
     <div className="flex flex-col items-center justify-center h-full py-12 text-center">
       <div className="text-5xl mb-3 animate-bounce">📝</div>
-      <h3 className="text-lg font-black theme-text mb-1">Writing your notes…</h3>
-      <p className="text-sm theme-text-secondary max-w-md">
+      <h3 className="studio-display" style={{ fontSize: 20, color: '#0e2a32' }}>Writing your notes…</h3>
+      <p className="text-sm max-w-md mt-1" style={{ color: '#566f76' }}>
         Usually takes 20–40 seconds. Please don't refresh the page.
       </p>
     </div>
@@ -516,17 +508,14 @@ function ErrorState({ message, detail, onDismiss }) {
   return (
     <div className="flex flex-col items-center justify-center h-full py-12 text-center">
       <div className="text-5xl mb-3">⚠️</div>
-      <h3 className="text-lg font-black theme-text mb-1">Something went wrong</h3>
-      <p className="text-sm theme-text-secondary max-w-md mb-3">{message}</p>
+      <h3 className="studio-display" style={{ fontSize: 20, color: '#0e2a32' }}>Something went wrong</h3>
+      <p className="text-sm max-w-md mb-3 mt-1" style={{ color: '#566f76' }}>{message}</p>
       {detail && (
-        <p className="text-xs theme-text-secondary/70 max-w-md mb-4 font-mono break-all px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800">
+        <p className="text-xs max-w-md mb-4 font-mono break-all px-3 py-2 rounded-lg" style={{ background: '#f5efe1', color: '#566f76' }}>
           {detail}
         </p>
       )}
-      <button
-        onClick={onDismiss}
-        className="px-4 py-2 rounded-xl text-sm font-bold border theme-border"
-      >
+      <button onClick={onDismiss} className="studio-btn-ghost">
         Try again
       </button>
     </div>

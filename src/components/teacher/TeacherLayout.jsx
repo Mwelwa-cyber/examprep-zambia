@@ -63,21 +63,29 @@ export default function TeacherLayout({ children }) {
   )
 
   return (
-    <div className="theme-bg theme-text min-h-screen flex">
+    <div className="studio-theme theme-bg theme-text min-h-screen flex">
       {/* ── Desktop Sidebar ─────────────────────────────── */}
       <aside
-        className="theme-border shadow-elev-md hidden w-60 flex-shrink-0 flex-col border-r md:flex backdrop-blur-xl"
-        style={{ backgroundColor: 'color-mix(in srgb, var(--card) 65%, transparent)' }}
+        className="theme-border shadow-elev-md hidden w-60 flex-shrink-0 flex-col border-r md:flex"
+        style={{ backgroundColor: '#ffffff' }}
       >
         <div
-          className="theme-border px-4 py-5 border-b backdrop-blur-md"
-          style={{ backgroundColor: 'color-mix(in srgb, var(--card) 55%, transparent)' }}
+          className="theme-border px-4 py-5 border-b"
+          style={{ backgroundColor: '#fffaf0' }}
         >
-          <Link to="/teacher" className="inline-flex">
-            <Logo variant="full" size="md" />
+          <Link to="/teacher" className="inline-flex items-center gap-2.5 no-underline" style={{ color: '#0e2a32' }}>
+            <Logo variant="icon" size="md" />
+            <div className="leading-tight">
+              <p className="studio-display" style={{ fontSize: 16, margin: 0, color: '#0e2a32' }}>
+                ZedExams <span style={{ color: '#ff7a2e' }}>•</span>
+              </p>
+              <p style={{ fontSize: 11.5, color: '#566f76', margin: 0, fontWeight: 600 }}>
+                Lesson Plan Studio
+              </p>
+            </div>
           </Link>
-          <div className="mt-2 flex items-center justify-between gap-2 pl-1">
-            <p className="text-eyebrow theme-accent-text">Teacher Panel</p>
+          <div className="mt-3 flex items-center justify-between gap-2 pl-1">
+            <span className="studio-eyebrow">Teacher Panel</span>
             <ThemeSelector compact />
           </div>
         </div>
@@ -126,11 +134,18 @@ export default function TeacherLayout({ children }) {
       </aside>
 
       {/* ── Mobile Header ───────────────────────────────── */}
-      <div className="theme-border shadow-elev-md fixed left-0 right-0 top-0 z-40 border-b md:hidden backdrop-blur-xl" style={{ backgroundColor: 'color-mix(in srgb, var(--card) 65%, transparent)' }}>
+      <div className="theme-border shadow-elev-md fixed left-0 right-0 top-0 z-40 border-b md:hidden" style={{ backgroundColor: '#ffffff' }}>
         <div className="flex items-center justify-between px-4 h-20">
-          <Link to="/teacher" className="flex items-center gap-2.5">
+          <Link to="/teacher" className="flex items-center gap-2.5 no-underline" style={{ color: '#0e2a32' }}>
             <Logo variant="icon" size="md" />
-            <span className="text-display-md theme-text" style={{ fontSize: 15 }}>Teacher Panel</span>
+            <div className="leading-tight">
+              <p className="studio-display" style={{ fontSize: 15, margin: 0, color: '#0e2a32' }}>
+                ZedExams <span style={{ color: '#ff7a2e' }}>•</span>
+              </p>
+              <p style={{ fontSize: 10.5, color: '#566f76', margin: 0, fontWeight: 600 }}>
+                Lesson Plan Studio
+              </p>
+            </div>
           </Link>
           <div className="flex items-center gap-2">
             <ThemeSelector compact />

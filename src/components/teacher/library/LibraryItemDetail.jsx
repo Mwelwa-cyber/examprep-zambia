@@ -173,10 +173,10 @@ export default function LibraryItemDetail() {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen theme-bg p-8 flex items-center justify-center">
-        <div className="theme-card border theme-border rounded-2xl p-8 text-center">
+      <div className="min-h-screen p-8 flex items-center justify-center" style={{ background: '#f5efe1' }}>
+        <div className="studio-card p-8 text-center">
           <div className="text-4xl mb-3 animate-bounce">📚</div>
-          <p className="theme-text-secondary">Loading…</p>
+          <p style={{ color: '#566f76' }}>Loading…</p>
         </div>
       </div>
     )
@@ -184,17 +184,14 @@ export default function LibraryItemDetail() {
 
   if (status === 'notfound' || !item) {
     return (
-      <div className="min-h-screen theme-bg p-8 flex items-center justify-center">
-        <div className="theme-card border theme-border rounded-2xl p-8 max-w-md text-center">
+      <div className="min-h-screen p-8 flex items-center justify-center" style={{ background: '#f5efe1' }}>
+        <div className="studio-card p-8 max-w-md text-center">
           <div className="text-5xl mb-3">🤷</div>
-          <h2 className="text-lg font-black theme-text mb-2">Not found</h2>
-          <p className="text-sm theme-text-secondary mb-4">
+          <h2 className="studio-display" style={{ fontSize: 20, color: '#0e2a32', marginBottom: 8 }}>Not found</h2>
+          <p className="text-sm mb-4" style={{ color: '#566f76' }}>
             This generation may have been deleted or belongs to another account.
           </p>
-          <Link
-            to="/teacher/library"
-            className="inline-block px-4 py-2 rounded-xl font-bold border theme-border"
-          >
+          <Link to="/teacher/library" className="studio-btn-ghost inline-block">
             ← Back to library
           </Link>
         </div>
@@ -205,11 +202,11 @@ export default function LibraryItemDetail() {
   const meta = TOOL_META[item.tool] || { label: item.tool, icon: '📄' }
 
   return (
-    <div className="min-h-screen theme-bg p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen p-4 sm:p-6 lg:p-8" style={{ background: '#f5efe1' }}>
       <div className="max-w-5xl mx-auto">
         {/* Breadcrumb */}
-        <nav className="mb-4 text-sm theme-text-secondary">
-          <Link to="/teacher/library" className="hover:underline">← My Library</Link>
+        <nav className="mb-4 text-sm" style={{ color: '#566f76' }}>
+          <Link to="/teacher/library" className="hover:underline" style={{ color: '#0e2a32', fontWeight: 700 }}>← My Library</Link>
         </nav>
 
         {/* Header */}
@@ -217,19 +214,19 @@ export default function LibraryItemDetail() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-2xl" aria-hidden="true">{meta.icon}</span>
-              <span className="text-[10px] font-black uppercase tracking-wide theme-text-secondary">
+              <span className="text-[10px] font-black uppercase tracking-wide" style={{ color: '#ff7a2e', letterSpacing: '1.2px' }}>
                 {meta.label}
               </span>
               {item.status === 'flagged' && (
-                <span className="text-[10px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                <span className="text-[10px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full" style={{ background: '#fff5e6', color: '#c2531a' }}>
                   Review recommended
                 </span>
               )}
             </div>
-            <h1 className="text-2xl font-black theme-text">
+            <h1 className="studio-display" style={{ fontSize: 28, color: '#0e2a32', margin: 0 }}>
               {titleForGeneration(item)}
             </h1>
-            <div className="mt-1 text-xs theme-text-secondary flex flex-wrap gap-3">
+            <div className="mt-1 text-xs flex flex-wrap gap-3" style={{ color: '#566f76' }}>
               <span>{item.inputs?.grade}</span>
               <span>·</span>
               <span>{formatSubject(item.inputs?.subject)}</span>
@@ -247,62 +244,51 @@ export default function LibraryItemDetail() {
           {/* Actions */}
           <div className="flex flex-wrap gap-2">
             {item.tool === 'worksheet' && (
-              <label className="flex items-center gap-2 text-sm theme-text px-3 py-2 rounded-xl border theme-border cursor-pointer">
+              <label className="flex items-center gap-2 text-sm px-3 py-2 rounded-xl cursor-pointer" style={{ color: '#0e2a32', border: '1.5px solid #d9cfb8' }}>
                 <input
                   type="checkbox"
                   checked={showAnswers}
                   onChange={(e) => setShowAnswers(e.target.checked)}
-                  className="accent-indigo-500"
+                  style={{ accentColor: '#ff7a2e' }}
                 />
                 Show answers
               </label>
             )}
-            <button
-              onClick={onExport}
-              className="px-4 py-2 rounded-xl text-sm font-bold border theme-border hover:bg-slate-50 dark:hover:bg-slate-800 transition"
-            >
+            <button onClick={onExport} className="studio-btn-ghost">
               📄 Export .docx
             </button>
             <button
               onClick={onShare}
               disabled={sharing}
-              className="px-4 py-2 rounded-xl text-sm font-bold border theme-border hover:bg-slate-50 dark:hover:bg-slate-800 transition disabled:opacity-50"
+              className="studio-btn-ghost disabled:opacity-50"
             >
               {sharing ? '🔗 Publishing…' : '🔗 Share link'}
             </button>
             {item.tool === 'worksheet' && (
-              <button
-                onClick={onExportAnswerKey}
-                className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-500"
-              >
+              <button onClick={onExportAnswerKey} className="studio-btn-primary">
                 🔑 Answer Key .docx
               </button>
             )}
             {canEditDetails && (
-              <button
-                onClick={() => setEditingHeader(true)}
-                className="px-4 py-2 rounded-xl text-sm font-bold border theme-border"
-              >
+              <button onClick={() => setEditingHeader(true)} className="studio-btn-ghost">
                 ✏️ Edit details
               </button>
             )}
-            <button
-              onClick={onRegenerate}
-              className="px-4 py-2 rounded-xl text-sm font-bold border theme-border"
-            >
+            <button onClick={onRegenerate} className="studio-btn-ghost">
               🔁 Generate similar
             </button>
             {item.tool === 'lesson_plan' && (
               <button
                 onClick={() => navigate(`/teacher/generate/notes?lessonPlanId=${item.id}`)}
-                className="px-4 py-2 rounded-xl text-sm font-black text-white bg-gradient-to-r from-sky-500 to-indigo-500"
+                className="studio-btn-primary"
               >
                 📓 Generate Notes
               </button>
             )}
             <button
               onClick={onDelete}
-              className="px-4 py-2 rounded-xl text-sm font-bold text-rose-700 border border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-950 transition"
+              className="px-4 py-2 rounded-xl text-sm font-bold transition"
+              style={{ color: '#b91c1c', border: '2px solid #fecaca', background: '#fff' }}
             >
               🗑️ Delete
             </button>
@@ -350,7 +336,7 @@ export default function LibraryItemDetail() {
         )}
 
         {/* Content */}
-        <div className="theme-card border theme-border rounded-2xl p-5">
+        <div className="studio-card p-5">
           {item.tool === 'lesson_plan' && <LessonPlanView plan={item.output} />}
           {item.tool === 'worksheet' && (
             <WorksheetView worksheet={item.output} showAnswers={showAnswers} />
@@ -456,7 +442,7 @@ function EditHeaderModal({ tool, header, saving, onCancel, onSave }) {
                   onChange={(e) => set(f.key, e.target.value)}
                   placeholder={f.placeholder || ''}
                   rows={3}
-                  className="w-full px-3 py-2 rounded-lg border-2 theme-border focus:outline-none focus:border-emerald-400 resize-none"
+                  className="studio-input resize-none"
                 />
               ) : (
                 <input
@@ -464,7 +450,7 @@ function EditHeaderModal({ tool, header, saving, onCancel, onSave }) {
                   value={draft[f.key] ?? ''}
                   onChange={(e) => set(f.key, e.target.value)}
                   placeholder={f.placeholder || ''}
-                  className="w-full px-3 py-2 rounded-lg border-2 theme-border focus:outline-none focus:border-emerald-400"
+                  className="studio-input"
                 />
               )}
             </div>
@@ -478,14 +464,14 @@ function EditHeaderModal({ tool, header, saving, onCancel, onSave }) {
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 rounded-xl text-sm font-bold border-2 theme-border hover:bg-slate-50"
+            className="studio-btn-ghost"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="px-5 py-2 rounded-xl text-sm font-black text-white bg-gradient-to-r from-emerald-500 to-teal-500 disabled:opacity-50"
+            className="studio-btn-primary disabled:opacity-50"
           >
             {saving ? 'Saving…' : 'Save changes'}
           </button>

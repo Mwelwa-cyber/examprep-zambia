@@ -11,6 +11,7 @@ import {
 import { downloadRubricDocx } from '../../../utils/rubricToDocx'
 import { useFormDefaultsFromUrl } from '../../../utils/useFormDefaultsFromUrl'
 import RubricView from '../views/RubricView'
+import StudioPageHeader from '../StudioPageHeader'
 
 export default function RubricGenerator() {
   const urlDefaults = useFormDefaultsFromUrl()
@@ -81,21 +82,19 @@ export default function RubricGenerator() {
   }
 
   return (
-    <div className="min-h-screen theme-bg p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen p-4 sm:p-6 lg:p-8" style={{ background: '#f5efe1' }}>
       <div className="max-w-7xl mx-auto">
-        <header className="mb-6">
-          <h1 className="text-2xl sm:text-3xl font-black theme-text">
-            Rubric Generator
-          </h1>
-          <p className="text-sm theme-text-secondary mt-1">
-            Assessment rubrics for essays, projects, presentations, and practicals — with four performance levels and clear mark bands.
-          </p>
-        </header>
+        <StudioPageHeader
+          eyebrow="Rubric Studio"
+          title="Mark consistently"
+          subtitle="Four-level rubrics with clear descriptors for essays, projects, presentations, and practicals."
+          emoji="📋"
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-6">
           <form
             onSubmit={onGenerate}
-            className="theme-card border theme-border rounded-2xl p-5 space-y-4 h-fit sticky top-4"
+            className="studio-card p-5 space-y-4 h-fit sticky top-4"
           >
             <FieldSelect
               label="Grade"
@@ -153,9 +152,9 @@ export default function RubricGenerator() {
             <button
               type="submit"
               disabled={status === 'generating'}
-              className="w-full py-3 rounded-xl font-black text-white bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              className="studio-btn-primary w-full py-3"
             >
-              {status === 'generating' ? 'Generating…' : '📋 Generate Rubric'}
+              {status === 'generating' ? 'Generating…' : '▶ Generate Rubric'}
             </button>
 
             {usage && (
@@ -166,7 +165,7 @@ export default function RubricGenerator() {
             )}
           </form>
 
-          <section className="theme-card border theme-border rounded-2xl p-5 min-h-[400px]">
+          <section className="studio-card p-5 min-h-[400px]">
             {status === 'idle' && <EmptyState />}
             {status === 'generating' && <GeneratingState />}
             {status === 'error' && (
@@ -180,23 +179,17 @@ export default function RubricGenerator() {
               <>
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
                   <div>
-                    <h2 className="text-lg font-black theme-text">{rubric.header?.title}</h2>
-                    <p className="text-xs theme-text-secondary">
+                    <h2 className="studio-display" style={{ fontSize: 22, color: '#0e2a32', margin: '0 0 2px' }}>{rubric.header?.title}</h2>
+                    <p className="text-xs" style={{ color: '#566f76' }}>
                       {rubric.header?.totalMarks} marks · {rubric.criteria?.length} criteria
                     </p>
                   </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={onExport}
-                      className="px-4 py-2 rounded-xl text-sm font-bold border theme-border hover:bg-slate-50 transition"
-                    >
+                  <div className="flex gap-2 flex-wrap">
+                    <button onClick={onExport} className="studio-btn-ghost">
                       📄 Download .docx (landscape)
                     </button>
-                    <button
-                      onClick={() => setStatus('idle')}
-                      className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-rose-500 to-pink-500"
-                    >
-                      ✨ Generate Another
+                    <button onClick={() => setStatus('idle')} className="studio-btn-primary">
+                      ▶ Generate Another
                     </button>
                   </div>
                 </div>
@@ -223,11 +216,7 @@ export default function RubricGenerator() {
 /* ── Inputs (match other generators) ────────────────────────── */
 
 function FieldLabel({ children }) {
-  return (
-    <label className="block text-xs font-bold uppercase tracking-wide theme-text-secondary mb-1">
-      {children}
-    </label>
-  )
+  return <label className="studio-label">{children}</label>
 }
 
 function FieldTextarea({ label, value, onChange, placeholder, maxLength }) {
@@ -240,7 +229,7 @@ function FieldTextarea({ label, value, onChange, placeholder, maxLength }) {
         placeholder={placeholder}
         maxLength={maxLength}
         rows={3}
-        className="w-full px-3 py-2 rounded-lg border theme-border bg-transparent theme-text focus:outline-none focus:ring-2 focus:ring-rose-500 resize-none"
+        className="studio-input resize-none"
       />
     </div>
   )
@@ -261,7 +250,7 @@ function FieldSelect({ label, value, options, onChange }) {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 rounded-lg border theme-border bg-transparent theme-text focus:outline-none focus:ring-2 focus:ring-rose-500"
+        className="studio-input"
       >
         {flat
           ? groups[0].items.map(o => <option key={o.value} value={o.value}>{o.label}</option>)
@@ -280,11 +269,13 @@ function FieldSelect({ label, value, options, onChange }) {
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center h-full py-12 text-center">
-      <div className="text-5xl mb-3">📋</div>
-      <h3 className="text-lg font-black theme-text mb-1">Consistent marking in seconds</h3>
-      <p className="text-sm theme-text-secondary max-w-md">
-        Describe the task, pick total marks, get a four-level rubric with clear descriptors
-        for every criterion. Every teacher in your school can then mark the same piece the same way.
+      <div style={{ width: 86, height: 86, borderRadius: '50%', background: '#f0d6e0', display: 'grid', placeItems: 'center', fontSize: 44 }}>
+        📋
+      </div>
+      <h3 className="studio-display mt-4" style={{ fontSize: 20, color: '#0e2a32' }}>Consistent marking in seconds</h3>
+      <p className="text-sm max-w-md mt-1" style={{ color: '#566f76' }}>
+        Describe the task and pick total marks. You'll get a four-level rubric with clear
+        descriptors so every teacher marks the same piece the same way.
       </p>
     </div>
   )
@@ -294,8 +285,8 @@ function GeneratingState() {
   return (
     <div className="flex flex-col items-center justify-center h-full py-12 text-center">
       <div className="text-5xl mb-3 animate-bounce">📊</div>
-      <h3 className="text-lg font-black theme-text mb-1">Designing your rubric…</h3>
-      <p className="text-sm theme-text-secondary max-w-md">
+      <h3 className="studio-display" style={{ fontSize: 20, color: '#0e2a32' }}>Designing your rubric…</h3>
+      <p className="text-sm max-w-md mt-1" style={{ color: '#566f76' }}>
         Usually takes 10–20 seconds.
       </p>
     </div>
@@ -306,14 +297,14 @@ function ErrorState({ message, detail, onDismiss }) {
   return (
     <div className="flex flex-col items-center justify-center h-full py-12 text-center">
       <div className="text-5xl mb-3">⚠️</div>
-      <h3 className="text-lg font-black theme-text mb-1">Something went wrong</h3>
-      <p className="text-sm theme-text-secondary max-w-md mb-3">{message}</p>
+      <h3 className="studio-display" style={{ fontSize: 20, color: '#0e2a32' }}>Something went wrong</h3>
+      <p className="text-sm max-w-md mb-3 mt-1" style={{ color: '#566f76' }}>{message}</p>
       {detail && (
-        <p className="text-xs theme-text-secondary/70 max-w-md mb-4 font-mono break-all px-3 py-2 rounded-lg bg-slate-100">
+        <p className="text-xs max-w-md mb-4 font-mono break-all px-3 py-2 rounded-lg" style={{ background: '#f5efe1', color: '#566f76' }}>
           {detail}
         </p>
       )}
-      <button onClick={onDismiss} className="px-4 py-2 rounded-xl text-sm font-bold border theme-border">
+      <button onClick={onDismiss} className="studio-btn-ghost">
         Try again
       </button>
     </div>
