@@ -56,6 +56,10 @@ const {
 const {
   createGenerateRubric,
 } = require("./teacherTools/generateRubric");
+// Teacher Tools — Notes Studio (teacher delivery notes from a lesson plan).
+const {
+  createGenerateNotes,
+} = require("./teacherTools/generateNotes");
 // Teacher Tools — Lesson Plan Studio (vanilla JS studio, free-form prompts).
 const {
   createStudioGenerateLessonPlan,
@@ -1091,6 +1095,9 @@ exports.generateSchemeOfWork = createGenerateSchemeOfWork(anthropicApiKey);
 
 // Teacher Tools — Zambian CBC Rubric Generator.
 exports.generateRubric = createGenerateRubric(anthropicApiKey);
+
+// Teacher Tools — Notes Studio (teacher delivery notes).
+exports.generateNotes = createGenerateNotes(anthropicApiKey);
 
 // Teacher Tools — admin-only: import the built-in G1-9 topics into Firestore.
 exports.importBuiltInCbcTopics = importBuiltInCbcTopics;

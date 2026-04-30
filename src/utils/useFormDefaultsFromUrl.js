@@ -17,6 +17,7 @@ const STRING_KEYS = [
   'grade', 'subject', 'topic', 'subtopic',
   'teacherName', 'school', 'language',
   'difficulty', 'instructions',
+  'lessonPlanId',
 ]
 
 const NUMBER_KEYS = [

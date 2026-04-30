@@ -14,11 +14,13 @@ import WorksheetView from '../views/WorksheetView'
 import FlashcardsView from '../views/FlashcardsView'
 import SchemeOfWorkView from '../views/SchemeOfWorkView'
 import RubricView from '../views/RubricView'
+import NotesView from '../views/NotesView'
 import { downloadLessonPlanDocx } from '../../../utils/lessonPlanToDocx'
 import { downloadWorksheetDocx } from '../../../utils/worksheetToDocx'
 import { downloadFlashcardsDocx } from '../../../utils/flashcardsToDocx'
 import { downloadSchemeOfWorkDocx } from '../../../utils/schemeOfWorkToDocx'
 import { downloadRubricDocx } from '../../../utils/rubricToDocx'
+import { downloadNotesDocx } from '../../../utils/notesToDocx'
 import { buildGeneratorQueryString } from '../../../utils/useFormDefaultsFromUrl'
 import { publishShare } from '../../../utils/shareService'
 import { useAuth } from '../../../contexts/AuthContext'
@@ -120,6 +122,9 @@ export default function LibraryItemDetail() {
       recordExport(item.id, 'docx')
     } else if (item.tool === 'rubric') {
       await downloadRubricDocx(item.output, `${base}_rubric.docx`)
+      recordExport(item.id, 'docx')
+    } else if (item.tool === 'notes') {
+      await downloadNotesDocx(item.output, `${base}_teacher-notes.docx`)
       recordExport(item.id, 'docx')
     }
   }
@@ -287,6 +292,14 @@ export default function LibraryItemDetail() {
             >
               🔁 Generate similar
             </button>
+            {item.tool === 'lesson_plan' && (
+              <button
+                onClick={() => navigate(`/teacher/generate/notes?lessonPlanId=${item.id}`)}
+                className="px-4 py-2 rounded-xl text-sm font-black text-white bg-gradient-to-r from-sky-500 to-indigo-500"
+              >
+                📓 Generate Notes
+              </button>
+            )}
             <button
               onClick={onDelete}
               className="px-4 py-2 rounded-xl text-sm font-bold text-rose-700 border border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-950 transition"
@@ -345,6 +358,7 @@ export default function LibraryItemDetail() {
           {item.tool === 'flashcards' && <FlashcardsView flashcards={item.output} />}
           {item.tool === 'scheme_of_work' && <SchemeOfWorkView scheme={item.output} />}
           {item.tool === 'rubric' && <RubricView rubric={item.output} />}
+          {item.tool === 'notes' && <NotesView notes={item.output} />}
           {!item.output && (
             <p className="text-sm theme-text-secondary italic">
               This generation has no output to display.

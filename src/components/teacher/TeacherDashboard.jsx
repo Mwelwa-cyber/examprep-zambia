@@ -35,10 +35,11 @@ const STUDIOS = [
   {
     emoji: '🦉',
     mascotBg: '#dbe7f4',
-    badge: 'SOON',
+    badge: 'NEW',
+    libraryKey: 'notes',
     title: 'Notes Studio',
     tagline: 'Teacher delivery notes built from your lesson plans.',
-    to: null,
+    to: '/teacher/generate/notes',
     mascot: 'Story Owl',
   },
   {
@@ -76,6 +77,7 @@ const TOOL_META = {
   worksheet: { icon: '🐢', accent: '#d8ecd0', label: 'Worksheet' },
   flashcards: { icon: '🎴', accent: '#fde9b8', label: 'Flashcards' },
   rubric: { icon: '📋', accent: '#f0d6e0', label: 'Rubric' },
+  notes: { icon: '🦉', accent: '#dbe7f4', label: 'Teacher Notes' },
   assessments: { icon: '🦅', accent: '#e8d8f0', label: 'Assessment' },
 }
 

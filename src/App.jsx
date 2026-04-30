@@ -58,6 +58,7 @@ const WorksheetGenerator = lazy(() => import('./components/teacher/generate/Work
 const FlashcardGenerator = lazy(() => import('./components/teacher/generate/FlashcardGenerator'))
 const SchemeOfWorkGenerator = lazy(() => import('./components/teacher/generate/SchemeOfWorkGenerator'))
 const RubricGenerator = lazy(() => import('./components/teacher/generate/RubricGenerator'))
+const NotesStudio = lazy(() => import('./components/teacher/generate/NotesStudio'))
 
 // Teacher — Library
 const TeacherLibrary = lazy(() => import('./components/teacher/library/TeacherLibrary'))
@@ -253,6 +254,7 @@ export default function App() {
           <Route path="/admin/generate/flashcards"      element={<AdminRoute><FlashcardGenerator /></AdminRoute>} />
           <Route path="/admin/generate/scheme-of-work"  element={<AdminRoute><SchemeOfWorkGenerator /></AdminRoute>} />
           <Route path="/admin/generate/rubric"          element={<AdminRoute><RubricGenerator /></AdminRoute>} />
+          <Route path="/admin/generate/notes"           element={<AdminRoute><NotesStudio /></AdminRoute>} />
 
           {/* ── Teacher routes (all wrapped in TeacherLayout) ─── */}
           <Route path="/teacher"                         element={<TeacherRoute><TeacherDashboard /></TeacherRoute>} />
@@ -269,6 +271,7 @@ export default function App() {
           <Route path="/teacher/generate/flashcards"     element={<TeacherRoute><FlashcardGenerator /></TeacherRoute>} />
           <Route path="/teacher/generate/scheme-of-work" element={<TeacherRoute><SchemeOfWorkGenerator /></TeacherRoute>} />
           <Route path="/teacher/generate/rubric"          element={<TeacherRoute><RubricGenerator /></TeacherRoute>} />
+          <Route path="/teacher/generate/notes"           element={<TeacherRoute><NotesStudio /></TeacherRoute>} />
           <Route path="/teacher/library"                 element={<TeacherRoute><TeacherLibrary /></TeacherRoute>} />
           <Route path="/teacher/library/:id"             element={<TeacherRoute><LibraryItemDetail /></TeacherRoute>} />
           <Route path="/teacher/syllabi"                 element={<TeacherRoute><SyllabiLibrary /></TeacherRoute>} />

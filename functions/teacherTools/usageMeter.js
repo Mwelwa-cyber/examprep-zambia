@@ -18,6 +18,7 @@ const PLAN_LIMITS = {
     quiz: 3,
     rubric: 2,
     scheme_of_work: 0,
+    notes: 5,
   },
   individual: {
     lesson_plan: 100,
@@ -26,6 +27,7 @@ const PLAN_LIMITS = {
     quiz: 40,
     rubric: 20,
     scheme_of_work: 5,
+    notes: 60,
   },
   school: {
     lesson_plan: 100,
@@ -34,6 +36,7 @@ const PLAN_LIMITS = {
     quiz: 40,
     rubric: 20,
     scheme_of_work: 5,
+    notes: 60,
   },
 };
 
