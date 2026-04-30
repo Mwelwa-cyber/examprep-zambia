@@ -96,7 +96,7 @@ export default function ThemeSelector({ compact = false, onDark = false, quizSty
       </span>
 
       {/* Mobile text label — visible only on small screens where hover doesn't exist */}
-      <span aria-hidden="true" className={`${dashboardStyle ? 'mt-1 text-[10px] font-black' : 'mt-0.5 text-[9px] font-bold sm:hidden'} leading-none theme-text-muted`}>
+      <span aria-hidden="true" className={`${dashboardStyle ? 'learner-chrome-label mt-1 text-[10px] font-black' : 'mt-0.5 text-[9px] font-bold sm:hidden theme-text-muted'} leading-none`}>
         Theme
       </span>
 

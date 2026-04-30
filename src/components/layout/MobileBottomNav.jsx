@@ -25,7 +25,7 @@ export default function MobileBottomNav({ mode = 'fixed', className = '' }) {
             end={item.end}
             className={({ isActive }) =>
               `flex-1 flex flex-col items-center gap-1 py-2 transition-all duration-base ease-out ${
-                isActive ? 'theme-accent-text' : 'theme-text-muted hover:theme-accent-text'
+                isActive ? 'theme-accent-text' : 'learner-chrome-label hover:theme-accent-text'
               }`
             }
           >
@@ -34,7 +34,7 @@ export default function MobileBottomNav({ mode = 'fixed', className = '' }) {
                 <span className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl border leading-none shadow-elev-sm transition-all duration-base ease-spring ${
                   isActive
                     ? 'border-blue-200 bg-blue-50 text-blue-700'
-                    : 'border-transparent text-slate-400'
+                    : 'border-transparent learner-chrome-icon'
                 }`}>
                   <Icon as={item.icon} size="md" strokeWidth={2.1} />
                 </span>

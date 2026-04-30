@@ -13,6 +13,17 @@ export default function GameStickerStyles() {
         border: 2px solid #0F1B2D;
         box-shadow: 0 2px 0 #0F1B2D;
       }
+      .learner-game-theme .zx-card {
+        border-color: #050816;
+        box-shadow:
+          0 3px 0 #050816,
+          0 18px 36px -28px rgba(0,0,0,0.9);
+      }
+      .learner-game-theme .zx-card:hover {
+        box-shadow:
+          0 2px 0 #050816,
+          0 22px 42px -30px rgba(0,0,0,0.95);
+      }
       .zx-card-dark {
         background: #0F172A;
         color: #fff;
