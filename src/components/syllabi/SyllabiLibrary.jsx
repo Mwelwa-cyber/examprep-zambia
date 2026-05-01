@@ -254,6 +254,7 @@ export default function SyllabiLibrary() {
   const [syllabi, setSyllabi] = useState([])
   const [query, setQuery] = useState('')
   const [phase, setPhase] = useState('All')
+  const [subject, setSubject] = useState('All')
   const [selectedId, setSelectedId] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -289,16 +290,23 @@ export default function SyllabiLibrary() {
     return ['All', ...unique]
   }, [syllabi])
 
+  const subjects = useMemo(() => {
+    const unique = Array.from(new Set(syllabi.map(item => item.subject).filter(Boolean)))
+    return ['All', ...unique.sort()]
+  }, [syllabi])
+
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase()
     return syllabi.filter(item => {
       const matchesPhase = phase === 'All' || item.phase === phase
+      const matchesSubject = subject === 'All' || item.subject === subject
       const matchesQuery = !term
         || item.title.toLowerCase().includes(term)
         || item.phase.toLowerCase().includes(term)
-      return matchesPhase && matchesQuery
+        || (item.subject && item.subject.toLowerCase().includes(term))
+      return matchesPhase && matchesSubject && matchesQuery
     })
-  }, [phase, query, syllabi])
+  }, [phase, subject, query, syllabi])
 
   const selected = useMemo(() => {
     return filtered.find(item => item.id === selectedId) || filtered[0] || null
@@ -364,6 +372,26 @@ export default function SyllabiLibrary() {
                   {item}
                 </button>
               ))}
+            </div>
+
+            <div className="mt-4">
+              <p className="mb-2 text-xs font-black uppercase tracking-wide theme-text-muted">Subject</p>
+              <div className="flex flex-wrap gap-2">
+                {subjects.map(item => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setSubject(item)}
+                    className={`min-h-0 rounded-full px-3 py-1.5 text-xs font-black transition ${
+                      subject === item
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'theme-bg-subtle theme-text-muted hover:theme-card-hover'
+                    }`}
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="mt-4 max-h-[62vh] space-y-2 overflow-y-auto pr-1">

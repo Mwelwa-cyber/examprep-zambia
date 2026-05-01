@@ -59,7 +59,7 @@ const STUDIOS = [
     badge: 'FREE',
     title: 'Syllabi',
     tagline: 'Official CDC syllabi — view all Zambian curricula in one place.',
-    to: null,
+    to: '/syllabi',
     mascot: 'Memory Elephant',
   },
 ]
