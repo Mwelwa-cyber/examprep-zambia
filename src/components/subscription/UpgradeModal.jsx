@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, ArrowLeft, Check, CheckCircleIcon, CreditCard, Sparkles, X } from '../ui/icons'
 import { useAuth } from '../../contexts/AuthContext'
 import { PLANS, PAYMENT_DETAILS } from '../../utils/subscriptionConfig'
@@ -41,6 +42,7 @@ const PORTAL_COPY = {
 export default function UpgradeModal({ onClose, portal }) {
   const copy = PORTAL_COPY[portal] || PORTAL_COPY.generic
   const { refreshProfile } = useAuth()
+  const navigate = useNavigate()
   const [step, setStep] = useState('plans')
   const [selectedPlanId, setSelectedPlanId] = useState(null)
   const [phone, setPhone] = useState('')
@@ -241,7 +243,21 @@ export default function UpgradeModal({ onClose, portal }) {
                 <p className="font-bold mb-1">Account activated</p>
                 <p>{statusText || 'You now have full subscription access.'}</p>
               </div>
-              <Button variant="primary" size="lg" fullWidth onClick={onClose}>Back to Dashboard</Button>
+              {portal === 'teacher' ? (
+                <Button
+                  variant="primary"
+                  size="lg"
+                  fullWidth
+                  onClick={() => {
+                    onClose?.()
+                    navigate('/teacher/welcome-to-pro')
+                  }}
+                >
+                  See what's unlocked →
+                </Button>
+              ) : (
+                <Button variant="primary" size="lg" fullWidth onClick={onClose}>Back to Dashboard</Button>
+              )}
             </div>
           )}
 
