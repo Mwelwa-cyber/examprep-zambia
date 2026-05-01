@@ -16,6 +16,7 @@ import {
   Sparkles,
   Users,
   GraduationCap,
+  Settings,
 } from '../ui/icons'
 import { useAuth } from '../../contexts/AuthContext'
 import Logo from '../ui/Logo'
@@ -34,6 +35,7 @@ const NAV = [
   { to: '/admin/approvals',              icon: BellRing,        label: 'Approvals'                 },
   { to: '/admin/results',                icon: TrendingUp,      label: 'Results'                   },
   { to: '/admin/payments',               icon: CreditCard,      label: 'Payments'                  },
+  { to: '/settings',                     icon: Settings,        label: 'Settings'                  },
   { to: '/teacher',                      icon: GraduationCap,   label: 'Teacher Panel'             },
 ]
 
