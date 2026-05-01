@@ -4,9 +4,11 @@ import { useAuth } from '../../../contexts/AuthContext'
 import {
   generateNotes,
   TEACHER_GRADES,
-  TEACHER_SUBJECTS,
   TEACHER_LANGUAGES,
   DURATION_PRESETS,
+  getSubjectsForGrade,
+  isSubjectValidForGrade,
+  defaultSubjectForGrade,
 } from '../../../utils/teacherTools'
 import { downloadNotesDocx } from '../../../utils/notesToDocx'
 import { useFormDefaultsFromUrl } from '../../../utils/useFormDefaultsFromUrl'
@@ -69,6 +71,17 @@ export default function NotesStudio() {
   function updateField(key, value) {
     setForm((f) => ({ ...f, [key]: value }))
   }
+
+  const subjectOptions = useMemo(
+    () => getSubjectsForGrade(form.grade),
+    [form.grade],
+  )
+
+  useEffect(() => {
+    if (!isSubjectValidForGrade(form.subject, form.grade)) {
+      setForm((f) => ({ ...f, subject: defaultSubjectForGrade(f.grade) }))
+    }
+  }, [form.grade, form.subject])
 
   const selectedPlan = useMemo(
     () => plans.find((p) => p.id === form.lessonPlanId) || null,
@@ -194,7 +207,7 @@ export default function NotesStudio() {
                 <FieldSelect
                   label="Subject"
                   value={form.subject}
-                  options={TEACHER_SUBJECTS}
+                  options={subjectOptions}
                   onChange={(v) => updateField('subject', v)}
                 />
                 <FieldText

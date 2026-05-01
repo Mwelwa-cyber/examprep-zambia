@@ -1,11 +1,13 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import {
   generateFlashcards,
   TEACHER_GRADES,
-  TEACHER_SUBJECTS,
   TEACHER_LANGUAGES,
   WORKSHEET_DIFFICULTIES,
   FLASHCARD_COUNTS,
+  getSubjectsForGrade,
+  isSubjectValidForGrade,
+  defaultSubjectForGrade,
 } from '../../../utils/teacherTools'
 import { downloadFlashcardsDocx } from '../../../utils/flashcardsToDocx'
 import { useFormDefaultsFromUrl } from '../../../utils/useFormDefaultsFromUrl'
@@ -38,6 +40,17 @@ export default function FlashcardGenerator() {
   const [viewMode, setViewMode] = useState('grid') // grid | study
   const [studyIndex, setStudyIndex] = useState(0)
   const [isFlipped, setIsFlipped] = useState(false)
+
+  const subjectOptions = useMemo(
+    () => getSubjectsForGrade(form.grade),
+    [form.grade],
+  )
+
+  useEffect(() => {
+    if (!isSubjectValidForGrade(form.subject, form.grade)) {
+      setForm((f) => ({ ...f, subject: defaultSubjectForGrade(f.grade) }))
+    }
+  }, [form.grade, form.subject])
 
   function updateField(key, value) {
     setForm((f) => ({ ...f, [key]: value }))
@@ -148,7 +161,7 @@ export default function FlashcardGenerator() {
             <FieldSelect
               label="Subject"
               value={form.subject}
-              options={TEACHER_SUBJECTS}
+              options={subjectOptions}
               onChange={(v) => updateField('subject', v)}
             />
             <FieldText

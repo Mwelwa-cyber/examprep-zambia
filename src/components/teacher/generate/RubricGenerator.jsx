@@ -1,12 +1,14 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   generateRubric,
   TEACHER_GRADES,
-  TEACHER_SUBJECTS,
   TEACHER_LANGUAGES,
   RUBRIC_TASK_TYPES,
   RUBRIC_TOTAL_MARKS,
   RUBRIC_CRITERIA_COUNTS,
+  getSubjectsForGrade,
+  isSubjectValidForGrade,
+  defaultSubjectForGrade,
 } from '../../../utils/teacherTools'
 import { downloadRubricDocx } from '../../../utils/rubricToDocx'
 import { useFormDefaultsFromUrl } from '../../../utils/useFormDefaultsFromUrl'
@@ -33,6 +35,17 @@ export default function RubricGenerator() {
   const [generationId, setGenerationId] = useState(null)
   const [usage, setUsage] = useState(null)
   const [warning, setWarning] = useState('')
+
+  const subjectOptions = useMemo(
+    () => getSubjectsForGrade(form.grade),
+    [form.grade],
+  )
+
+  useEffect(() => {
+    if (!isSubjectValidForGrade(form.subject, form.grade)) {
+      setForm((f) => ({ ...f, subject: defaultSubjectForGrade(f.grade) }))
+    }
+  }, [form.grade, form.subject])
 
   function updateField(key, value) {
     setForm((f) => ({ ...f, [key]: value }))
@@ -105,7 +118,7 @@ export default function RubricGenerator() {
             <FieldSelect
               label="Subject"
               value={form.subject}
-              options={TEACHER_SUBJECTS}
+              options={subjectOptions}
               onChange={(v) => updateField('subject', v)}
             />
             <FieldSelect
