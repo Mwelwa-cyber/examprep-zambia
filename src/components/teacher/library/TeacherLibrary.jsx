@@ -73,8 +73,10 @@ function quizSubtitle(q) {
 export default function TeacherLibrary() {
   const { currentUser } = useAuth()
   const { getMyQuizzes } = useFirestore()
-  const [searchParams] = useSearchParams()
-  const initialFocus = searchParams.get('tool') || ''
+  const [searchParams, setSearchParams] = useSearchParams()
+  const folderParam = searchParams.get('folder') || searchParams.get('tool') || ''
+  const openFolderKey = SECTIONS.some((s) => s.key === folderParam) ? folderParam : ''
+  const openFolder = SECTIONS.find((s) => s.key === openFolderKey) || null
   const initialQuery = searchParams.get('q') || ''
 
   const [generations, setGenerations] = useState([])
@@ -82,6 +84,20 @@ export default function TeacherLibrary() {
   const [status, setStatus] = useState('loading') // loading | ready | error
   const [errorMessage, setErrorMessage] = useState('')
   const [search, setSearch] = useState(initialQuery)
+
+  const closeFolder = () => {
+    const next = new URLSearchParams(searchParams)
+    next.delete('folder')
+    next.delete('tool')
+    setSearchParams(next, { replace: false })
+  }
+
+  const openFolderByKey = (key) => {
+    const next = new URLSearchParams(searchParams)
+    next.set('folder', key)
+    next.delete('tool')
+    setSearchParams(next, { replace: false })
+  }
 
   useEffect(() => {
     if (!currentUser) return
@@ -153,6 +169,25 @@ export default function TeacherLibrary() {
   }, [filteredGenerations, filteredQuizzes])
 
   const totalSaved = generations.length + quizzes.length
+  const isSearching = term.length > 0
+  const visibleSections = isSearching
+    ? SECTIONS.filter((s) => sectionData[s.key].length > 0)
+    : openFolder
+      ? SECTIONS.filter((s) => s.key === openFolder.key)
+      : []
+  const headline = openFolder && !isSearching ? openFolder.label : 'Library'
+  const subheadline = (() => {
+    if (status !== 'ready') return 'Everything you have saved across studios.'
+    if (isSearching) {
+      const matches = visibleSections.reduce((sum, s) => sum + sectionData[s.key].length, 0)
+      return `${matches} match${matches === 1 ? '' : 'es'} for “${search.trim()}”`
+    }
+    if (openFolder) {
+      const count = sectionData[openFolder.key].length
+      return `${count} saved ${count === 1 ? 'item' : 'items'} in this folder`
+    }
+    return `${totalSaved} saved item${totalSaved === 1 ? '' : 's'} across all studios`
+  })()
 
   return (
     <div className="min-h-screen p-4 sm:p-6 lg:p-8" style={{ background: '#f5efe1' }}>
@@ -160,22 +195,33 @@ export default function TeacherLibrary() {
         {/* Header */}
         <div className="flex flex-wrap items-end justify-between gap-3 mb-6">
           <div>
-            <Link
-              to="/teacher"
-              className="inline-flex items-center gap-1.5 mb-3 no-underline text-sm font-bold rounded-xl border-2 px-3 py-1.5 transition-colors"
-              style={{ borderColor: '#0e2a32', color: '#0e2a32', background: '#fff' }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#f5efe1' }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#fff' }}
-            >
-              ← Home
-            </Link>
+            {openFolder && !isSearching ? (
+              <button
+                type="button"
+                onClick={closeFolder}
+                className="inline-flex items-center gap-1.5 mb-3 text-sm font-bold rounded-xl border-2 px-3 py-1.5 transition-colors cursor-pointer"
+                style={{ borderColor: '#0e2a32', color: '#0e2a32', background: '#fff' }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#f5efe1' }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#fff' }}
+              >
+                ← All folders
+              </button>
+            ) : (
+              <Link
+                to="/teacher"
+                className="inline-flex items-center gap-1.5 mb-3 no-underline text-sm font-bold rounded-xl border-2 px-3 py-1.5 transition-colors"
+                style={{ borderColor: '#0e2a32', color: '#0e2a32', background: '#fff' }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#f5efe1' }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#fff' }}
+              >
+                ← Home
+              </Link>
+            )}
             <h1 style={{ fontFamily: "'Fraunces', serif", fontWeight: 800, fontSize: 32, color: '#0e2a32', margin: 0, letterSpacing: '-.3px' }}>
-              Library
+              {headline}
             </h1>
             <p style={{ fontSize: 13, color: '#566f76', margin: '4px 0 0' }}>
-              {status === 'ready'
-                ? `${totalSaved} saved item${totalSaved === 1 ? '' : 's'} across all studios`
-                : 'Everything you have saved across studios.'}
+              {subheadline}
             </p>
           </div>
           <input
@@ -192,14 +238,24 @@ export default function TeacherLibrary() {
         {status === 'loading' && <LoadingState />}
         {status === 'error' && <ErrorState message={errorMessage} />}
 
-        {status === 'ready' && (
+        {status === 'ready' && !isSearching && !openFolder && (
+          <FolderGrid sections={SECTIONS} sectionData={sectionData} onOpen={openFolderByKey} />
+        )}
+
+        {status === 'ready' && (isSearching || openFolder) && (
           <div>
-            {SECTIONS.map((section) => (
+            {visibleSections.length === 0 && isSearching && (
+              <div className="rounded-2xl border-2 border-dashed py-10 px-4 text-center" style={{ background: '#fff', borderColor: '#d4cab2' }}>
+                <p style={{ fontSize: 13, color: '#8a9aa1', margin: 0 }}>
+                  No matches for “{search.trim()}”.
+                </p>
+              </div>
+            )}
+            {visibleSections.map((section) => (
               <LibrarySection
                 key={section.key}
                 section={section}
                 items={sectionData[section.key]}
-                initialFocus={initialFocus}
               />
             ))}
           </div>
@@ -209,13 +265,42 @@ export default function TeacherLibrary() {
   )
 }
 
-function LibrarySection({ section, items, initialFocus }) {
-  const isFocused = initialFocus === section.key
+function FolderGrid({ sections, sectionData, onOpen }) {
+  return (
+    <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
+      {sections.map((section) => {
+        const count = sectionData[section.key].length
+        return (
+          <button
+            key={section.key}
+            type="button"
+            onClick={() => onOpen(section.key)}
+            className="text-left block no-underline rounded-2xl border-2 p-5 transition-all hover:-translate-y-0.5 cursor-pointer"
+            style={{ background: '#fff', borderColor: '#0e2a32', minHeight: 160, color: '#0e2a32' }}
+            onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 8px 20px rgba(14,42,50,.1)' }}
+            onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none' }}
+          >
+            <div style={{ width: 52, height: 52, borderRadius: 14, background: section.accent, display: 'grid', placeItems: 'center', fontSize: 26, marginBottom: 14 }}>
+              {section.icon}
+            </div>
+            <p style={{ fontFamily: "'Fraunces', serif", fontWeight: 800, fontSize: 18, color: '#0e2a32', margin: '0 0 6px', lineHeight: 1.2 }}>
+              {section.label}
+            </p>
+            <p style={{ fontSize: 12, color: '#8a9aa1', margin: 0, fontWeight: 600 }}>
+              {count} saved {count === 1 ? 'item' : 'items'}
+            </p>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function LibrarySection({ section, items }) {
   return (
     <section
       id={`section-${section.key}`}
       className="mb-8 rounded-2xl"
-      style={isFocused ? { background: 'rgba(255,122,46,.06)', padding: 12, marginInline: -12 } : undefined}
     >
       <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
         <div className="flex items-center gap-3">
