@@ -7,12 +7,17 @@ import { initiateMomoPayment, pollMomoPayment } from '../../utils/momoPayments'
 import Button from '../ui/Button'
 import Icon from '../ui/Icon'
 
-const planOrder = ['monthly', 'termly', 'yearly']
-const planBorder = {
-  monthly: 'border-green-400 bg-green-50',
-  termly: 'border-blue-400 bg-blue-50',
-  yearly: 'border-purple-400 bg-purple-50',
+const DEFAULT_PLAN_ORDER = ['monthly', 'termly', 'yearly']
+const PLAN_BORDER = {
+  monthly:     'border-green-400 bg-green-50',
+  termly:      'border-blue-400 bg-blue-50',
+  yearly:      'border-purple-400 bg-purple-50',
+  pro_monthly: 'border-orange-400 bg-orange-50',
+  pro_yearly:  'border-orange-400 bg-orange-50',
+  max_monthly: 'border-blue-500 bg-blue-50',
+  max_yearly:  'border-blue-500 bg-blue-50',
 }
+const FALLBACK_BORDER = 'border-orange-400 bg-orange-50'
 const SUBSCRIPTION_PENDING_MESSAGE =
   'Subscription not yet activated. If you have already paid, please refresh or contact support.'
 
@@ -39,12 +44,16 @@ const PORTAL_COPY = {
   },
 }
 
-export default function UpgradeModal({ onClose, portal }) {
+export default function UpgradeModal({ onClose, portal, planIds, defaultPlanId }) {
   const copy = PORTAL_COPY[portal] || PORTAL_COPY.generic
   const { refreshProfile } = useAuth()
   const navigate = useNavigate()
+  const visiblePlanIds = (planIds && planIds.length ? planIds : DEFAULT_PLAN_ORDER)
+    .filter((id) => PLANS[id])
   const [step, setStep] = useState('plans')
-  const [selectedPlanId, setSelectedPlanId] = useState(null)
+  const [selectedPlanId, setSelectedPlanId] = useState(
+    defaultPlanId && visiblePlanIds.includes(defaultPlanId) ? defaultPlanId : null
+  )
   const [phone, setPhone] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [statusText, setStatusText] = useState('')
@@ -138,14 +147,15 @@ export default function UpgradeModal({ onClose, portal }) {
         <div className="p-5">
           {step === 'plans' && <>
             <div className="grid gap-3 mb-4">
-              {planOrder.map((planId) => {
+              {visiblePlanIds.map((planId) => {
                 const item = PLANS[planId]
                 const active = selectedPlanId === planId
+                const activeBorder = PLAN_BORDER[planId] || FALLBACK_BORDER
                 return (
                   <button
                     key={planId}
                     onClick={() => setSelectedPlanId(planId)}
-                    className={`w-full text-left p-4 rounded-2xl border-2 transition-all min-h-0 ${active ? planBorder[planId] + ' ring-2 ring-offset-1 ring-current' : 'border-gray-200 hover:border-gray-300'}`}
+                    className={`w-full text-left p-4 rounded-2xl border-2 transition-all min-h-0 ${active ? activeBorder + ' ring-2 ring-offset-1 ring-current' : 'border-gray-200 hover:border-gray-300'}`}
                   >
                     <div className="flex items-center justify-between">
                       <div>

@@ -196,7 +196,12 @@ export default function PaywallHost() {
       )}
       {showUpgrade && (
         <Suspense fallback={null}>
-          <UpgradeModal portal="teacher" onClose={() => setShowUpgrade(false)} />
+          <UpgradeModal
+            portal="teacher"
+            planIds={['pro_monthly', 'pro_yearly']}
+            defaultPlanId="pro_monthly"
+            onClose={() => setShowUpgrade(false)}
+          />
         </Suspense>
       )}
     </>
