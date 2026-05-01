@@ -60,7 +60,6 @@ const DASHBOARD_CHARACTERS = {
   hero:  { png: '/images/characters/zed-zara-reading.png?v=transparent-1', webp: '/images/characters/zed-zara-reading.webp?v=1', width: 1402, height: 1122 },
   exams: { png: '/images/characters/lina-study.png?v=transparent-1',       webp: '/images/characters/lina-study.webp?v=1',       width: 1313, height: 1198 },
   games: { png: '/images/characters/max-gaming.png?v=transparent-1',       webp: '/images/characters/max-gaming.webp?v=1',       width: 1254, height: 1254 },
-  zed:   { png: '/images/characters/zedbot-help.png?v=transparent-1',      webp: '/images/characters/zedbot-help.webp?v=1',      width: 1254, height: 1254 },
 }
 
 const GRADE_DARK_TONES = {
@@ -156,7 +155,6 @@ function DashboardCharacter({ image, alt, variant = 'card', loading = 'lazy', cl
     hero: 'h-40 sm:h-52 md:h-[220px]',
     card: 'h-24 sm:h-28',
     games: 'h-24 sm:h-[118px]',
-    zed: 'h-28 sm:h-32',
   }[variant] || 'h-24 sm:h-28'
 
   // <picture> lets modern browsers fetch the WebP (≈90% smaller) while

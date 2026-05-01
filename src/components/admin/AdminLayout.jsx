@@ -15,7 +15,6 @@ import {
   LogOut,
   Sparkles,
   Users,
-  Mic,
   GraduationCap,
 } from '../ui/icons'
 import { useAuth } from '../../contexts/AuthContext'
@@ -35,7 +34,6 @@ const NAV = [
   { to: '/admin/approvals',              icon: BellRing,        label: 'Approvals'                 },
   { to: '/admin/results',                icon: TrendingUp,      label: 'Results'                   },
   { to: '/admin/payments',               icon: CreditCard,      label: 'Payments'                  },
-  { to: '/admin/zed-voice',              icon: Mic,             label: 'Talk to Zed'               },
   { to: '/teacher',                      icon: GraduationCap,   label: 'Teacher Panel'             },
 ]
 

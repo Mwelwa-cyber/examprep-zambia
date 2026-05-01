@@ -1271,12 +1271,3 @@ const {
   createChatWithTeacherAssistant,
 } = require("./teacherCopilot/conversationalAssistant");
 exports.chatWithTeacherAssistant = createChatWithTeacherAssistant(anthropicApiKey);
-
-// Zed assistant — Telegram bot, WhatsApp bot, and admin web voice client.
-const zedAssistant = require("./zedAssistant");
-exports.telegramWebhook = zedAssistant.telegramWebhook;
-exports.zedSetTelegramWebhook = zedAssistant.zedSetTelegramWebhook;
-exports.zedTelegramWebhookInfo = zedAssistant.zedTelegramWebhookInfo;
-exports.apiZedAssistantChat = zedAssistant.apiZedAssistantChat;
-exports.whatsappWebhook = zedAssistant.whatsappWebhook;
-exports.zedCoderTaskRunner = zedAssistant.zedCoderTaskRunner;
