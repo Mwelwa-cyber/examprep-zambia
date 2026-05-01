@@ -49,7 +49,7 @@ export default function WelcomeToPro() {
   // tier (priceZMW: 0) until refreshProfile lands the new subscription, which
   // would render a misleading "K0.00" receipt total on this celebration page.
   const activePlan = getActivePlan(userProfile)
-  const plan = activePlan?.priceZMW ? activePlan : PLANS.monthly
+  const plan = activePlan?.priceZMW ? activePlan : (PLANS.pro_monthly || PLANS.monthly)
   const today = useMemo(() => new Date(), [])
   const renew = useMemo(() => {
     const expiry = userProfile?.subscriptionExpiry

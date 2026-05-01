@@ -19,6 +19,34 @@ const PLAN_CATALOG = {
     amountZMW: 400,
     durationDays: 365,
   },
+
+  // ── Pro / Max tiers (matches /pricing marketing page + client PLANS) ──
+  // Kept alongside the legacy monthly/termly/yearly so in-flight
+  // subscriptions keep working; new checkout flows use these IDs.
+  pro_monthly: {
+    id: "pro_monthly",
+    name: "Pro · Monthly",
+    amountZMW: 79,
+    durationDays: 30,
+  },
+  pro_yearly: {
+    id: "pro_yearly",
+    name: "Pro · Yearly",
+    amountZMW: 790,
+    durationDays: 365,
+  },
+  max_monthly: {
+    id: "max_monthly",
+    name: "Max · Monthly",
+    amountZMW: 199,
+    durationDays: 30,
+  },
+  max_yearly: {
+    id: "max_yearly",
+    name: "Max · Yearly",
+    amountZMW: 1990,
+    durationDays: 365,
+  },
 };
 
 const PENDING_STATUSES = new Set(["", "PENDING", "CREATED", "ONGOING"]);
