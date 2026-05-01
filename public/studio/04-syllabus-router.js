@@ -84,23 +84,34 @@ function updateSubtopics() {
   $('#subtopic-list').innerHTML = subs.map(s => `<option value="${esc(s)}"></option>`).join('');
 }
 
-// Wire up syllabus version toggle
-document.querySelectorAll('#syllabus-toggle .seg').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const newVersion = btn.dataset.version;
-    if (newVersion === syllabusVersion) return;
-    syllabusVersion = newVersion;
-    document.querySelectorAll('#syllabus-toggle .seg').forEach(b => b.classList.toggle('active', b === btn));
-    populateClasses();
-    updateSubjects();
+// Bind syllabus controls and seed the dropdowns. Runs on every React mount,
+// since the <select> elements (#f-class, #f-subject) are fresh DOM each time
+// and need to be re-populated.
+function __studioInitSyllabus() {
+  if (!$('#f-class')) return;
+
+  document.querySelectorAll('#syllabus-toggle .seg').forEach(btn => {
+    // Reflect the current syllabusVersion in the segmented toggle UI
+    btn.classList.toggle('active', btn.dataset.version === syllabusVersion);
+    btn.addEventListener('click', () => {
+      const newVersion = btn.dataset.version;
+      if (newVersion === syllabusVersion) return;
+      syllabusVersion = newVersion;
+      document.querySelectorAll('#syllabus-toggle .seg').forEach(b => b.classList.toggle('active', b === btn));
+      populateClasses();
+      updateSubjects();
+    });
   });
-});
 
-$('#f-class').addEventListener('change', updateSubjects);
-$('#f-subject').addEventListener('change', updateTopics);
-$('#f-topic').addEventListener('input', updateSubtopics);
-$('#f-topic').addEventListener('change', updateSubtopics);
+  $('#f-class').addEventListener('change', updateSubjects);
+  $('#f-subject').addEventListener('change', updateTopics);
+  $('#f-topic').addEventListener('input', updateSubtopics);
+  $('#f-topic').addEventListener('change', updateSubtopics);
 
-// Initial population
-populateClasses();
-updateSubjects();
+  // Initial population
+  populateClasses();
+  updateSubjects();
+}
+
+window.__studioRebinders = window.__studioRebinders || [];
+window.__studioRebinders.push(__studioInitSyllabus);

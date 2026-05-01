@@ -66,4 +66,10 @@ function insertFraction(num, den) {
   const html = `<span class="frac" contenteditable="false"><span class="num">${esc(num)}</span><span class="den">${esc(den)}</span></span>&nbsp;`;
   document.execCommand('insertHTML', false, html);
 }
-$('#btn-symbols').addEventListener('click', openSymbolsModal);
+function __studioInitSymbols() {
+  const btn = $('#btn-symbols');
+  if (btn) btn.addEventListener('click', openSymbolsModal);
+}
+
+window.__studioRebinders = window.__studioRebinders || [];
+window.__studioRebinders.push(__studioInitSymbols);

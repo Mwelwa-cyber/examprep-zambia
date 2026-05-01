@@ -1,12 +1,24 @@
-// Export
-const exportPop = $('#export-pop');
-$('#btn-export').addEventListener('click', e => { e.stopPropagation(); exportPop.classList.toggle('open'); });
-document.addEventListener('click', () => exportPop.classList.remove('open'));
-exportPop.addEventListener('click', e => e.stopPropagation());
-$$('#export-pop button').forEach(b => b.addEventListener('click', () => {
-  const t = b.dataset.export; exportPop.classList.remove('open');
-  if (t === 'pdf') exportPDF(); if (t === 'word') exportWord(); if (t === 'html') exportHTML();
-}));
+// Export — `exportPop` is looked up fresh on each rebind so it always refers
+// to the live React-rendered DOM.
+let exportPop = null;
+
+function __studioInitExport() {
+  exportPop = $('#export-pop');
+  if (!exportPop) return;
+  const btn = $('#btn-export');
+  if (btn) btn.addEventListener('click', e => { e.stopPropagation(); exportPop.classList.toggle('open'); });
+  exportPop.addEventListener('click', e => e.stopPropagation());
+  $$('#export-pop button').forEach(b => b.addEventListener('click', () => {
+    const t = b.dataset.export; exportPop.classList.remove('open');
+    if (t === 'pdf') exportPDF(); if (t === 'word') exportWord(); if (t === 'html') exportHTML();
+  }));
+}
+
+// Document-level click closes the popover. Bound once at script load.
+document.addEventListener('click', () => { if (exportPop) exportPop.classList.remove('open'); });
+
+window.__studioRebinders = window.__studioRebinders || [];
+window.__studioRebinders.push(__studioInitExport);
 function gatherStyles() {
   return Array.from(document.styleSheets).map(s => { try { return Array.from(s.cssRules).map(r => r.cssText).join('\n'); } catch (e) { return ''; } }).join('\n');
 }

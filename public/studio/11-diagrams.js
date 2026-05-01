@@ -208,20 +208,27 @@ function insertDiagram(key, state) {
 function closeModal() {
   $$('.modal-scrim.show').forEach(m => m.classList.remove('show'));
 }
-$$('[data-close-modal]').forEach(b => b.addEventListener('click', closeModal));
-// Backdrop-click closes the modal (clicking on the scrim itself, not its inner modal)
-$$('.modal-scrim').forEach(scrim => {
-  scrim.addEventListener('click', e => { if (e.target === scrim) closeModal(); });
-});
-$('#btn-diagram').addEventListener('click', openDiagramModal);
+function __studioInitDiagrams() {
+  $$('[data-close-modal]').forEach(b => b.addEventListener('click', closeModal));
+  // Backdrop-click closes the modal (clicking on the scrim itself, not its inner modal)
+  $$('.modal-scrim').forEach(scrim => {
+    scrim.addEventListener('click', e => { if (e.target === scrim) closeModal(); });
+  });
+  const btn = $('#btn-diagram');
+  if (btn) btn.addEventListener('click', openDiagramModal);
+}
 
 function closePdfViewer() {
   const viewer = document.getElementById('pdf-viewer');
   if (viewer) viewer.classList.remove('show');
 }
 
+// Document-level keyboard shortcuts. Bound once at script load.
 document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'p') { e.preventDefault(); exportPDF(); }
   if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); exportWord(); }
-  if (e.key === 'Escape') { closeModal(); closePdfViewer(); exportPop.classList.remove('open'); }
+  if (e.key === 'Escape') { closeModal(); closePdfViewer(); if (typeof exportPop !== 'undefined' && exportPop) exportPop.classList.remove('open'); }
 });
+
+window.__studioRebinders = window.__studioRebinders || [];
+window.__studioRebinders.push(__studioInitDiagrams);
