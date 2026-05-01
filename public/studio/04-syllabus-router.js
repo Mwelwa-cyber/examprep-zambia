@@ -24,9 +24,11 @@ function populateClasses() {
 function updateSubjects() {
   const klass = $('#f-class').value;
   const level = activeGradeLevel()[klass];
-  const allSubjects = activeSubjectsByLevel()[level] || [];
-  // Filter: only show subjects that actually have topics for THIS grade
-  const subjects = allSubjects.filter(s => Object.keys(getTopicsForClass(level, s, klass)).length > 0);
+  // Show every subject the curriculum lists for this level. Previously we
+  // filtered out subjects without hardcoded topic data — but topics now
+  // also come from the dynamic CBC KB, and the topic input is a free-text
+  // <input list="..."> anyway, so an empty dropdown is harmless.
+  const subjects = activeSubjectsByLevel()[level] || [];
   const sel = $('#f-subject');
   const current = sel.value;
   // For Lower Primary (new syllabus): split into 2 optgroups (official 3 learning areas vs individual components)
@@ -66,21 +68,109 @@ function getTopicsForClass(level, subj, klass) {
   return merged;
 }
 
-function updateTopics() {
+// ---- Dynamic CBC KB bridge ----
+//
+// The hardcoded syllabus in 02-syllabus-new.js / 03-syllabus-old.js is
+// incomplete (entire Grade 8/9 old-syllabus secondary curriculum is empty,
+// plus a few language-subject gaps in primary). updateTopics() now consults
+// the React-side bridge first — which queries the same Firestore CBC KB
+// the React Lesson Plan Studio uses for AI grounding — and falls back to
+// the hardcoded data when the KB has no entry for the (grade, subject)
+// pair. Net effect: any topic admins add via the CbcKbAdmin admin UI
+// shows up in the studio's topic + subtopic dropdowns automatically.
+
+// Maps a static-studio class label (e.g. "Form 1", "Grade 8") to the
+// canonical G-prefix grade ID the Firestore CBC KB stores. The KB only
+// uses G1-G12; Form 1-5 are aliases for G8-G12 in the Zambian system.
+function classToCbcGrade(klass) {
+  if (klass.startsWith('Grade ')) return 'G' + klass.slice(6).trim();
+  const formMap = { 'Form 1': 'G8', 'Form 2': 'G9', 'Form 3': 'G10', 'Form 4': 'G11', 'Form 5': 'G12' };
+  return formMap[klass] || '';
+}
+
+// Maps the studio's display subject names to the snake_case IDs the CBC
+// KB stores. Some are approximations (Literature in English → english,
+// Additional Mathematics → mathematics) — the KB doesn't have separate
+// entries for every secondary subject yet, so closely related ones share
+// a base entry. When the KB returns nothing the router falls back to the
+// hardcoded syllabus, so an inexact alias is strictly better than missing.
+const SUBJECT_ALIAS = {
+  'Mathematics': 'mathematics',
+  'Additional Mathematics': 'mathematics',
+  'Advanced Mathematics': 'mathematics',
+  'Further Mathematics': 'mathematics',
+  'English Language': 'english',
+  'Literature in English': 'english',
+  'Zambian Languages': 'zambian_language',
+  'Integrated Science': 'integrated_science',
+  'Environmental Science': 'environmental_science',
+  'Science 5124': 'integrated_science',
+  'Biology': 'biology',
+  'Chemistry': 'chemistry',
+  'Physics': 'physics',
+  'Religious Education': 'religious_education',
+  'Creative and Technology Studies': 'creative_and_technology_studies',
+  'Social Studies': 'social_studies',
+  'Physical Education and Sport': 'physical_education',
+  'Physical Education': 'physical_education',
+  'Civic Education': 'civic_education',
+  'Computer Studies': 'technology_studies',
+  'Computer Science': 'technology_studies',
+  'Design and Technology': 'technology_studies',
+  'Geography': 'geography',
+  'History': 'history',
+  'Home Management': 'home_economics',
+  'Food and Nutrition': 'home_economics',
+  'Fashion and Fabrics': 'home_economics',
+  'Agricultural Science': 'integrated_science',
+  'Art and Design': 'expressive_arts',
+  'Music': 'expressive_arts',
+  'Commerce': 'social_studies',
+  'Principles of Accounts': 'social_studies',
+  'Economics': 'social_studies',
+};
+function subjectToCbcSubject(name) {
+  if (!name) return '';
+  // Strip the "(Learning Area)" suffix used by Lower-Primary subject groups.
+  const cleaned = String(name).replace(/\s*\(Learning Area\)\s*$/, '').trim();
+  if (SUBJECT_ALIAS[cleaned]) return SUBJECT_ALIAS[cleaned];
+  return cleaned.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+}
+
+// Cache of the topics map for the currently-selected (class, subject), so
+// updateSubtopics() doesn't re-query Firestore on every keystroke.
+// Populated by updateTopics().
+let currentTopicsMap = {};
+
+async function fetchTopicsForCurrentSelection() {
   const klass = $('#f-class').value;
   const level = activeGradeLevel()[klass];
   const subj = $('#f-subject').value;
-  const topics = getTopicsForClass(level, subj, klass);
-  $('#topic-list').innerHTML = Object.keys(topics).map(t => `<option value="${esc(t)}"></option>`).join('');
+
+  // Prefer the dynamic CBC KB. Bridge contract:
+  //   - non-empty object → KB has data, use it.
+  //   - empty object {}  → KB has no rows; fall through to hardcoded.
+  //   - null             → fetch errored; fall through to hardcoded.
+  if (typeof window.__studioFetchSyllabusTopics === 'function') {
+    const grade = classToCbcGrade(klass);
+    const subject = subjectToCbcSubject(subj);
+    if (grade && subject) {
+      const remote = await window.__studioFetchSyllabusTopics({ grade, subject });
+      if (remote && Object.keys(remote).length > 0) return remote;
+    }
+  }
+  return getTopicsForClass(level, subj, klass);
+}
+
+async function updateTopics() {
+  currentTopicsMap = await fetchTopicsForCurrentSelection();
+  $('#topic-list').innerHTML = Object.keys(currentTopicsMap)
+    .map(t => `<option value="${esc(t)}"></option>`).join('');
   updateSubtopics();
 }
 function updateSubtopics() {
-  const klass = $('#f-class').value;
-  const level = activeGradeLevel()[klass];
-  const subj = $('#f-subject').value;
   const topic = $('#f-topic').value.trim();
-  const topics = getTopicsForClass(level, subj, klass);
-  const subs = topics[topic] || [];
+  const subs = currentTopicsMap[topic] || [];
   $('#subtopic-list').innerHTML = subs.map(s => `<option value="${esc(s)}"></option>`).join('');
 }
 

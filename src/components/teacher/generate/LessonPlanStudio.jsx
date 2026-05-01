@@ -2,8 +2,12 @@ import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../contexts/AuthContext'
 import { getFunctions, httpsCallable } from 'firebase/functions'
-import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import {
+  getFirestore, collection, addDoc, serverTimestamp,
+  query, where, getDocs,
+} from 'firebase/firestore'
 import app from '../../../firebase/config'
+import { KB_VERSION } from '../../../utils/adminCbcKbService'
 
 const functions = getFunctions(app, 'us-central1')
 const studioGenerateLessonPlanCallable = httpsCallable(functions, 'studioGenerateLessonPlan', {
@@ -12,7 +16,7 @@ const studioGenerateLessonPlanCallable = httpsCallable(functions, 'studioGenerat
 
 // Bump this when /public/studio/* is changed so phones / CDNs refetch
 // instead of serving the cached old file.
-const STUDIO_ASSET_VERSION = 'v7'
+const STUDIO_ASSET_VERSION = 'v8'
 
 // Sequential script loader — each script must finish before the next starts
 // because the studio scripts rely on globals set by earlier ones.
@@ -69,6 +73,45 @@ export default function LessonPlanStudio() {
       displayName: userProfile && (userProfile.displayName || userProfile.fullName),
       school: userProfile && userProfile.schoolName,
     })
+
+    // ---- Bridge: dynamic CBC syllabus from Firestore ----
+    // The studio's hardcoded /public/studio/02-syllabus-new.js +
+    // 03-syllabus-old.js have gaps (entire Grade 8/9 old-syllabus
+    // secondary curriculum is empty, plus a few language gaps in primary).
+    // 04-syllabus-router.js calls this bridge first when populating the
+    // topic + subtopic <datalist>s; if it returns a non-empty map it wins,
+    // otherwise the router falls back to the hardcoded JS. Result: any
+    // topic admins add via CbcKbAdmin shows up in the studio's dropdowns
+    // automatically — no second source of truth to maintain.
+    //
+    // Returns { [topicName]: [subtopic, ...] } on success, {} when the KB
+    // has no rows for that grade+subject, or null on error (router treats
+    // null the same as "use fallback").
+    const cbcCache = new Map()
+    window.__studioFetchSyllabusTopics = async ({ grade, subject }) => {
+      if (!grade || !subject) return {}
+      const key = `${grade}|${subject}`
+      if (cbcCache.has(key)) return cbcCache.get(key)
+      try {
+        const snap = await getDocs(query(
+          collection(db, 'cbcKnowledgeBase', KB_VERSION, 'topics'),
+          where('grade', '==', grade),
+          where('subject', '==', subject),
+        ))
+        const out = {}
+        snap.forEach((d) => {
+          const t = d.data()
+          if (t && t.topic) {
+            out[t.topic] = Array.isArray(t.subtopics) ? t.subtopics : []
+          }
+        })
+        cbcCache.set(key, out)
+        return out
+      } catch (err) {
+        console.warn('studio CBC KB fetch failed', err)
+        return null
+      }
+    }
 
     // ---- Load CSS ----
     if (!document.querySelector('link[href*="/studio/lesson.css"]')) {
@@ -129,6 +172,7 @@ export default function LessonPlanStudio() {
       delete window.__studioNavigateHome
       delete window.__studioCallClaude
       delete window.__studioGetAuth
+      delete window.__studioFetchSyllabusTopics
       delete window.saveToLibrary
       delete window.__studioUtilsLoaded
       delete window.$
