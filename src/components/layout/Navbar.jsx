@@ -98,6 +98,10 @@ export default function Navbar() {
               <span>Admin</span>
             </NavLink>
           )}
+          <NavLink to="/settings" className={linkClass}>
+            <Icon as={Settings} size="sm" />
+            <span>Settings</span>
+          </NavLink>
         </div>
 
         {/* Right side — desktop */}
@@ -194,6 +198,10 @@ export default function Navbar() {
                   Admin Panel
                 </NavLink>
               )}
+              <NavLink to="/settings" onClick={() => setOpen(false)} className={mobileLinkClass}>
+                <Icon as={Settings} size="md" className="w-6" />
+                Settings
+              </NavLink>
             </div>
 
             <div className="mt-3 pt-3 border-t theme-border">
