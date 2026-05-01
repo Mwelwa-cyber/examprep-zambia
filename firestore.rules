@@ -458,36 +458,6 @@ service cloud.firestore {
       allow delete: if isAuthed() && (resource.data.ownerUid == request.auth.uid || isAdmin());
     }
 
-    // ── AI Co-Pilot (teacher panel) ────────────────────────────────
-    // Chat-style co-pilot. The `generateTeacherAIContent` Cloud Function is
-    // the only thing that creates messages and rolls up chat metadata, so
-    // these rules are read-mostly for clients. Teachers can:
-    //   * read their own chats + messages (chronological history)
-    //   * archive / rename a chat (limited update)
-    //   * delete a chat (cascade is admin-only — safest path for now)
-    // Cross-account snooping is blocked by ownerUid checks.
-    match /aiChats/{chatId} {
-      allow read: if isAuthed()
-        && (resource.data.ownerUid == request.auth.uid || isAdmin());
-      allow update: if isAuthed()
-        && resource.data.ownerUid == request.auth.uid
-        && changedKeys().hasOnly(['title', 'archived', 'pinned', 'updatedAt']);
-      allow delete: if isAuthed()
-        && (resource.data.ownerUid == request.auth.uid || isAdmin());
-      // Creation is server-side only (Admin SDK from the callable function).
-      allow create: if false;
-
-      match /messages/{messageId} {
-        allow read: if isAuthed()
-          && (get(/databases/$(database)/documents/aiChats/$(chatId)).data.ownerUid == request.auth.uid
-              || isAdmin());
-        // Locally edited copies of an AI message stay in client memory only.
-        // Persisting an edited copy goes through `generatedContent` instead,
-        // which keeps the original AI transcript intact for memory features.
-        allow create, update, delete: if false;
-      }
-    }
-
     // Saved generated content — what teachers explicitly "Save" from a
     // chat. Documents inherit the chat / message they came from but live
     // in their own collection so they can be searched, edited, and turned
