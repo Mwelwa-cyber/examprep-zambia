@@ -22,6 +22,7 @@ import {
 import Icon from '../ui/Icon'
 
 const QUICK_CREATE = [
+  { to: '/teacher/ai-copilot',           icon: Sparkles,    label: 'AI Co-Pilot',    accent: '#0e2a32', dark: true },
   { to: '/teacher/generate/lesson-plan', icon: BookOpen,    label: 'Lesson Plan',    accent: '#fde2c4' },
   { to: '/teacher/generate/notes',       icon: FileText,    label: 'Teacher Notes',  accent: '#dbe7f4' },
   { to: '/teacher/assessments/new',      icon: PencilLine,  label: 'Assessment',     accent: '#e8d8f0' },

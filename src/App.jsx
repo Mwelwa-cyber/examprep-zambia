@@ -21,8 +21,6 @@ const LessonEditor = lazy(() => import('./components/lessons/LessonEditor'))
 const MyResults = lazy(() => import('./components/dashboard/MyResults'))
 const BadgesPage = lazy(() => import('./components/dashboard/BadgesPage'))
 const ProfilePage = lazy(() => import('./components/dashboard/ProfilePage'))
-const ZedStudyAssistant = lazy(() => import('./components/ai/ZedStudyAssistant'))
-const FloatingZedButton = lazy(() => import('./components/ai/FloatingZedButton'))
 const IdleWarningModal = lazy(() => import('./components/auth/IdleWarningModal'))
 const PaywallHost = lazy(() => import('./components/subscription/PaywallHost'))
 const NotFound = lazy(() => import('./components/ui/NotFound'))
@@ -62,6 +60,9 @@ const FlashcardGenerator = lazy(() => import('./components/teacher/generate/Flas
 const SchemeOfWorkGenerator = lazy(() => import('./components/teacher/generate/SchemeOfWorkGenerator'))
 const RubricGenerator = lazy(() => import('./components/teacher/generate/RubricGenerator'))
 const NotesStudio = lazy(() => import('./components/teacher/generate/NotesStudio'))
+
+// Teacher — AI Co-Pilot (chat-style classroom assistant)
+const TeacherAICopilot = lazy(() => import('./components/teacher/copilot/TeacherAICopilot'))
 
 // Teacher — Library
 const TeacherLibrary = lazy(() => import('./components/teacher/library/TeacherLibrary'))
@@ -234,7 +235,6 @@ export default function App() {
           <Route path="/my-results"        element={<ProtectedRoute><LearnerOnlyRoute><Navbar /><MyResults /></LearnerOnlyRoute></ProtectedRoute>} />
           <Route path="/my-badges"         element={<ProtectedRoute><LearnerOnlyRoute><Navbar /><BadgesPage /></LearnerOnlyRoute></ProtectedRoute>} />
           <Route path="/profile"           element={<ProtectedRoute><Navbar /><ProfilePage /></ProtectedRoute>} />
-          <Route path="/study"             element={<ProtectedRoute><LearnerOnlyRoute><ZedStudyAssistant /></LearnerOnlyRoute></ProtectedRoute>} />
 
           {/* ── Admin routes (all wrapped in AdminLayout) ──────── */}
           <Route path="/admin"                          element={<AdminRoute><AdminDashboard /></AdminRoute>} />
@@ -279,14 +279,13 @@ export default function App() {
           <Route path="/teacher/generate/scheme-of-work" element={<TeacherRoute><SchemeOfWorkGenerator /></TeacherRoute>} />
           <Route path="/teacher/generate/rubric"          element={<TeacherRoute><RubricGenerator /></TeacherRoute>} />
           <Route path="/teacher/generate/notes"           element={<TeacherRoute><NotesStudio /></TeacherRoute>} />
+          <Route path="/teacher/ai-copilot"              element={<TeacherRoute><TeacherAICopilot /></TeacherRoute>} />
           <Route path="/teacher/library"                 element={<TeacherRoute><TeacherLibrary /></TeacherRoute>} />
           <Route path="/teacher/library/:id"             element={<TeacherRoute><LibraryItemDetail /></TeacherRoute>} />
           <Route path="/teacher/syllabi"                 element={<TeacherRoute><SyllabiLibrary /></TeacherRoute>} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>
-        {/* Floating "Ask Zed" button — self-gates visibility per route */}
-        <FloatingZedButton />
         {/* Inactivity warning + auto-logout (driven by AuthContext) */}
         <IdleWarningModal />
         {/* Paywall — listens for paywall.show(reason, ctx) from anywhere */}

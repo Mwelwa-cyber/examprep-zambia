@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { BarChart3, BookOpen, Bot, Home, PencilLine } from '../ui/icons'
+import { BarChart3, BookOpen, Home, PencilLine } from '../ui/icons'
 import Icon from '../ui/Icon'
 
 const MOBILE_NAV_ITEMS = [
@@ -7,7 +7,6 @@ const MOBILE_NAV_ITEMS = [
   { to: '/quizzes',   icon: PencilLine, label: 'Quizzes', end: false },
   { to: '/lessons',   icon: BookOpen,   label: 'Lessons', end: false },
   { to: '/my-results',icon: BarChart3,  label: 'Results', end: false },
-  { to: '/study',     icon: Bot,        label: 'Zed',     end: false },
 ]
 
 export default function MobileBottomNav({ mode = 'fixed', className = '' }) {
