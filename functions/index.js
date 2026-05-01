@@ -1261,3 +1261,13 @@ const {
   createGenerateTeacherAIContent,
 } = require("./teacherCopilot/generateTeacherAIContent");
 exports.generateTeacherAIContent = createGenerateTeacherAIContent(anthropicApiKey);
+
+// Teacher AI Co-Pilot 2.0 — conversational, no contentType buttons.
+// Classifies the teacher's free-form message into an intent (lesson plan,
+// notes, test, homework, scheme of work, remedial, revision, full package,
+// general help) and produces a chat-style reply. Backed by the same
+// aiChats / messages collections so existing rules and UI history work.
+const {
+  createChatWithTeacherAssistant,
+} = require("./teacherCopilot/conversationalAssistant");
+exports.chatWithTeacherAssistant = createChatWithTeacherAssistant(anthropicApiKey);
