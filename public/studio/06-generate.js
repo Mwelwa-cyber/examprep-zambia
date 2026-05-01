@@ -228,7 +228,7 @@ function renderClassic2(data, meta) {
 
 // ── Generate button ────────────────────────────────────────────────────────────
 
-$('#btn-generate').addEventListener('click', async () => {
+async function __studioOnGenerateClick() {
   const i = gatherInput();
   if (!i.school) { toast('Please add a school name'); $('#f-school').focus(); return; }
   if (!i.topic && !i.subtopic) { toast('Add at least a topic or sub-topic'); $('#f-topic').focus(); return; }
@@ -271,4 +271,12 @@ $('#btn-generate').addEventListener('click', async () => {
     $('#btn-generate').disabled = false;
     $('#btn-generate').innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/><path d="M9.6 5.6 8 8 5.6 6.4 4 9l2.4 1.6L5 13l3.4-1.4L10 14l1.6-3.4L15 12l-1.6-3.4L17 7l-3.4 1.4L12 5l-1.6 2.4z"/></svg> Generate Lesson Plan`;
   }
-});
+}
+
+function __studioInitGenerate() {
+  const btn = $('#btn-generate');
+  if (btn) btn.addEventListener('click', __studioOnGenerateClick);
+}
+
+window.__studioRebinders = window.__studioRebinders || [];
+window.__studioRebinders.push(__studioInitGenerate);

@@ -1,25 +1,62 @@
 // Edit mode
-const doc = $('#doc');
+// `doc` and `ttPop` are looked up fresh on each rebind so they always
+// reference the current React-rendered DOM (not the unmounted previous one).
+let doc = null;
+let ttPop = null;
 let editing = false;
-$('#btn-edit').addEventListener('click', () => {
-  editing = !editing;
-  doc.contentEditable = editing; doc.spellcheck = editing;
-  $('#btn-edit').classList.toggle('active', editing);
-  $('#format-tools').style.display = editing ? 'flex' : 'none';
-  $('#format-tools-2').style.display = editing ? 'flex' : 'none';
-  $('#insert-tools').style.display = editing ? 'flex' : 'none';
-  if (editing) { doc.focus(); enableAllTableResize(); toast('Edit mode on'); } else toast('Edit mode off');
-});
-$$('#format-tools .tb-btn, #format-tools-2 .tb-btn, #insert-tools .tb-btn[data-cmd]').forEach(btn => {
-  btn.addEventListener('mousedown', e => e.preventDefault());
-  btn.addEventListener('click', () => { const cmd = btn.dataset.cmd; if (cmd) document.execCommand(cmd, false, null); });
-});
 
-// ============ Table tools ============
-const ttPop = $('#tt-pop');
-$('#btn-table').addEventListener('click', e => { e.stopPropagation(); ttPop.classList.toggle('open'); });
-document.addEventListener('click', () => ttPop.classList.remove('open'));
-ttPop.addEventListener('click', e => e.stopPropagation());
+function __studioInitEditMode() {
+  doc = $('#doc');
+  ttPop = $('#tt-pop');
+  if (!doc) return;
+
+  // Reset edit mode on remount — the new #doc is not contenteditable yet.
+  editing = false;
+
+  const btnEdit = $('#btn-edit');
+  if (btnEdit) btnEdit.addEventListener('click', () => {
+    editing = !editing;
+    doc.contentEditable = editing; doc.spellcheck = editing;
+    $('#btn-edit').classList.toggle('active', editing);
+    $('#format-tools').style.display = editing ? 'flex' : 'none';
+    $('#format-tools-2').style.display = editing ? 'flex' : 'none';
+    $('#insert-tools').style.display = editing ? 'flex' : 'none';
+    if (editing) { doc.focus(); enableAllTableResize(); toast('Edit mode on'); } else toast('Edit mode off');
+  });
+  $$('#format-tools .tb-btn, #format-tools-2 .tb-btn, #insert-tools .tb-btn[data-cmd]').forEach(btn => {
+    btn.addEventListener('mousedown', e => e.preventDefault());
+    btn.addEventListener('click', () => { const cmd = btn.dataset.cmd; if (cmd) document.execCommand(cmd, false, null); });
+  });
+
+  // Table tools
+  const btnTable = $('#btn-table');
+  if (btnTable && ttPop) {
+    btnTable.addEventListener('click', e => { e.stopPropagation(); ttPop.classList.toggle('open'); });
+    ttPop.addEventListener('click', e => e.stopPropagation());
+  }
+
+  $$('#tt-pop button[data-tt]').forEach(b => {
+    b.addEventListener('click', () => {
+      ttPop.classList.remove('open');
+      const a = b.dataset.tt;
+      if (a === 'insertTable') ttInsertTable();
+      if (a === 'rowAbove') ttInsertRow(false);
+      if (a === 'rowBelow') ttInsertRow(true);
+      if (a === 'colLeft') ttInsertCol(false);
+      if (a === 'colRight') ttInsertCol(true);
+      if (a === 'delRow') ttDelRow();
+      if (a === 'delCol') ttDelCol();
+      if (a === 'delTable') ttDelTable();
+    });
+  });
+}
+
+// Document-level click handler closes the table popover. Bound once at
+// script load (not per-mount) so it doesn't accumulate.
+document.addEventListener('click', () => { if (ttPop) ttPop.classList.remove('open'); });
+
+window.__studioRebinders = window.__studioRebinders || [];
+window.__studioRebinders.push(__studioInitEditMode);
 
 function currentCell() {
   const sel = window.getSelection();
@@ -88,21 +125,6 @@ function ttDelTable() {
   if (!confirm('Delete the entire table?')) return;
   cellTable(cell).remove();
 }
-$$('#tt-pop button[data-tt]').forEach(b => {
-  b.addEventListener('click', () => {
-    ttPop.classList.remove('open');
-    const a = b.dataset.tt;
-    if (a === 'insertTable') ttInsertTable();
-    if (a === 'rowAbove') ttInsertRow(false);
-    if (a === 'rowBelow') ttInsertRow(true);
-    if (a === 'colLeft') ttInsertCol(false);
-    if (a === 'colRight') ttInsertCol(true);
-    if (a === 'delRow') ttDelRow();
-    if (a === 'delCol') ttDelCol();
-    if (a === 'delTable') ttDelTable();
-  });
-});
-
 // ============ Column drag-resize ============
 function enableAllTableResize() {
   if (!editing) return;

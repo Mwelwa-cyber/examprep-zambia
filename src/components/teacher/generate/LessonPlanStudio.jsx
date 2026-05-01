@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../contexts/AuthContext'
 import { getFunctions, httpsCallable } from 'firebase/functions'
@@ -12,7 +12,7 @@ const studioGenerateLessonPlanCallable = httpsCallable(functions, 'studioGenerat
 
 // Bump this when /public/studio/* is changed so phones / CDNs refetch
 // instead of serving the cached old file.
-const STUDIO_ASSET_VERSION = 'v7'
+const STUDIO_ASSET_VERSION = 'v8'
 
 // Sequential script loader — each script must finish before the next starts
 // because the studio scripts rely on globals set by earlier ones.
@@ -30,12 +30,13 @@ function loadScriptsSequentially(srcs) {
 export default function LessonPlanStudio() {
   const navigate = useNavigate()
   const { currentUser, userProfile } = useAuth()
-  const scriptsLoaded = useRef(false)
   const db = getFirestore(app)
 
   useEffect(() => {
-    if (scriptsLoaded.current) return
-    scriptsLoaded.current = true
+    // Studio scripts are loaded once (cached in <head>), but their DOM
+    // bindings need to be re-applied every time React mounts a fresh copy
+    // of the markup. Each script pushes an init fn into this registry.
+    if (!Array.isArray(window.__studioRebinders)) window.__studioRebinders = []
 
     // ---- Bridge: navigation ----
     window.__studioNavigateHome = () => navigate('/teacher')
@@ -79,19 +80,18 @@ export default function LessonPlanStudio() {
     }
 
     // ---- Inject studio utility globals ($ $$ esc toast) before scripts run ----
-    if (!window.__studioUtilsLoaded) {
-      window.__studioUtilsLoaded = true
-      window.$ = (s, r = document) => r.querySelector(s)
-      window.$$ = (s, r = document) => Array.from(r.querySelectorAll(s))
-      window.esc = (s = '') => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
-      window.toast = (msg) => {
-        const t = document.getElementById('toast')
-        if (!t) return
-        t.textContent = msg
-        t.classList.add('show')
-        clearTimeout(t._tid)
-        t._tid = setTimeout(() => t.classList.remove('show'), 3000)
-      }
+    // Re-set on every mount: the cleanup deletes them, and the rebinders
+    // run after this effect, so they need fresh references each time.
+    window.$ = (s, r = document) => r.querySelector(s)
+    window.$$ = (s, r = document) => Array.from(r.querySelectorAll(s))
+    window.esc = (s = '') => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
+    window.toast = (msg) => {
+      const t = document.getElementById('toast')
+      if (!t) return
+      t.textContent = msg
+      t.classList.add('show')
+      clearTimeout(t._tid)
+      t._tid = setTimeout(() => t.classList.remove('show'), 3000)
     }
 
     // ---- Load scripts in dependency order ----
@@ -109,9 +109,21 @@ export default function LessonPlanStudio() {
       `/studio/11-diagrams.js${v}`,
     ]
 
-    loadScriptsSequentially(scripts).catch(err => {
-      console.error('LessonPlanStudio: script load failed', err)
-    })
+    loadScriptsSequentially(scripts)
+      .then(() => {
+        // Re-bind handlers on every mount. On first mount this binds to the
+        // freshly-rendered DOM after scripts populate the registry. On
+        // subsequent mounts (after navigating away and back) the scripts
+        // are cached in <head>, so the rebinders are the only path that
+        // attaches click handlers to the new DOM nodes.
+        const rebinders = window.__studioRebinders || []
+        for (const fn of rebinders) {
+          try { fn() } catch (e) { console.error('LessonPlanStudio rebind failed', e) }
+        }
+      })
+      .catch(err => {
+        console.error('LessonPlanStudio: script load failed', err)
+      })
 
     // Pre-fill teacher name and school from profile
     setTimeout(() => {
@@ -130,7 +142,6 @@ export default function LessonPlanStudio() {
       delete window.__studioCallClaude
       delete window.__studioGetAuth
       delete window.saveToLibrary
-      delete window.__studioUtilsLoaded
       delete window.$
       delete window.$$
       delete window.esc
