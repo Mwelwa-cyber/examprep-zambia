@@ -63,6 +63,8 @@ const NotesStudio = lazy(() => import('./components/teacher/generate/NotesStudio
 
 // Teacher — AI Co-Pilot (chat-style classroom assistant)
 const TeacherAICopilot = lazy(() => import('./components/teacher/copilot/TeacherAICopilot'))
+// Teacher — AI Co-Pilot 2.0 (conversational, intent-classified)
+const TeacherChatAssistant = lazy(() => import('./components/teacher/copilot/ChatAssistant'))
 
 // Teacher — Library
 const TeacherLibrary = lazy(() => import('./components/teacher/library/TeacherLibrary'))
@@ -280,6 +282,7 @@ export default function App() {
           <Route path="/teacher/generate/rubric"          element={<TeacherRoute><RubricGenerator /></TeacherRoute>} />
           <Route path="/teacher/generate/notes"           element={<TeacherRoute><NotesStudio /></TeacherRoute>} />
           <Route path="/teacher/ai-copilot"              element={<TeacherRoute><TeacherAICopilot /></TeacherRoute>} />
+          <Route path="/teacher/assistant"               element={<TeacherRoute><TeacherChatAssistant /></TeacherRoute>} />
           <Route path="/teacher/library"                 element={<TeacherRoute><TeacherLibrary /></TeacherRoute>} />
           <Route path="/teacher/library/:id"             element={<TeacherRoute><LibraryItemDetail /></TeacherRoute>} />
           <Route path="/teacher/syllabi"                 element={<TeacherRoute><SyllabiLibrary /></TeacherRoute>} />

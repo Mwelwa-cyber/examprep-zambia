@@ -22,7 +22,8 @@ const UpgradeModal = lazy(() => import('../subscription/UpgradeModal'))
 
 const NAV = [
   { to: '/teacher',                  icon: LayoutDashboard, label: 'My Dashboard', end: true },
-  { to: '/teacher/ai-copilot',       icon: Sparkles,        label: 'AI Co-Pilot',  badge: 'NEW' },
+  { to: '/teacher/assistant',        icon: Sparkles,        label: 'AI Co-Pilot',  badge: 'CHAT' },
+  { to: '/teacher/ai-copilot',       icon: Sparkles,        label: 'AI Generators'           },
   { to: '/teacher/assessments',      icon: PencilLine,      label: 'Assessments'             },
   { to: '/teacher/lessons',          icon: Presentation,    label: 'My Lessons'              },
   { to: '/teacher/lessons/new',      icon: BookOpen,        label: 'Create Lesson'           },
