@@ -27,6 +27,7 @@ const IdleWarningModal = lazy(() => import('./components/auth/IdleWarningModal')
 const PaywallHost = lazy(() => import('./components/subscription/PaywallHost'))
 const NotFound = lazy(() => import('./components/ui/NotFound'))
 const Marketing = lazy(() => import('./components/marketing/Marketing'))
+const Plans = lazy(() => import('./components/marketing/Plans'))
 const PrivacyPolicy = lazy(() => import('./components/marketing/PrivacyPolicy'))
 const Terms = lazy(() => import('./components/marketing/Terms'))
 
@@ -197,6 +198,8 @@ export default function App() {
         <Routes>
           <Route path="/" element={<RootRedirect />} />
           <Route path="/welcome"  element={<Marketing />} />
+          <Route path="/pricing"  element={<Plans />} />
+          <Route path="/plans"    element={<Plans />} />
           <Route path="/privacy"  element={<PrivacyPolicy />} />
           <Route path="/terms"    element={<Terms />} />
           <Route path="/login"    element={<Login />} />
