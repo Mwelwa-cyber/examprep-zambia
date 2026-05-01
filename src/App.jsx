@@ -21,6 +21,7 @@ const LessonEditor = lazy(() => import('./components/lessons/LessonEditor'))
 const MyResults = lazy(() => import('./components/dashboard/MyResults'))
 const BadgesPage = lazy(() => import('./components/dashboard/BadgesPage'))
 const ProfilePage = lazy(() => import('./components/dashboard/ProfilePage'))
+const ZedExamsSettings = lazy(() => import('./components/settings/zedexams-settings'))
 const IdleWarningModal = lazy(() => import('./components/auth/IdleWarningModal'))
 const PaywallHost = lazy(() => import('./components/subscription/PaywallHost'))
 const NotFound = lazy(() => import('./components/ui/NotFound'))
@@ -100,6 +101,12 @@ function RootRedirect() {
       replace
     />
   )
+}
+
+function SettingsPage() {
+  const { userProfile, isAdmin, isTeacher } = useAuth()
+  const role = isAdmin ? 'admin' : (isTeacher ? 'teacher' : (userProfile?.role || 'learner'))
+  return <ZedExamsSettings role={role} />
 }
 
 function AdminRoute({ children }) {
@@ -236,6 +243,7 @@ export default function App() {
           <Route path="/my-results"        element={<ProtectedRoute><LearnerOnlyRoute><Navbar /><MyResults /></LearnerOnlyRoute></ProtectedRoute>} />
           <Route path="/my-badges"         element={<ProtectedRoute><LearnerOnlyRoute><Navbar /><BadgesPage /></LearnerOnlyRoute></ProtectedRoute>} />
           <Route path="/profile"           element={<ProtectedRoute><Navbar /><ProfilePage /></ProtectedRoute>} />
+          <Route path="/settings"          element={<ProtectedRoute><Navbar /><SettingsPage /></ProtectedRoute>} />
 
           {/* ── Admin routes (all wrapped in AdminLayout) ──────── */}
           <Route path="/admin"                          element={<AdminRoute><AdminDashboard /></AdminRoute>} />
