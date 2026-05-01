@@ -3,6 +3,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom'
 import {
   Home,
   BookOpen,
+  FileText,
   PencilLine,
   BarChart3,
   GraduationCap,
@@ -32,6 +33,7 @@ export default function Navbar() {
   const navLinks = [
     ...(!isAdmin && !isTeacher ? [{ to: homePath, label: 'Home', icon: Home }] : []),
     { to: '/lessons',    label: 'Lessons',     icon: BookOpen },
+    { to: '/syllabi',    label: 'Syllabi',     icon: FileText },
     { to: '/quizzes',    label: 'Quizzes',     icon: PencilLine },
     { to: '/my-results', label: 'Results',     icon: BarChart3 },
   ]

@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom'
-import { BarChart3, BookOpen, Home, PencilLine } from '../ui/icons'
+import { BarChart3, BookOpen, FileText, Home, PencilLine } from '../ui/icons'
 import Icon from '../ui/Icon'
 
 const MOBILE_NAV_ITEMS = [
   { to: '/dashboard', icon: Home,       label: 'Home',    end: true },
   { to: '/quizzes',   icon: PencilLine, label: 'Quizzes', end: false },
   { to: '/lessons',   icon: BookOpen,   label: 'Lessons', end: false },
+  { to: '/syllabi',   icon: FileText,   label: 'Syllabi', end: false },
   { to: '/my-results',icon: BarChart3,  label: 'Results', end: false },
 ]
 

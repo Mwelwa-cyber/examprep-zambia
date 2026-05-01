@@ -18,6 +18,7 @@ const LessonsList = lazy(() => import('./components/lessons/LessonLibrary'))
 const LessonView = lazy(() => import('./components/lessons/LessonPlayer'))
 const LessonDashboard = lazy(() => import('./components/lessons/LessonDashboard'))
 const LessonEditor = lazy(() => import('./components/lessons/LessonEditor'))
+const LearnerSyllabiLibrary = lazy(() => import('./components/syllabi/SyllabiLibrary'))
 const MyResults = lazy(() => import('./components/dashboard/MyResults'))
 const BadgesPage = lazy(() => import('./components/dashboard/BadgesPage'))
 const ProfilePage = lazy(() => import('./components/dashboard/ProfilePage'))
@@ -228,6 +229,7 @@ export default function App() {
           <Route path="/results/:resultId" element={<ProtectedRoute><LearnerOnlyRoute><Navbar /><QuizResults /></LearnerOnlyRoute></ProtectedRoute>} />
           <Route path="/lessons"           element={<ProtectedRoute><LearnerOnlyRoute><Navbar /><LessonsList /></LearnerOnlyRoute></ProtectedRoute>} />
           <Route path="/lessons/:lessonId" element={<ProtectedRoute><LearnerOnlyRoute><Navbar /><LessonView /></LearnerOnlyRoute></ProtectedRoute>} />
+          <Route path="/syllabi"           element={<ProtectedRoute><Navbar /><LearnerSyllabiLibrary /></ProtectedRoute>} />
           <Route path="/my-results"        element={<ProtectedRoute><LearnerOnlyRoute><Navbar /><MyResults /></LearnerOnlyRoute></ProtectedRoute>} />
           <Route path="/my-badges"         element={<ProtectedRoute><LearnerOnlyRoute><Navbar /><BadgesPage /></LearnerOnlyRoute></ProtectedRoute>} />
           <Route path="/profile"           element={<ProtectedRoute><Navbar /><ProfilePage /></ProtectedRoute>} />
