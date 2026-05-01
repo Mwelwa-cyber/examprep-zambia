@@ -8,7 +8,8 @@
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
     "cbc:verify": "node ./scripts/ingest-private-cbc.mjs --verify",
-    "cbc:ingest": "node ./scripts/ingest-private-cbc.mjs"
+    "cbc:ingest": "node ./scripts/ingest-private-cbc.mjs",
+    "cbc:check": "node ./scripts/check-private-cbc.mjs"
   },
   "engines": {
     "node": "22"
