@@ -2,12 +2,10 @@
  * Shared fetch wrapper for the Anthropic Messages API.
  *
  * Why this exists: every direct caller (aiService.callAnthropic,
- * aiService.callAnthropicStream, teacherTools/anthropicClient.callClaude,
- * zedAssistant/agent.postAnthropic, zedAssistant/coder/agent.postAnthropic)
- * threw immediately on the first 429. The autonomous coder loop sends the
- * full conversation back on every iteration (up to 25), so a single /code
- * task can blow past the org-level 30k input-tokens-per-minute quota and
- * crash with no chance to recover.
+ * aiService.callAnthropicStream, teacherTools/anthropicClient.callClaude)
+ * threw immediately on the first 429. Bursty callers can blow past the
+ * org-level 30k input-tokens-per-minute quota and crash with no chance to
+ * recover.
  *
  * This helper retries 429 (rate limit), 529 (overloaded) and 5xx with
  * exponential backoff, honouring the `retry-after` header when Anthropic
