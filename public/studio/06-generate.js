@@ -7,6 +7,19 @@ async function callClaude(systemPrompt, userPrompt) {
   throw new Error('Studio bridge not initialised — __studioCallClaude is missing.');
 }
 
+// Native <input type="date"> hands us YYYY-MM-DD. Render that as
+// "29 April 2026" for the lesson plan header so it's readable on print.
+// Anything we don't recognise is passed through unchanged.
+function formatLessonDate(raw) {
+  if (!raw) return '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+  if (!m) return raw;
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+  if (mo < 1 || mo > 12) return raw;
+  return `${d} ${months[mo - 1]} ${y}`;
+}
+
 function gatherInput() {
   return {
     headerLine: $('#f-header').value.trim(),
@@ -18,7 +31,7 @@ function gatherInput() {
     term: $('#f-term').value,
     week: $('#f-week').value,
     termWeek: `Term ${$('#f-term').value}, Week ${$('#f-week').value}`,
-    date: $('#f-date').value.trim(),
+    date: formatLessonDate($('#f-date').value.trim()),
     time: $('#f-time').value.trim(),
     topic: $('#f-topic').value.trim(),
     subtopic: $('#f-subtopic').value.trim(),
@@ -34,7 +47,13 @@ function gatherInput() {
 
 function buildPrompt(i) {
   const level = activeGradeLevel()[i.klass];
-  const topics = getTopicsForClass(level, i.subject, i.klass);
+  const legacyTopics = getTopicsForClass(level, i.subject, i.klass);
+  // Merge in the clean curriculumTopics map (02b-curriculum-topics.js) for
+  // this grade so Claude recognises topics the teacher picks from the new
+  // dropdown — otherwise it might flag them as "out of syllabus" when the
+  // legacy subject map happens not to list them.
+  const curated = (window.curriculumTopics && window.curriculumTopics[i.klass]) || {};
+  const topics = Object.assign({}, legacyTopics, curated);
   const versionLabel = syllabusVersion === 'old' ? '2013 Old CDC Syllabus' : '2023 Zambia ECF';
   let syllabusContext = '';
   if (Object.keys(topics).length) {

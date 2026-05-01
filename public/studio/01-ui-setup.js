@@ -65,12 +65,13 @@ function __studioInitUI() {
     $('#font-size-val').textContent = e.target.value + 'pt';
   });
 
-  // Auto-fill today's date if empty
+  // Auto-fill today's date if empty. <input type="date"> requires the value
+  // in ISO YYYY-MM-DD; the calendar widget handles the user-facing format.
   const dateField = $('#f-date');
   if (dateField && !dateField.value) {
-    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
     const d = new Date();
-    dateField.value = `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+    const pad = (n) => String(n).padStart(2, '0');
+    dateField.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   }
 }
 

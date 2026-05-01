@@ -147,7 +147,15 @@ async function fetchTopicsForCurrentSelection() {
   const level = activeGradeLevel()[klass];
   const subj = $('#f-subject').value;
 
-  // Prefer the dynamic CBC KB. Bridge contract:
+  // 1. New clean curriculumTopics map (02b-curriculum-topics.js) — keyed
+  // by grade only. If the teacher's grade is listed there, use it as the
+  // authoritative source; this is the structure the user can extend by
+  // editing 02b-curriculum-topics.js without touching anything else.
+  if (window.curriculumTopics && window.curriculumTopics[klass]) {
+    return window.curriculumTopics[klass];
+  }
+
+  // 2. Dynamic CBC KB. Bridge contract:
   //   - non-empty object → KB has data, use it.
   //   - empty object {}  → KB has no rows; fall through to hardcoded.
   //   - null             → fetch errored; fall through to hardcoded.
@@ -159,19 +167,34 @@ async function fetchTopicsForCurrentSelection() {
       if (remote && Object.keys(remote).length > 0) return remote;
     }
   }
+
+  // 3. Legacy hardcoded syllabus.
   return getTopicsForClass(level, subj, klass);
 }
 
 async function updateTopics() {
   currentTopicsMap = await fetchTopicsForCurrentSelection();
-  $('#topic-list').innerHTML = Object.keys(currentTopicsMap)
-    .map(t => `<option value="${esc(t)}"></option>`).join('');
+  const topicSel = $('#f-topic');
+  if (!topicSel) return;
+  const topics = Object.keys(currentTopicsMap);
+  const placeholder = '<option value="">Select a topic…</option>';
+  topicSel.innerHTML = placeholder + topics.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
+  // Reset to placeholder so the teacher consciously picks one, and so the
+  // subtopic dropdown gets correctly reset below.
+  topicSel.value = '';
   updateSubtopics();
 }
+
 function updateSubtopics() {
-  const topic = $('#f-topic').value.trim();
+  const subSel = $('#f-subtopic');
+  if (!subSel) return;
+  const topic = ($('#f-topic').value || '').trim();
   const subs = currentTopicsMap[topic] || [];
-  $('#subtopic-list').innerHTML = subs.map(s => `<option value="${esc(s)}"></option>`).join('');
+  const placeholder = '<option value="">Select a sub-topic…</option>';
+  subSel.innerHTML = placeholder + subs.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+  // Always reset the selection when the topic changes so a stale subtopic
+  // from the previous topic can't leak through.
+  subSel.value = '';
 }
 
 // Bind syllabus controls and seed the dropdowns. Runs on every React mount,
@@ -195,7 +218,9 @@ function __studioInitSyllabus() {
 
   $('#f-class').addEventListener('change', updateSubjects);
   $('#f-subject').addEventListener('change', updateTopics);
-  $('#f-topic').addEventListener('input', updateSubtopics);
+  // Topic is now a <select>; only 'change' fires, and we always reset the
+  // subtopic dropdown so a stale subtopic from the previous topic can't be
+  // submitted accidentally.
   $('#f-topic').addEventListener('change', updateSubtopics);
 
   // Initial population
