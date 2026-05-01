@@ -18,6 +18,7 @@ import {
   FileText,
   Sparkles,
   FolderOpen,
+  Layers,
 } from '../ui/icons'
 import Icon from '../ui/Icon'
 
@@ -301,6 +302,27 @@ export default function TeacherTopBar() {
           </div>
         )}
       </div>
+
+      {/* Library */}
+      <Link
+        to="/teacher/library"
+        aria-label="Open library"
+        className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border-2 font-bold no-underline transition-colors flex-shrink-0"
+        style={{ background: '#fff', borderColor: '#0e2a32', color: '#0e2a32', height: 40, padding: '0 14px', fontSize: 13 }}
+        onMouseEnter={e => { e.currentTarget.style.background = '#f5efe1' }}
+        onMouseLeave={e => { e.currentTarget.style.background = '#fff' }}
+      >
+        <Icon as={Layers} size="sm" />
+        <span>Library</span>
+      </Link>
+      <Link
+        to="/teacher/library"
+        aria-label="Open library"
+        className="sm:hidden flex items-center justify-center rounded-xl border-2 transition-colors flex-shrink-0"
+        style={{ background: '#fff', borderColor: '#0e2a32', color: '#0e2a32', width: 40, height: 40 }}
+      >
+        <Icon as={Layers} size="sm" />
+      </Link>
 
       {/* Notifications */}
       <div ref={bellRef} className="relative flex-shrink-0">

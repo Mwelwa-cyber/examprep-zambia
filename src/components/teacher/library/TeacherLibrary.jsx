@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../../contexts/AuthContext'
 import { useFirestore } from '../../../hooks/useFirestore'
 import {
@@ -19,13 +19,13 @@ const SECTIONS = [
     source: 'generations',
   },
   {
-    key: 'assessments',
-    label: 'Assessments',
-    icon: '🦅',
-    accent: '#e8d8f0',
-    createTo: '/teacher/assessments',
-    emptyHint: 'Create a topic, monthly or end-of-term assessment.',
-    source: 'quizzes',
+    key: 'notes',
+    label: 'Notes',
+    icon: '🦉',
+    accent: '#dbe7f4',
+    createTo: '/teacher/generate/notes',
+    emptyHint: 'Generate teacher delivery notes from a lesson plan.',
+    source: 'generations',
   },
   {
     key: 'scheme_of_work',
@@ -46,13 +46,31 @@ const SECTIONS = [
     source: 'generations',
   },
   {
-    key: 'notes',
-    label: 'Notes',
-    icon: '🦉',
-    accent: '#dbe7f4',
-    createTo: null,
-    emptyHint: 'Teacher delivery notes — coming soon.',
-    source: 'none',
+    key: 'flashcards',
+    label: 'Flashcards',
+    icon: '🎴',
+    accent: '#fde9b8',
+    createTo: '/teacher/generate/flashcards',
+    emptyHint: 'Build a flashcard deck for quick recall practice.',
+    source: 'generations',
+  },
+  {
+    key: 'rubric',
+    label: 'Rubrics',
+    icon: '📋',
+    accent: '#f0d6e0',
+    createTo: '/teacher/generate/rubric',
+    emptyHint: 'Generate a marking rubric for an assessment.',
+    source: 'generations',
+  },
+  {
+    key: 'assessments',
+    label: 'Assessments',
+    icon: '🦅',
+    accent: '#e8d8f0',
+    createTo: '/teacher/assessments',
+    emptyHint: 'Create a topic, monthly or end-of-term assessment.',
+    source: 'quizzes',
   },
 ]
 
@@ -73,8 +91,9 @@ function quizSubtitle(q) {
 export default function TeacherLibrary() {
   const { currentUser } = useAuth()
   const { getMyQuizzes } = useFirestore()
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const initialFocus = searchParams.get('tool') || ''
+  const activeFolder = searchParams.get('tool') || ''
   const initialQuery = searchParams.get('q') || ''
 
   const [generations, setGenerations] = useState([])
@@ -154,6 +173,27 @@ export default function TeacherLibrary() {
 
   const totalSaved = generations.length + quizzes.length
 
+  const sectionCounts = useMemo(() => {
+    const counts = {}
+    SECTIONS.forEach((s) => { counts[s.key] = 0 })
+    generations.forEach((g) => {
+      if (counts[g.tool] != null) counts[g.tool] += 1
+    })
+    counts.assessments = (counts.assessments || 0) + quizzes.length
+    return counts
+  }, [generations, quizzes])
+
+  const visibleSections = activeFolder
+    ? SECTIONS.filter((s) => s.key === activeFolder)
+    : SECTIONS
+
+  function setFolder(key) {
+    const params = new URLSearchParams(searchParams)
+    if (!key) params.delete('tool')
+    else params.set('tool', key)
+    navigate(`/teacher/library${params.toString() ? `?${params.toString()}` : ''}`)
+  }
+
   return (
     <div className="min-h-screen p-4 sm:p-6 lg:p-8" style={{ background: '#f5efe1' }}>
       <div className="max-w-6xl mx-auto">
@@ -188,24 +228,121 @@ export default function TeacherLibrary() {
           />
         </div>
 
+        {/* Folders */}
+        {status === 'ready' && (
+          <FolderGrid
+            sections={SECTIONS}
+            counts={sectionCounts}
+            active={activeFolder}
+            total={totalSaved}
+            onSelect={setFolder}
+          />
+        )}
+
         {/* Body */}
         {status === 'loading' && <LoadingState />}
         {status === 'error' && <ErrorState message={errorMessage} />}
 
         {status === 'ready' && (
           <div>
-            {SECTIONS.map((section) => (
+            {visibleSections.map((section) => (
               <LibrarySection
                 key={section.key}
                 section={section}
                 items={sectionData[section.key]}
-                initialFocus={initialFocus}
+                initialFocus={activeFolder}
               />
             ))}
           </div>
         )}
       </div>
     </div>
+  )
+}
+
+function FolderGrid({ sections, counts, active, total, onSelect }) {
+  return (
+    <div className="mb-8">
+      <div className="flex items-center justify-between mb-3">
+        <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 800, fontSize: 18, color: '#0e2a32', margin: 0 }}>
+          Folders
+        </h2>
+        {active && (
+          <button
+            type="button"
+            onClick={() => onSelect('')}
+            className="text-xs font-bold rounded-lg border-2 px-3 py-1.5 transition-colors"
+            style={{ borderColor: '#0e2a32', color: '#0e2a32', background: '#fff' }}
+          >
+            ← All folders
+          </button>
+        )}
+      </div>
+      <div
+        className="grid gap-3"
+        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}
+      >
+        <FolderCard
+          icon="📚"
+          label="All items"
+          count={total}
+          accent="#f0eee8"
+          isActive={!active}
+          onClick={() => onSelect('')}
+        />
+        {sections.map((s) => (
+          <FolderCard
+            key={s.key}
+            icon={s.icon}
+            label={s.label}
+            count={counts[s.key] || 0}
+            accent={s.accent}
+            isActive={active === s.key}
+            onClick={() => onSelect(s.key)}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function FolderCard({ icon, label, count, accent, isActive, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="text-left rounded-2xl border-2 p-3 transition-all hover:-translate-y-0.5"
+      style={{
+        background: isActive ? '#0e2a32' : '#fff',
+        borderColor: '#0e2a32',
+        color: isActive ? '#fff' : '#0e2a32',
+        boxShadow: isActive ? '0 8px 18px rgba(14,42,50,.18)' : 'none',
+      }}
+    >
+      <div className="flex items-center gap-2.5">
+        <div
+          style={{
+            width: 36, height: 36, borderRadius: 10, background: accent,
+            display: 'grid', placeItems: 'center', fontSize: 18, flexShrink: 0,
+          }}
+        >
+          {icon}
+        </div>
+        <div className="min-w-0">
+          <p
+            className="truncate"
+            style={{ fontFamily: "'Fraunces', serif", fontWeight: 800, fontSize: 13.5, margin: 0, lineHeight: 1.2 }}
+          >
+            {label}
+          </p>
+          <p
+            style={{ fontSize: 11, margin: '2px 0 0', fontWeight: 600, opacity: isActive ? 0.85 : 0.6 }}
+          >
+            {count} {count === 1 ? 'item' : 'items'}
+          </p>
+        </div>
+      </div>
+    </button>
   )
 }
 

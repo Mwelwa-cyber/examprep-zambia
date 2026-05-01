@@ -15,7 +15,8 @@ const STUDIOS = [
   {
     emoji: '🦁',
     mascotBg: '#faecb8',
-    badge: 'SOON',
+    badge: 'NEW',
+    libraryKey: 'scheme-of-work',
     title: 'Schemes of Work',
     tagline: 'Plan your whole term — week-by-week subject pacing.',
     to: '/teacher/generate/scheme-of-work',
