@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Eye, EyeOff, EnvelopeIcon as Mail } from '../ui/icons'
+import { ArrowLeft, EnvelopeIcon as Mail } from '../ui/icons'
 import { useAuth } from '../../contexts/AuthContext'
 import { getRoleLandingPath } from '../../utils/navigation'
 import Logo from '../ui/Logo'
@@ -210,10 +210,12 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setShowPw(v => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 theme-text-muted hover:theme-text transition-colors min-h-0 p-0 bg-transparent shadow-none"
+                  onMouseDown={e => e.preventDefault()}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center justify-center w-10 h-10 rounded-lg text-xl leading-none select-none theme-text-muted hover:theme-text transition-transform active:scale-90 bg-transparent shadow-none p-0 min-h-0"
                   aria-label={showPw ? 'Hide password' : 'Show password'}
+                  aria-pressed={showPw}
                 >
-                  <Icon as={showPw ? EyeOff : Eye} size="md" />
+                  <span aria-hidden="true">{showPw ? '🙈' : '🐵'}</span>
                 </button>
               </div>
             </div>
