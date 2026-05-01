@@ -77,27 +77,6 @@
         }
       },
       {
-        "source": "/api/telegram/webhook",
-        "function": {
-          "functionId": "telegramWebhook",
-          "region": "us-central1"
-        }
-      },
-      {
-        "source": "/api/zed/chat",
-        "function": {
-          "functionId": "apiZedAssistantChat",
-          "region": "us-central1"
-        }
-      },
-      {
-        "source": "/api/whatsapp/webhook",
-        "function": {
-          "functionId": "whatsappWebhook",
-          "region": "us-central1"
-        }
-      },
-      {
         "source": "**",
         "destination": "/index.html"
       }
