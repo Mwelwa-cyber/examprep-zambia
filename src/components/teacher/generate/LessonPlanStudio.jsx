@@ -16,7 +16,7 @@ const studioGenerateLessonPlanCallable = httpsCallable(functions, 'studioGenerat
 
 // Bump this when /public/studio/* is changed so phones / CDNs refetch
 // instead of serving the cached old file.
-const STUDIO_ASSET_VERSION = 'v8'
+const STUDIO_ASSET_VERSION = 'v9'
 
 // Sequential script loader — each script must finish before the next starts
 // because the studio scripts rely on globals set by earlier ones.
@@ -142,6 +142,7 @@ export default function LessonPlanStudio() {
     const scripts = [
       `/studio/01-ui-setup.js${v}`,
       `/studio/02-syllabus-new.js${v}`,
+      `/studio/02b-curriculum-topics.js${v}`,
       `/studio/03-syllabus-old.js${v}`,
       `/studio/04-syllabus-router.js${v}`,
       `/studio/05-system-prompts.js${v}`,
@@ -246,13 +247,13 @@ export default function LessonPlanStudio() {
                 </select></div>
               </div>
               <div className="field-row">
-                <div className="field"><label>Date <span className="opt">(auto)</span></label><input type="text" id="f-date" placeholder="29 April 2026" /></div>
-                <div className="field"><label>Time <span className="opt">(opt.)</span></label><input type="text" id="f-time" placeholder="08:00" /></div>
+                <div className="field"><label>Date <span className="opt">(auto)</span></label><input type="date" id="f-date" /></div>
+                <div className="field"><label>Time <span className="opt">(opt.)</span></label><input type="time" id="f-time" /></div>
               </div>
 
               <div className="section-label">Topic <span className="opt" style={{textTransform:'none',letterSpacing:0,color:'#6e6253',fontStyle:'italic'}}>— from CBC syllabus</span></div>
-              <div className="field"><label>Topic</label><input type="text" id="f-topic" list="topic-list" placeholder="Pick from syllabus or type your own" autoComplete="off" /><datalist id="topic-list"></datalist></div>
-              <div className="field"><label>Sub-topic</label><input type="text" id="f-subtopic" list="subtopic-list" placeholder="Pick from syllabus or type your own" autoComplete="off" /><datalist id="subtopic-list"></datalist></div>
+              <div className="field"><label>Topic</label><select id="f-topic"><option value="">Select a topic…</option></select></div>
+              <div className="field"><label>Sub-topic</label><select id="f-subtopic"><option value="">Select a sub-topic…</option></select></div>
 
               <div className="section-label">Teacher</div>
               <div className="field"><label>Name <span className="opt">(optional)</span></label><input type="text" id="f-teacher" placeholder="e.g. Mwelwa" /></div>
