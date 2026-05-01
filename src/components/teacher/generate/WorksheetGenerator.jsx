@@ -1,12 +1,14 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import {
   generateWorksheetStream,
   TEACHER_GRADES,
-  TEACHER_SUBJECTS,
   TEACHER_LANGUAGES,
   WORKSHEET_DIFFICULTIES,
   WORKSHEET_QUESTION_COUNTS,
   WORKSHEET_DURATIONS,
+  getSubjectsForGrade,
+  isSubjectValidForGrade,
+  defaultSubjectForGrade,
 } from '../../../utils/teacherTools'
 import { downloadWorksheetDocx } from '../../../utils/worksheetToDocx'
 import { useFormDefaultsFromUrl } from '../../../utils/useFormDefaultsFromUrl'
@@ -46,6 +48,17 @@ export default function WorksheetGenerator() {
       try { cancelRef.current?.() } catch { /* ignore */ }
     }
   }, [])
+
+  const subjectOptions = useMemo(
+    () => getSubjectsForGrade(form.grade),
+    [form.grade],
+  )
+
+  useEffect(() => {
+    if (!isSubjectValidForGrade(form.subject, form.grade)) {
+      setForm((f) => ({ ...f, subject: defaultSubjectForGrade(f.grade) }))
+    }
+  }, [form.grade, form.subject])
 
   function updateField(key, value) {
     setForm((f) => ({ ...f, [key]: value }))
@@ -140,7 +153,7 @@ export default function WorksheetGenerator() {
             <FieldSelect
               label="Subject"
               value={form.subject}
-              options={TEACHER_SUBJECTS}
+              options={subjectOptions}
               onChange={(v) => updateField('subject', v)}
             />
             <FieldText

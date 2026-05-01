@@ -1,12 +1,14 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '../../../contexts/AuthContext'
 import {
   generateSchemeOfWork,
   TEACHER_GRADES,
-  TEACHER_SUBJECTS,
   TEACHER_LANGUAGES,
   SCHEME_TERMS,
   SCHEME_WEEK_COUNTS,
+  getSubjectsForGrade,
+  isSubjectValidForGrade,
+  defaultSubjectForGrade,
 } from '../../../utils/teacherTools'
 import { downloadSchemeOfWorkDocx } from '../../../utils/schemeOfWorkToDocx'
 import SchemeOfWorkView from '../views/SchemeOfWorkView'
@@ -34,6 +36,17 @@ export default function SchemeOfWorkGenerator() {
   const [generationId, setGenerationId] = useState(null)
   const [usage, setUsage] = useState(null)
   const [warning, setWarning] = useState('')
+
+  const subjectOptions = useMemo(
+    () => getSubjectsForGrade(form.grade),
+    [form.grade],
+  )
+
+  useEffect(() => {
+    if (!isSubjectValidForGrade(form.subject, form.grade)) {
+      setForm((f) => ({ ...f, subject: defaultSubjectForGrade(f.grade) }))
+    }
+  }, [form.grade, form.subject])
 
   function updateField(key, value) {
     setForm((f) => ({ ...f, [key]: value }))
@@ -102,7 +115,7 @@ export default function SchemeOfWorkGenerator() {
             <FieldSelect
               label="Subject"
               value={form.subject}
-              options={TEACHER_SUBJECTS}
+              options={subjectOptions}
               onChange={(v) => updateField('subject', v)}
             />
             <FieldSelect

@@ -33,11 +33,15 @@ const ALLOWED_GRADES = new Set([
   "ECE", "G1", "G2", "G3", "G4", "G5", "G6", "G7",
   "G8", "G9", "G10", "G11", "G12",
 ]);
+// Mirrors the frontend TEACHER_SUBJECTS list in src/utils/teacherTools.js.
 const ALLOWED_SUBJECTS = new Set([
-  "mathematics", "english", "integrated_science", "social_studies",
-  "literacy", "zambian_language", "creative_and_technology_studies",
-  "physical_education", "religious_education", "civic_education",
-  "biology", "chemistry", "physics", "geography", "history",
+  "mathematics", "numeracy", "english", "literacy", "zambian_language",
+  "integrated_science", "environmental_science",
+  "biology", "chemistry", "physics",
+  "social_studies", "history", "geography", "civic_education",
+  "religious_education",
+  "technology_studies", "creative_and_technology_studies",
+  "home_economics", "expressive_arts", "physical_education",
 ]);
 const ALLOWED_LANGUAGES = new Set([
   "english", "bemba", "nyanja", "tonga", "lozi", "kaonde", "lunda", "luvale",

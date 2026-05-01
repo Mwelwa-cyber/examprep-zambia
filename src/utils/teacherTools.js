@@ -30,25 +30,30 @@ const generateNotesCallable = httpsCallable(functions, 'generateNotes', {
   timeout: 130_000, // server: 120s
 })
 
-// Grades grouped by Zambia CBC phase.
+// Grades grouped by Zambia CBC phase. Values use the canonical G-prefix the
+// backend's ALLOWED_GRADES accepts (ECE, G1–G12). Labels show the
+// "Grade 8 / Form 1" dual naming so secondary teachers still recognise them.
+//
 // Items with `group` (no `value`) render as <optgroup> labels in FieldSelect.
 export const TEACHER_GRADES = [
   { group: 'Pre-Primary' },
   { value: 'ECE', label: 'ECE — Early Childhood Education' },
-  { group: 'Lower Primary (Grades 1–3)' },
+  { group: 'Lower Primary (Grades 1–4)' },
   { value: 'G1', label: 'Grade 1' },
   { value: 'G2', label: 'Grade 2' },
   { value: 'G3', label: 'Grade 3' },
-  { group: 'Upper Primary (Grades 4–6)' },
   { value: 'G4', label: 'Grade 4' },
+  { group: 'Upper Primary (Grades 5–7)' },
   { value: 'G5', label: 'Grade 5' },
   { value: 'G6', label: 'Grade 6' },
-  { group: 'Junior Secondary' },
-  { value: 'F1', label: 'Form 1' },
-  { value: 'F2', label: 'Form 2' },
-  { group: 'Senior Secondary' },
-  { value: 'F3', label: 'Form 3' },
-  { value: 'F4', label: 'Form 4' },
+  { value: 'G7', label: 'Grade 7' },
+  { group: 'Junior Secondary (Grades 8–9)' },
+  { value: 'G8', label: 'Grade 8 / Form 1' },
+  { value: 'G9', label: 'Grade 9 / Form 2' },
+  { group: 'Senior Secondary (Grades 10–12)' },
+  { value: 'G10', label: 'Grade 10 / Form 3' },
+  { value: 'G11', label: 'Grade 11 / Form 4' },
+  { value: 'G12', label: 'Grade 12 / Form 5' },
 ]
 
 // Subjects grouped by curriculum area across all CBC phases.
@@ -78,6 +83,99 @@ export const TEACHER_SUBJECTS = [
   { value: 'expressive_arts',  label: 'Expressive Arts' },
   { value: 'physical_education', label: 'Physical Education' },
 ]
+
+// Maps each subject value to the grades it's actually taught at in the
+// Zambian CBC. Used by getSubjectsForGrade() to filter the dropdown so
+// teachers only see pedagogically valid combinations (no Biology for
+// Grade 1, no Literacy for Grade 12).
+const SUBJECT_GRADE_MAP = {
+  // Languages — English & Zambian Language span everything; Literacy is
+  // the lower-primary reading-and-writing strand that gives way to English.
+  english:           ['ECE','G1','G2','G3','G4','G5','G6','G7','G8','G9','G10','G11','G12'],
+  literacy:          ['ECE','G1','G2','G3','G4'],
+  zambian_language:  ['ECE','G1','G2','G3','G4','G5','G6','G7','G8','G9','G10','G11','G12'],
+
+  // STEM — Numeracy is the early-grade pre-Mathematics strand. Integrated
+  // Science covers all primary + junior secondary, then splits into
+  // Bio/Chem/Phys at senior secondary.
+  mathematics:       ['G3','G4','G5','G6','G7','G8','G9','G10','G11','G12'],
+  numeracy:          ['ECE','G1','G2','G3','G4'],
+  integrated_science:['G1','G2','G3','G4','G5','G6','G7','G8','G9'],
+  environmental_science: ['G1','G2','G3','G4'],
+  biology:           ['G10','G11','G12'],
+  chemistry:         ['G10','G11','G12'],
+  physics:           ['G10','G11','G12'],
+
+  // Humanities — Social Studies covers ECE through junior secondary; in
+  // senior secondary it splits into History/Geography/Civic Education.
+  social_studies:    ['ECE','G1','G2','G3','G4','G5','G6','G7','G8','G9'],
+  history:           ['G8','G9','G10','G11','G12'],
+  geography:         ['G8','G9','G10','G11','G12'],
+  civic_education:   ['G5','G6','G7','G8','G9','G10','G11','G12'],
+  religious_education:['ECE','G1','G2','G3','G4','G5','G6','G7','G8','G9','G10','G11','G12'],
+
+  // Technical & creative — Creative & Technology Studies is the primary-
+  // level integrated subject; Technology Studies and Home Economics take
+  // over from upper primary onwards. Expressive Arts runs ECE–junior.
+  technology_studies:['G5','G6','G7','G8','G9','G10','G11','G12'],
+  creative_and_technology_studies: ['G1','G2','G3','G4','G5','G6','G7'],
+  home_economics:    ['G5','G6','G7','G8','G9','G10','G11','G12'],
+  expressive_arts:   ['ECE','G1','G2','G3','G4','G5','G6','G7','G8','G9'],
+  physical_education:['ECE','G1','G2','G3','G4','G5','G6','G7','G8','G9','G10','G11','G12'],
+}
+
+/**
+ * Returns the TEACHER_SUBJECTS list filtered to the subjects taught at
+ * the given grade. Group headers are kept only if at least one subject in
+ * that group survives the filter. Falls back to the full list if grade is
+ * unknown (e.g. legacy URL deeplink).
+ */
+export function getSubjectsForGrade(grade) {
+  if (!grade) return TEACHER_SUBJECTS
+  const filtered = []
+  let pendingGroup = null
+  let groupHasItems = false
+  for (const opt of TEACHER_SUBJECTS) {
+    if (opt.group !== undefined) {
+      pendingGroup = opt
+      groupHasItems = false
+      continue
+    }
+    const grades = SUBJECT_GRADE_MAP[opt.value]
+    const allowed = !grades || grades.includes(grade)
+    if (!allowed) continue
+    if (pendingGroup && !groupHasItems) {
+      filtered.push(pendingGroup)
+      groupHasItems = true
+    }
+    filtered.push(opt)
+  }
+  // Defensive: never return an empty list. If a future grade has no
+  // subject mappings at all, fall back to the full list rather than
+  // showing an empty dropdown.
+  return filtered.length > 0 ? filtered : TEACHER_SUBJECTS
+}
+
+/**
+ * Picks a sensible default subject for a grade — used when the grade
+ * changes and the previously-selected subject no longer applies.
+ * Returns the first non-group option from getSubjectsForGrade().
+ */
+export function defaultSubjectForGrade(grade) {
+  const opts = getSubjectsForGrade(grade)
+  const firstSubject = opts.find((o) => o.value !== undefined)
+  return firstSubject?.value || 'mathematics'
+}
+
+/**
+ * True if `subject` is taught at `grade` according to SUBJECT_GRADE_MAP.
+ * Subjects with no mapping entry default to true (forward-compatible).
+ */
+export function isSubjectValidForGrade(subject, grade) {
+  const grades = SUBJECT_GRADE_MAP[subject]
+  if (!grades) return true
+  return grades.includes(grade)
+}
 
 export const TEACHER_LANGUAGES = [
   { value: 'english', label: 'English' },
