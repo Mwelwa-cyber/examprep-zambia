@@ -46,6 +46,7 @@ const ZedVoice = lazy(() => import('./components/admin/ZedVoice'))
 // Teacher section
 const TeacherLayout = lazy(() => import('./components/teacher/TeacherLayout'))
 const TeacherDashboard = lazy(() => import('./components/teacher/TeacherDashboard'))
+const WelcomeToPro = lazy(() => import('./components/teacher/WelcomeToPro'))
 const SyllabiLibrary = lazy(() => import('./components/teacher/SyllabiLibrary'))
 const AssessmentStudio = lazy(() => import('./components/teacher/AssessmentStudio'))
 const EditAssessment = lazy(() => import('./components/teacher/EditAssessment'))
@@ -257,6 +258,8 @@ export default function App() {
           <Route path="/admin/generate/notes"           element={<AdminRoute><NotesStudio /></AdminRoute>} />
 
           {/* ── Teacher routes (all wrapped in TeacherLayout) ─── */}
+          {/* Post-upgrade celebration page — full-bleed, outside TeacherLayout chrome */}
+          <Route path="/teacher/welcome-to-pro"          element={<ProtectedRoute requiredRole="teacher"><WelcomeToPro /></ProtectedRoute>} />
           <Route path="/teacher"                         element={<TeacherRoute><TeacherDashboard /></TeacherRoute>} />
           {/* Assessment Studio — teacher-only, private. Replaces the old
               teacher-side quiz creator and `/teacher/content` workflow. */}
