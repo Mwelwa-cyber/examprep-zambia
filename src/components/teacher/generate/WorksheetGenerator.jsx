@@ -125,11 +125,11 @@ export default function WorksheetGenerator() {
           emoji="🐢"
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-6">
+        <div className="grid grid-cols-1 gap-6">
           {/* Input panel */}
           <form
             onSubmit={onGenerate}
-            className="studio-card p-5 space-y-4 h-fit sticky top-4"
+            className="studio-card p-5 space-y-4 h-fit w-full max-w-2xl mx-auto"
           >
             <FieldSelect
               label="Grade"
