@@ -135,6 +135,8 @@ function useClickAway(ref, onAway) {
   }, [ref, onAway])
 }
 
+const SEEN_REMINDERS_KEY = (uid) => `teacher:bellSeen:${uid}`
+
 export default function TeacherTopBar() {
   const { currentUser } = useAuth()
   const { getMyQuizzes } = useFirestore()
@@ -142,6 +144,7 @@ export default function TeacherTopBar() {
 
   const [generations, setGenerations] = useState([])
   const [quizzes, setQuizzes] = useState([])
+  const [seenReminderIds, setSeenReminderIds] = useState(() => new Set())
 
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
@@ -190,6 +193,38 @@ export default function TeacherTopBar() {
     [generations, quizzes],
   )
 
+  useEffect(() => {
+    if (!currentUser) {
+      setSeenReminderIds(new Set())
+      return
+    }
+    try {
+      const raw = localStorage.getItem(SEEN_REMINDERS_KEY(currentUser.uid))
+      setSeenReminderIds(raw ? new Set(JSON.parse(raw)) : new Set())
+    } catch {
+      setSeenReminderIds(new Set())
+    }
+  }, [currentUser])
+
+  useEffect(() => {
+    if (!bellOpen || !currentUser || reminders.length === 0) return
+    let changed = false
+    const next = new Set(seenReminderIds)
+    for (const r of reminders) {
+      if (!next.has(r.id)) { next.add(r.id); changed = true }
+    }
+    if (!changed) return
+    setSeenReminderIds(next)
+    try {
+      localStorage.setItem(SEEN_REMINDERS_KEY(currentUser.uid), JSON.stringify([...next]))
+    } catch { /* localStorage unavailable; badge will reset on next refresh */ }
+  }, [bellOpen, reminders, currentUser, seenReminderIds])
+
+  const unreadCount = reminders.reduce(
+    (n, r) => (seenReminderIds.has(r.id) ? n : n + 1),
+    0,
+  )
+
   const searchResults = useMemo(() => {
     const term = query.trim().toLowerCase()
     if (!term) return []
@@ -224,8 +259,6 @@ export default function TeacherTopBar() {
     setSearchOpen(false)
     navigate(`/teacher/library?q=${encodeURIComponent(term)}`)
   }
-
-  const reminderCount = reminders.length
 
   return (
     <div
@@ -307,18 +340,18 @@ export default function TeacherTopBar() {
         <button
           type="button"
           onClick={() => { setBellOpen(o => !o); setCreateOpen(false) }}
-          aria-label={`Notifications${reminderCount ? `, ${reminderCount} new` : ''}`}
+          aria-label={`Notifications${unreadCount ? `, ${unreadCount} new` : ''}`}
           aria-expanded={bellOpen}
           className="relative flex items-center justify-center rounded-xl border-2 transition-colors"
           style={{ background: '#fff', borderColor: '#0e2a32', width: 40, height: 40 }}
         >
           <Icon as={Bell} size="sm" />
-          {reminderCount > 0 && (
+          {unreadCount > 0 && (
             <span
               className="absolute -top-1.5 -right-1.5 flex items-center justify-center rounded-full text-[10px] font-black"
               style={{ background: '#ff7a2e', color: '#fff', minWidth: 18, height: 18, padding: '0 5px', border: '2px solid #fff' }}
             >
-              {reminderCount}
+              {unreadCount}
             </span>
           )}
         </button>
