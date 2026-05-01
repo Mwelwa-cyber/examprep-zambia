@@ -53,7 +53,7 @@ export default function Plans() {
   const { currentUser, isTeacher } = useAuth()
   const navigate = useNavigate()
   const [billing, setBilling] = useState('monthly')
-  const [showUpgrade, setShowUpgrade] = useState(false)
+  const [showUpgrade, setShowUpgrade] = useState(null) // 'pro' | 'max' | null
 
   useEffect(() => { ensureProFonts() }, [])
 
@@ -61,13 +61,20 @@ export default function Plans() {
     navigate(currentUser ? '/' : '/register')
   }
 
-  function handlePaidCta() {
+  function handlePaidCta(tier) {
     if (!currentUser) {
-      navigate('/register?intent=upgrade')
+      navigate(`/register?intent=upgrade&tier=${tier}`)
       return
     }
-    setShowUpgrade(true)
+    setShowUpgrade(tier)
   }
+
+  const upgradePlanIds = showUpgrade
+    ? [`${showUpgrade}_monthly`, `${showUpgrade}_yearly`]
+    : []
+  const upgradeDefaultId = showUpgrade
+    ? `${showUpgrade}_${billing === 'annual' ? 'yearly' : 'monthly'}`
+    : null
 
   return (
     <>
@@ -149,7 +156,7 @@ export default function Plans() {
               <div className="zpl-meta">For the everyday teacher</div>
               <Price planKey="pro" billing={billing} />
               <div className="zpl-annual-note">Or K790 / year — two months free.</div>
-              <button type="button" className="zpl-cta zpl-cta-primary" onClick={handlePaidCta}>Go Pro</button>
+              <button type="button" className="zpl-cta zpl-cta-primary" onClick={() => handlePaidCta('pro')}>Go Pro</button>
               <div className="zpl-feats">
                 <Feat><strong>40</strong> lesson plans / month</Feat>
                 <Feat><strong>25</strong> worksheets &amp; teacher notes</Feat>
@@ -168,7 +175,7 @@ export default function Plans() {
               <div className="zpl-meta">For HoDs &amp; heavy users</div>
               <Price planKey="max" billing={billing} />
               <div className="zpl-annual-note">Or K1,990 / year — two months free.</div>
-              <button type="button" className="zpl-cta" onClick={handlePaidCta}>Go Max</button>
+              <button type="button" className="zpl-cta" onClick={() => handlePaidCta('max')}>Go Max</button>
               <div className="zpl-feats">
                 <Feat><strong>Unlimited</strong> plans, notes &amp; worksheets*</Feat>
                 <Feat><strong>Unlimited</strong> assessments &amp; schemes</Feat>
@@ -260,7 +267,12 @@ export default function Plans() {
       </div>
       {showUpgrade && (
         <Suspense fallback={null}>
-          <UpgradeModal portal="teacher" onClose={() => setShowUpgrade(false)} />
+          <UpgradeModal
+            portal="teacher"
+            planIds={upgradePlanIds}
+            defaultPlanId={upgradeDefaultId}
+            onClose={() => setShowUpgrade(null)}
+          />
         </Suspense>
       )}
     </>
