@@ -405,75 +405,117 @@ function deriveTitle(inputs, intent) {
 }
 
 /**
- * Produce up to 4 smart follow-up suggestions tailored to the intent.
- * These are the buttons shown under the AI reply in the front-end.
+ * Extract phrases like "struggling with X", "stuck on Y", "having
+ * trouble with Z" from the teacher's message. Best-effort and
+ * conservative — we only return short noun phrases, deduped and
+ * lowercased so the UI can render them as small chips.
+ */
+function extractWeakAreasFromMessage(message) {
+  if (!message) return [];
+  const out = [];
+  const patterns = [
+    /(?:struggling|stuck|having (?:a lot of )?trouble|finding it hard|weak)\s+(?:with|on|in|at)\s+([a-z0-9'\- ,&/]{3,80})/gi,
+    /can'?t (?:do|understand|grasp|remember)\s+([a-z0-9'\- ,&/]{3,80})/gi,
+    /not getting\s+([a-z0-9'\- ,&/]{3,80})/gi,
+    /weak (?:area|areas|spot|spots) (?:are|is|include[s]?)?\s*[:\- ]\s*([a-z0-9'\- ,&/]{3,120})/gi,
+  ];
+  for (const re of patterns) {
+    let m;
+    while ((m = re.exec(message)) !== null) {
+      const raw = m[1].split(/[.;!?]/)[0].trim()
+        .replace(/^(the|a|an)\s+/i, "")
+        .replace(/\s+(yet|still|now|today|tomorrow)$/i, "");
+      if (raw && raw.length >= 3 && raw.length <= 80) {
+        out.push(raw.toLowerCase());
+      }
+    }
+  }
+  // Dedup, cap.
+  return Array.from(new Set(out)).slice(0, 3);
+}
+
+/**
+ * Build the "memory feedback" badges shown under the assistant header
+ * — small, glanceable notes that explain what the assistant noticed
+ * and how it adapted. Strictly server-derived, never invented by the
+ * model.
+ */
+function buildAdjustments({inputs, intent, memory, detectedWeakAreas}) {
+  const out = [];
+  if (detectedWeakAreas.length) {
+    out.push(`Detected concern: ${detectedWeakAreas[0]}`);
+  }
+  if (inputs.weakAreas) {
+    out.push(`Anchored to weak area: ${inputs.weakAreas}`);
+  } else if (memory.weakAreas?.length) {
+    out.push(`Remembered weak area: ${memory.weakAreas[0]}`);
+  }
+  switch (inputs.learnerLevel) {
+    case "below":
+      out.push("Adjusted pace for below-grade learners");
+      break;
+    case "above":
+      out.push("Stretched for above-grade learners");
+      break;
+    case "mixed":
+      out.push("Differentiated for mixed ability");
+      break;
+    default:
+      break;
+  }
+  if (inputs.duration) {
+    out.push(`Sized for a ${inputs.duration}-minute lesson`);
+  }
+  if (intent === "remedial") {
+    out.push("Added scaffolding for slow learners");
+  } else if (intent === "full_package") {
+    out.push("Bundled lesson + notes + test + homework");
+  } else if (intent === "revision") {
+    out.push("Built as a recap session");
+  }
+  if (memory.recentTopics?.length && intent !== "general_help") {
+    out.push(`Continued from recent topics: ${memory.recentTopics.slice(0, 2).join(", ")}`);
+  }
+  // Dedup while preserving order, cap at 4 so the UI stays calm.
+  const seen = new Set();
+  return out.filter((s) => {
+    if (seen.has(s)) return false;
+    seen.add(s);
+    return true;
+  }).slice(0, 4);
+}
+
+/**
+ * Universal smart follow-up actions: Create test, Simplify, Expand,
+ * Save. Kept short and predictable so the chat doesn't feel
+ * form-filling. Per-intent extras are appended sparingly only when
+ * they meaningfully change what the teacher might want next.
  */
 function followUpsForIntent(intent) {
-  const downloadAction = {label: "Download / Save", actionId: "save"};
+  const universal = [
+    {label: "Create test", actionId: "create_test"},
+    {label: "Simplify", actionId: "simplify"},
+    {label: "Expand", actionId: "expand"},
+    {label: "Save", actionId: "save"},
+  ];
   switch (intent) {
-    case "lesson_plan":
-      return [
-        {label: "Make it shorter", actionId: "shorter"},
-        {label: "Add learner activities", actionId: "add_activities"},
-        {label: "Create test from this", actionId: "create_test"},
-        {label: "Simplify for slow learners", actionId: "simplify"},
-        downloadAction,
-      ];
-    case "notes":
-      return [
-        {label: "Make it shorter", actionId: "shorter"},
-        {label: "Turn this into a lesson plan", actionId: "to_lesson_plan"},
-        {label: "Create test from this", actionId: "create_test"},
-        downloadAction,
-      ];
     case "test":
+      // "Create test from a test" is meaningless — swap for an easier-test variant.
       return [
         {label: "Make it easier", actionId: "easier"},
-        {label: "Add a marking key", actionId: "marking_key"},
-        {label: "Turn this into homework", actionId: "to_homework"},
-        downloadAction,
-      ];
-    case "homework":
-      return [
-        {label: "Make it shorter", actionId: "shorter"},
-        {label: "Add a parent-friendly note", actionId: "parent_note"},
-        {label: "Turn this into a test", actionId: "create_test"},
-        downloadAction,
+        {label: "Simplify", actionId: "simplify"},
+        {label: "Expand with more questions", actionId: "expand"},
+        {label: "Save", actionId: "save"},
       ];
     case "scheme_of_work":
       return [
-        {label: "Expand week 1 into a lesson plan", actionId: "expand_week"},
-        {label: "Add resources column detail", actionId: "more_resources"},
-        downloadAction,
+        {label: "Expand week 1 into a lesson", actionId: "expand_week"},
+        {label: "Simplify", actionId: "simplify"},
+        {label: "Create test", actionId: "create_test"},
+        {label: "Save", actionId: "save"},
       ];
-    case "remedial":
-      return [
-        {label: "Add more practice items", actionId: "more_practice"},
-        {label: "Turn this into homework", actionId: "to_homework"},
-        {label: "Simplify the language further", actionId: "simplify"},
-        downloadAction,
-      ];
-    case "revision":
-      return [
-        {label: "Create test from this", actionId: "create_test"},
-        {label: "Add an exit ticket", actionId: "exit_ticket"},
-        downloadAction,
-      ];
-    case "full_package":
-      return [
-        {label: "Make the lesson plan shorter", actionId: "shorter_plan"},
-        {label: "Make the test easier", actionId: "easier_test"},
-        {label: "Add remedial practice", actionId: "more_remedial"},
-        downloadAction,
-      ];
-    case "general_help":
     default:
-      return [
-        {label: "Prepare a lesson on this", actionId: "to_lesson_plan"},
-        {label: "Make a quick test", actionId: "create_test"},
-        {label: "Help weak learners", actionId: "remedial"},
-        downloadAction,
-      ];
+      return universal;
   }
 }
 
@@ -579,6 +621,7 @@ function createChatWithTeacherAssistant(anthropicApiKeyParam) {
       await assertDailyLimit(uid, role, "teacher_copilot");
 
       const intent = classifyIntent(inputs.message);
+      const detectedWeakAreas = extractWeakAreasFromMessage(inputs.message);
       const [{messages: history}, memory] = await Promise.all([
         loadChatHistory(uid, inputs.chatId),
         loadTeacherMemory(uid),
@@ -637,6 +680,13 @@ function createChatWithTeacherAssistant(anthropicApiKeyParam) {
         usage: result?.usage || null,
       });
 
+      const adjustments = buildAdjustments({
+        inputs,
+        intent,
+        memory,
+        detectedWeakAreas,
+      });
+
       return {
         chatId: persisted.chatId,
         messageId: persisted.aiMessageId,
@@ -645,6 +695,10 @@ function createChatWithTeacherAssistant(anthropicApiKeyParam) {
         intent,
         intentLabel: intentLabel(intent),
         followUps: followUpsForIntent(intent),
+        detectedWeakAreas,
+        adjustments,
+        rememberedWeakAreas: memory.weakAreas || [],
+        rememberedTopics: memory.recentTopics || [],
         promptVersion: PROMPT_VERSION,
         modelUsed: result?.model || COPILOT_MODEL,
       };
@@ -658,5 +712,7 @@ module.exports = {
   classifyIntent,
   intentLabel,
   followUpsForIntent,
+  extractWeakAreasFromMessage,
+  buildAdjustments,
   INTENTS,
 };

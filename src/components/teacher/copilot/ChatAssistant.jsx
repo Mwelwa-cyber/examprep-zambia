@@ -30,7 +30,10 @@ import {
   SUBJECTS,
   LEARNER_LEVELS,
   SUGGESTION_CHIPS,
+  THINKING_PHASES,
+  buildContextChips,
   buildFollowUpPrompt,
+  buildStarterSuggestions,
   listAiChatMessages,
   listMyAiChats,
   sendChatMessage,
@@ -406,17 +409,17 @@ function ChatHistorySidebar({ chats, activeChatId, onPick, onNew, loading, open,
   )
 }
 
-function WelcomeBlock({ teacherName }) {
+function WelcomeBlock({ teacherName, starters, onPick, busy }) {
   return (
-    <div className="flex flex-col items-center justify-center text-center py-10 px-4 max-w-xl mx-auto">
+    <div className="flex flex-col items-center justify-center text-center py-8 px-4 max-w-2xl mx-auto">
       <div
-        className="rounded-full grid place-items-center mb-4"
-        style={{ width: 72, height: 72, background: '#fde2c4', fontSize: 36 }}
+        className="rounded-full grid place-items-center mb-3"
+        style={{ width: 64, height: 64, background: '#fde2c4', fontSize: 32 }}
       >
         🦊
       </div>
       <h2
-        className="text-xl sm:text-2xl font-black mb-2"
+        className="text-xl sm:text-2xl font-black mb-1.5"
         style={{ color: '#0e2a32', fontFamily: "'Fraunces', serif" }}
       >
         {teacherName ? `Hi, ${teacherName.split(' ')[0]} — let's plan your lesson.` : 'Hi, teacher — let\'s plan your lesson.'}
@@ -424,8 +427,39 @@ function WelcomeBlock({ teacherName }) {
       <p className="text-sm sm:text-base mb-4" style={{ color: '#566f76' }}>
         {WELCOME_MESSAGE}
       </p>
-      <p className="text-xs" style={{ color: '#8a9aa1' }}>
-        Try: <em>"I'm teaching Grade 5 fractions tomorrow."</em> or <em>"My learners are struggling with simplifying fractions."</em>
+
+      {starters?.length ? (
+        <>
+          <p className="text-[11px] font-black uppercase tracking-wider mb-2" style={{ color: '#566f76', letterSpacing: '0.08em' }}>
+            Pick up where you left off — or start something new
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
+            {starters.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => onPick(s)}
+                disabled={busy}
+                className="flex items-start gap-3 rounded-xl border-2 px-3 py-3 text-left transition-colors disabled:opacity-50"
+                style={{ background: '#fff', borderColor: '#e7dfc9', color: '#0e2a32' }}
+              >
+                <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>{s.icon || '✨'}</span>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-sm font-black truncate">{s.label}</span>
+                  {s.sub && (
+                    <span className="block text-[11px] font-medium opacity-70 truncate" style={{ color: '#566f76' }}>
+                      {s.sub}
+                    </span>
+                  )}
+                </span>
+              </button>
+            ))}
+          </div>
+        </>
+      ) : null}
+
+      <p className="text-xs mt-4" style={{ color: '#8a9aa1' }}>
+        Or just type below — for example, <em>"I'm teaching Grade 5 fractions tomorrow."</em>
       </p>
     </div>
   )
@@ -453,18 +487,49 @@ function AssistantBubble({ message }) {
   )
 }
 
-function PendingBubble() {
+function PendingBubble({ phase }) {
   return (
     <div
       className="self-start max-w-[88%] rounded-2xl rounded-bl-md px-4 py-3 text-sm flex items-center gap-2"
       style={{ background: '#fff', color: '#0e2a32', border: '1px solid #e7dfc9' }}
+      role="status"
+      aria-live="polite"
     >
       <span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ background: '#ff7a2e' }} />
       <span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ background: '#ff7a2e', animationDelay: '120ms' }} />
       <span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ background: '#ff7a2e', animationDelay: '240ms' }} />
       <span className="ml-1 text-xs font-bold" style={{ color: '#566f76' }}>
-        Zed AI is thinking…
+        {phase || 'Zed AI is thinking…'}
       </span>
+    </div>
+  )
+}
+
+/**
+ * Memory-feedback chips shown under the assistant header — surfaces
+ * what the assistant noticed (detected weak areas) and how it
+ * adapted (adjustments) so the teacher feels heard.
+ */
+function MemoryFeedback({ detectedWeakAreas = [], adjustments = [] }) {
+  const items = []
+  for (const w of detectedWeakAreas) items.push({ kind: 'weak', label: `Detected weak area: ${w}` })
+  for (const a of adjustments) items.push({ kind: 'adjust', label: a })
+  if (!items.length) return null
+  return (
+    <div className="flex flex-wrap gap-1 mb-1">
+      {items.map((it, i) => (
+        <span
+          key={`${it.kind}-${i}`}
+          className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider"
+          style={
+            it.kind === 'weak'
+              ? { background: '#ffe2dc', color: '#a91d2c', letterSpacing: '0.06em' }
+              : { background: '#dbe7f4', color: '#0e2a32', letterSpacing: '0.06em' }
+          }
+        >
+          {it.label}
+        </span>
+      ))}
     </div>
   )
 }
@@ -546,8 +611,11 @@ export default function ChatAssistant() {
   const [learnerLevel, setLearnerLevel] = useState('mixed')
   const [weakAreas, setWeakAreas] = useState('')
 
-  const [contextOpen, setContextOpen] = useState(true)
-  const [historyOpen, setHistoryOpen] = useState(true)
+  // Panels start collapsed so the chat dominates the screen. The
+  // teacher can open Class Context from the header when they want
+  // to refine grade/subject/etc.
+  const [contextOpen, setContextOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState([])
@@ -584,19 +652,24 @@ export default function ChatAssistant() {
     el.scrollTop = el.scrollHeight
   }, [messages, sending])
 
-  // Auto-collapse the side panels on small screens so the chat dominates.
+  // Rotate through "thinking" phases while a message is in flight so
+  // the pending bubble feels alive even though the call is one-shot
+  // (Anthropic doesn't stream into this callable). Hold on the last
+  // phase if the call takes longer than the cycle.
+  const [thinkingPhase, setThinkingPhase] = useState(THINKING_PHASES[0])
   useEffect(() => {
-    function adjust() {
-      if (typeof window === 'undefined') return
-      if (window.innerWidth < 1024) {
-        setContextOpen(false)
-        setHistoryOpen(false)
-      }
+    if (!sending) {
+      setThinkingPhase(THINKING_PHASES[0])
+      return undefined
     }
-    adjust()
-    window.addEventListener('resize', adjust)
-    return () => window.removeEventListener('resize', adjust)
-  }, [])
+    let i = 0
+    setThinkingPhase(THINKING_PHASES[0])
+    const id = setInterval(() => {
+      i = Math.min(i + 1, THINKING_PHASES.length - 1)
+      setThinkingPhase(THINKING_PHASES[i])
+    }, 1500)
+    return () => clearInterval(id)
+  }, [sending])
 
   async function pickChat(chatId) {
     if (!chatId || chatId === activeChatId) return
@@ -691,6 +764,8 @@ export default function ChatAssistant() {
         content: result.content || '',
         intent: result.intent || null,
         intentLabel: result.intentLabel || null,
+        detectedWeakAreas: Array.isArray(result.detectedWeakAreas) ? result.detectedWeakAreas : [],
+        adjustments: Array.isArray(result.adjustments) ? result.adjustments : [],
         followUps: Array.isArray(result.followUps) && result.followUps.length
           ? result.followUps
           : DEFAULT_FOLLOW_UPS,
@@ -768,6 +843,36 @@ export default function ChatAssistant() {
     ].filter(Boolean).join(' · ')
   }, [grade, subject, term, week, duration])
 
+  // Most recent topic across the teacher's saved chats — used to
+  // hint at "Continue X" both in the empty-state cards and the chip
+  // strip above the composer.
+  const recentTopic = useMemo(() => {
+    const fromChats = chats.find((c) => c?.topic)?.topic
+    return fromChats || ''
+  }, [chats])
+
+  // Empty-state starter cards, derived from recent chats + the
+  // teacher's flagged weak areas. Falls back to generic prompts when
+  // we know nothing about the class yet.
+  const starterSuggestions = useMemo(() => buildStarterSuggestions({
+    recentChats: chats,
+    weakAreas,
+    grade,
+    subject,
+  }), [chats, weakAreas, grade, subject])
+
+  // Context-aware chips above the composer. Always visible so the
+  // teacher can fast-track a common ask without typing.
+  const contextChips = useMemo(() => buildContextChips({
+    grade,
+    subject,
+    term,
+    week,
+    learnerLevel,
+    weakAreas,
+    recentTopic,
+  }), [grade, subject, term, week, learnerLevel, weakAreas, recentTopic])
+
   if (!allowed) {
     return (
       <div className="rounded-2xl border-2 p-6 text-center" style={{ background: '#fff', borderColor: '#0e2a32' }}>
@@ -827,9 +932,19 @@ export default function ChatAssistant() {
             </button>
             <button
               type="button"
-              onClick={() => setContextOpen((v) => !v)}
-              className="lg:hidden inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-black border-2"
+              onClick={() => setHistoryOpen((v) => !v)}
+              className="hidden lg:inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-black border-2"
               style={{ background: '#fff', color: '#0e2a32', borderColor: '#0e2a32' }}
+              title="Toggle chat history"
+            >
+              History
+            </button>
+            <button
+              type="button"
+              onClick={() => setContextOpen((v) => !v)}
+              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-black border-2"
+              style={{ background: '#fff', color: '#0e2a32', borderColor: '#0e2a32' }}
+              title="Toggle Class Context panel"
             >
               <Icon as={Settings} size="sm" /> Context
             </button>
@@ -839,7 +954,12 @@ export default function ChatAssistant() {
         {/* Messages */}
         <div ref={scrollerRef} className="flex-1 overflow-y-auto px-3 sm:px-6 py-4 flex flex-col gap-3" style={{ background: '#f5efe1' }}>
           {messages.length === 0 && !sending ? (
-            <WelcomeBlock teacherName={userProfile?.displayName} />
+            <WelcomeBlock
+              teacherName={userProfile?.displayName}
+              starters={starterSuggestions}
+              busy={sending}
+              onPick={(s) => handleSuggestionChip(s)}
+            />
           ) : (
             messages.map((m, idx) => {
               const isUser = m.role === 'user'
@@ -854,6 +974,12 @@ export default function ChatAssistant() {
                       </span>
                     </div>
                   )}
+                  {!isUser && (m.detectedWeakAreas?.length || m.adjustments?.length) ? (
+                    <MemoryFeedback
+                      detectedWeakAreas={m.detectedWeakAreas || []}
+                      adjustments={m.adjustments || []}
+                    />
+                  ) : null}
                   {isUser ? <UserBubble message={m} /> : <AssistantBubble message={m} />}
                   {!isUser && (isLatestAssistant || m.followUps) && (
                     <FollowUpRow
@@ -869,18 +995,18 @@ export default function ChatAssistant() {
               )
             })
           )}
-          {sending && <PendingBubble />}
+          {sending && <PendingBubble phase={thinkingPhase} />}
         </div>
 
         {/* Suggestion chips + composer */}
         <div className="border-t-2 px-3 sm:px-6 py-3 space-y-2" style={{ borderColor: '#e7dfc9', background: '#fff' }}>
           {messages.length === 0 && (
             <p className="text-[11px] font-black uppercase tracking-wider mb-1" style={{ color: '#566f76', letterSpacing: '0.08em' }}>
-              Try one of these
+              Quick prompts for your class
             </p>
           )}
           <div className="flex gap-2 flex-wrap">
-            {SUGGESTION_CHIPS.map((c) => (
+            {(contextChips.length ? contextChips : SUGGESTION_CHIPS).map((c) => (
               <button
                 key={c.id}
                 type="button"
@@ -888,6 +1014,7 @@ export default function ChatAssistant() {
                 disabled={sending}
                 className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold border-2 transition-colors disabled:opacity-50"
                 style={{ background: '#fffaf0', color: '#0e2a32', borderColor: '#e7dfc9' }}
+                title={c.prompt}
               >
                 <Icon as={Sparkles} size="sm" />
                 {c.label}
