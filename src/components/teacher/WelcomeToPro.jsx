@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { PLANS, getActivePlan } from '../../utils/subscriptionConfig'
+import { ensureProFonts } from '../../utils/proFonts'
 
 const CONFETTI_COLORS = ['#F36A2A', '#FBE4D5', '#F2C49B', '#FFFFFF', '#9DB1AE']
 
@@ -42,17 +43,7 @@ export default function WelcomeToPro() {
     }
   }, [])
 
-  // Lazy-load the celebration-page fonts (italic Fraunces + Bricolage Grotesque)
-  // only when this page is mounted — avoids bloating every other route.
-  useEffect(() => {
-    const href = 'https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,400&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&display=swap'
-    if (document.querySelector(`link[data-zwp-fonts]`)) return
-    const link = document.createElement('link')
-    link.rel = 'stylesheet'
-    link.href = href
-    link.setAttribute('data-zwp-fonts', '1')
-    document.head.appendChild(link)
-  }, [])
+  useEffect(() => { ensureProFonts() }, [])
 
   // Fall back to the monthly plan template — `getActivePlan` returns the free
   // tier (priceZMW: 0) until refreshProfile lands the new subscription, which

@@ -24,6 +24,7 @@ const ProfilePage = lazy(() => import('./components/dashboard/ProfilePage'))
 const ZedStudyAssistant = lazy(() => import('./components/ai/ZedStudyAssistant'))
 const FloatingZedButton = lazy(() => import('./components/ai/FloatingZedButton'))
 const IdleWarningModal = lazy(() => import('./components/auth/IdleWarningModal'))
+const PaywallHost = lazy(() => import('./components/subscription/PaywallHost'))
 const NotFound = lazy(() => import('./components/ui/NotFound'))
 const Marketing = lazy(() => import('./components/marketing/Marketing'))
 const PrivacyPolicy = lazy(() => import('./components/marketing/PrivacyPolicy'))
@@ -285,6 +286,8 @@ export default function App() {
         <FloatingZedButton />
         {/* Inactivity warning + auto-logout (driven by AuthContext) */}
         <IdleWarningModal />
+        {/* Paywall — listens for paywall.show(reason, ctx) from anywhere */}
+        <PaywallHost />
       </Suspense>
     </BrowserRouter>
   )
