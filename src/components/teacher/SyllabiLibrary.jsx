@@ -22,9 +22,8 @@ const COLORS = {
 }
 
 const PDF_BASE_URL = 'https://firebasestorage.googleapis.com/v0/b/zedexams.appspot.com/o/syllabi'
-function getPdfUrl(item) {
-  if (item?.file) return item.file
-  return `${PDF_BASE_URL}%2F${encodeURIComponent(item?.k || '')}.pdf?alt=media`
+function getPdfUrl(key) {
+  return `${PDF_BASE_URL}%2F${encodeURIComponent(key)}.pdf?alt=media`
 }
 
 function SectionLabel({ children }) {
@@ -233,7 +232,7 @@ function PdfViewer({ item, onClose }) {
     if (!item.e) { setStatus('missing'); return }
     let cancelled = false
     setStatus('checking')
-    fetch(getPdfUrl(item), { method: 'HEAD' })
+    fetch(getPdfUrl(item.k), { method: 'HEAD' })
       .then(r => { if (!cancelled) setStatus(r.ok ? 'available' : 'missing') })
       .catch(() => { if (!cancelled) setStatus('missing') })
     return () => { cancelled = true }
@@ -302,7 +301,7 @@ function PdfViewer({ item, onClose }) {
         {status === 'available' ? (
           <iframe
             title={item.t}
-            src={`${getPdfUrl(item)}#toolbar=0&navpanes=0&scrollbar=1`}
+            src={`${getPdfUrl(item.k)}#toolbar=0&navpanes=0&scrollbar=1`}
             sandbox="allow-same-origin allow-scripts"
             onContextMenu={e => e.preventDefault()}
             style={{ width: '100%', height: '100%', border: 'none', background: '#fff' }}
