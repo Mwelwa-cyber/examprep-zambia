@@ -55,11 +55,12 @@ function ReaderButton({ children, disabled, ...props }) {
 }
 
 function SyllabusReader({ syllabus }) {
-  const canvasRef = useRef(null)
+  const leftCanvasRef = useRef(null)
+  const rightCanvasRef = useRef(null)
   const [pdfDoc, setPdfDoc] = useState(null)
-  const [pageNumber, setPageNumber] = useState(1)
+  const [spreadStart, setSpreadStart] = useState(1)
   const [pageCount, setPageCount] = useState(0)
-  const [scale, setScale] = useState(1)
+  const [scale, setScale] = useState(0.95)
   const [loading, setLoading] = useState(false)
   const [rendering, setRendering] = useState(false)
   const [error, setError] = useState('')
@@ -74,13 +75,17 @@ function SyllabusReader({ syllabus }) {
     setLoading(true)
     setError('')
     setPdfDoc(null)
-    setPageNumber(1)
+    setSpreadStart(1)
     setPageCount(0)
 
     async function loadDocument() {
       try {
         const pdfjsLib = await loadPdfjs()
-        loadingTask = pdfjsLib.getDocument({ url: syllabus.file })
+        const response = await fetch(syllabus.file, { cache: 'no-store' })
+        if (!response.ok) throw new Error(`PDF request failed: ${response.status}`)
+        const fileBytes = new Uint8Array(await response.arrayBuffer())
+        if (cancelled) return
+        loadingTask = pdfjsLib.getDocument({ data: fileBytes })
         loadedDoc = await loadingTask.promise
         if (cancelled) {
           await loadedDoc.destroy()
@@ -105,34 +110,62 @@ function SyllabusReader({ syllabus }) {
   }, [syllabus?.file])
 
   useEffect(() => {
-    if (!pdfDoc || !canvasRef.current) return undefined
+    if (!pdfDoc || !rightCanvasRef.current) return undefined
 
     let cancelled = false
-    let renderTask = null
+    let renderTasks = []
 
-    async function renderPage() {
+    async function renderCanvasPage(canvas, page) {
+      const context = canvas.getContext('2d', { alpha: false })
+      const viewport = page.getViewport({ scale })
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, 2)
+
+      canvas.width = Math.floor(viewport.width * pixelRatio)
+      canvas.height = Math.floor(viewport.height * pixelRatio)
+      canvas.style.width = `${viewport.width}px`
+      canvas.style.height = `${viewport.height}px`
+
+      context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0)
+      context.fillStyle = '#ffffff'
+      context.fillRect(0, 0, viewport.width, viewport.height)
+
+      const task = page.render({ canvasContext: context, viewport })
+      renderTasks.push(task)
+      await task.promise
+    }
+
+    function clearCanvas(canvas) {
+      const context = canvas.getContext('2d', { alpha: false })
+      canvas.width = 1
+      canvas.height = 1
+      canvas.style.width = '0px'
+      canvas.style.height = '0px'
+      context.fillStyle = '#f8fafc'
+      context.fillRect(0, 0, 1, 1)
+    }
+
+    async function renderSpread() {
       setRendering(true)
       setError('')
       try {
-        const page = await pdfDoc.getPage(pageNumber)
+        const leftNumber = spreadStart <= 1 ? null : spreadStart
+        const rightNumber = spreadStart <= 1 ? 1 : Math.min(pageCount, spreadStart + 1)
+
+        if (leftNumber) {
+          const leftPage = await pdfDoc.getPage(leftNumber)
+          if (!cancelled) await renderCanvasPage(leftCanvasRef.current, leftPage)
+        } else {
+          clearCanvas(leftCanvasRef.current)
+        }
+
         if (cancelled) return
 
-        const canvas = canvasRef.current
-        const context = canvas.getContext('2d', { alpha: false })
-        const viewport = page.getViewport({ scale })
-        const pixelRatio = Math.min(window.devicePixelRatio || 1, 2)
-
-        canvas.width = Math.floor(viewport.width * pixelRatio)
-        canvas.height = Math.floor(viewport.height * pixelRatio)
-        canvas.style.width = `${viewport.width}px`
-        canvas.style.height = `${viewport.height}px`
-
-        context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0)
-        context.fillStyle = '#ffffff'
-        context.fillRect(0, 0, viewport.width, viewport.height)
-
-        renderTask = page.render({ canvasContext: context, viewport })
-        await renderTask.promise
+        if (rightNumber) {
+          const rightPage = await pdfDoc.getPage(rightNumber)
+          if (!cancelled) await renderCanvasPage(rightCanvasRef.current, rightPage)
+        } else {
+          clearCanvas(rightCanvasRef.current)
+        }
       } catch (err) {
         if (!cancelled && err?.name !== 'RenderingCancelledException') {
           setError(err?.message || 'Could not render this page.')
@@ -142,13 +175,50 @@ function SyllabusReader({ syllabus }) {
       }
     }
 
-    renderPage()
+    renderSpread()
 
     return () => {
       cancelled = true
-      renderTask?.cancel?.()
+      renderTasks.forEach(task => task?.cancel?.())
     }
-  }, [pdfDoc, pageNumber, scale])
+  }, [pageCount, pdfDoc, scale, spreadStart])
+
+  useEffect(() => {
+    function blockViewerShortcuts(event) {
+      const key = event.key?.toLowerCase?.()
+      if ((event.ctrlKey || event.metaKey) && (key === 's' || key === 'p')) {
+        event.preventDefault()
+      }
+    }
+
+    window.addEventListener('keydown', blockViewerShortcuts)
+    return () => window.removeEventListener('keydown', blockViewerShortcuts)
+  }, [])
+
+  const hasPreviousSpread = spreadStart > 1
+  const hasNextSpread = spreadStart <= 1 ? pageCount > 1 : spreadStart + 1 < pageCount
+  const visiblePages = spreadStart <= 1
+    ? [1]
+    : [spreadStart, Math.min(pageCount, spreadStart + 1)].filter(Boolean)
+  const pageLabel = visiblePages.length > 1
+    ? `${visiblePages[0]}-${visiblePages[1]}`
+    : `${visiblePages[0] || '-'}`
+
+  function goToPreviousSpread() {
+    setSpreadStart(current => {
+      if (current <= 1) return 1
+      const next = current - 2
+      return next <= 1 ? 1 : next
+    })
+  }
+
+  function goToNextSpread() {
+    setSpreadStart(current => {
+      if (current <= 1) return pageCount > 1 ? 2 : 1
+      const next = current + 2
+      return next > pageCount ? current : next
+    })
+  }
 
   if (!syllabus) {
     return (
@@ -185,20 +255,20 @@ function SyllabusReader({ syllabus }) {
 
           <div className="flex flex-wrap items-center gap-2">
             <ReaderButton
-              onClick={() => setPageNumber(page => Math.max(1, page - 1))}
-              disabled={loading || rendering || pageNumber <= 1}
-              aria-label="Previous page"
+              onClick={goToPreviousSpread}
+              disabled={loading || rendering || !hasPreviousSpread}
+              aria-label="Previous spread"
             >
               <Icon as={ChevronLeft} size="xs" strokeWidth={2.1} />
               Prev
             </ReaderButton>
             <div className="rounded-xl border theme-border theme-bg-subtle px-3 py-2 text-xs font-black theme-text">
-              Page {pageCount ? pageNumber : '-'} / {pageCount || '-'}
+              Pages {pageCount ? pageLabel : '-'} / {pageCount || '-'}
             </div>
             <ReaderButton
-              onClick={() => setPageNumber(page => Math.min(pageCount || page, page + 1))}
-              disabled={loading || rendering || !pageCount || pageNumber >= pageCount}
-              aria-label="Next page"
+              onClick={goToNextSpread}
+              disabled={loading || rendering || !pageCount || !hasNextSpread}
+              aria-label="Next spread"
             >
               Next
               <Icon as={ChevronRight} size="xs" strokeWidth={2.1} />
@@ -237,12 +307,41 @@ function SyllabusReader({ syllabus }) {
             </div>
           </div>
         ) : (
-          <div className="overflow-auto rounded-2xl border theme-border bg-slate-200/70 p-3 shadow-inner">
-            <canvas
-              ref={canvasRef}
-              onContextMenu={event => event.preventDefault()}
-              className="mx-auto block max-w-none bg-white shadow-xl"
-            />
+          <div
+            className="overflow-auto rounded-2xl border theme-border bg-slate-200/70 p-3 shadow-inner"
+            onContextMenu={event => event.preventDefault()}
+            onDragStart={event => event.preventDefault()}
+          >
+            <div className="mx-auto flex min-w-fit justify-center">
+              <div className="flex flex-col items-center gap-4 rounded-[2rem] bg-[linear-gradient(180deg,rgba(15,23,42,0.08),rgba(15,23,42,0.02))] p-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)] sm:p-5">
+                <div className="flex items-center justify-center gap-3 text-[11px] font-black uppercase tracking-[0.24em] theme-text-muted">
+                  <span>Book Reader</span>
+                  <span className="h-1 w-1 rounded-full bg-current opacity-40" />
+                  <span>Protected View</span>
+                </div>
+                <div className="flex flex-col gap-4 lg:flex-row lg:gap-0">
+                  <div className="flex min-h-[420px] min-w-[280px] items-center justify-center rounded-[1.6rem] border border-slate-300/70 bg-[linear-gradient(180deg,#f8fafc_0%,#eef2f7_100%)] p-3 shadow-[inset_-14px_0_20px_rgba(15,23,42,0.05)] sm:min-w-[320px]">
+                    {spreadStart <= 1 ? (
+                      <div className="text-center text-xs font-black uppercase tracking-[0.22em] text-slate-400">
+                        Book cover
+                      </div>
+                    ) : (
+                      <canvas
+                        ref={leftCanvasRef}
+                        className="block max-w-full bg-white shadow-xl"
+                      />
+                    )}
+                  </div>
+                  <div className="hidden w-6 shrink-0 bg-[radial-gradient(circle_at_center,rgba(15,23,42,0.14)_0%,rgba(15,23,42,0.04)_35%,transparent_75%)] lg:block" />
+                  <div className="flex min-h-[420px] min-w-[280px] items-center justify-center rounded-[1.6rem] border border-slate-300/70 bg-[linear-gradient(180deg,#f8fafc_0%,#eef2f7_100%)] p-3 shadow-[inset_14px_0_20px_rgba(15,23,42,0.05)] sm:min-w-[320px]">
+                    <canvas
+                      ref={rightCanvasRef}
+                      className="block max-w-full bg-white shadow-xl"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
