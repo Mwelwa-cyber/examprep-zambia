@@ -24,6 +24,7 @@ const NAV = [
   { to: '/teacher/assessments',      icon: PencilLine,      label: 'Assessments'             },
   { to: '/teacher/lessons',          icon: Presentation,    label: 'My Lessons'              },
   { to: '/teacher/lessons/new',      icon: BookOpen,        label: 'Create Lesson'           },
+  { to: '/settings',                 icon: Settings,        label: 'Settings'                },
 ]
 
 export default function TeacherLayout({ children }) {
