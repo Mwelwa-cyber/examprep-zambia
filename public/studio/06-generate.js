@@ -1,10 +1,20 @@
 // callClaude — routes through the Firebase Cloud Function in production.
-// Falls back to direct API if window.__studioCallClaude is not set (never in prod).
+// The bridge returns the raw JSON string from Claude; parse it here so the
+// rest of the studio can treat it as a normal object (matching the original
+// direct-API implementation in files_2/lesson__06-generate.js).
 async function callClaude(systemPrompt, userPrompt) {
-  if (typeof window.__studioCallClaude === 'function') {
-    return window.__studioCallClaude(systemPrompt, userPrompt);
+  if (typeof window.__studioCallClaude !== 'function') {
+    throw new Error('Studio bridge not initialised — __studioCallClaude is missing.');
   }
-  throw new Error('Studio bridge not initialised — __studioCallClaude is missing.');
+  const raw = await window.__studioCallClaude(systemPrompt, userPrompt);
+  let text = String(raw || '').trim();
+  text = text.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/\s*```$/, '').trim();
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    console.error('callClaude: JSON parse failed', err, text.slice(0, 500));
+    throw new Error('Could not read AI response — please try again.');
+  }
 }
 
 // Native <input type="date"> hands us YYYY-MM-DD. Render that as
