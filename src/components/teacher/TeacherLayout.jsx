@@ -10,6 +10,7 @@ import {
   X,
   LogOut,
   Settings,
+  Sparkles,
 } from '../ui/icons'
 import { useAuth } from '../../contexts/AuthContext'
 import Logo from '../ui/Logo'
@@ -21,6 +22,7 @@ const UpgradeModal = lazy(() => import('../subscription/UpgradeModal'))
 
 const NAV = [
   { to: '/teacher',                  icon: LayoutDashboard, label: 'My Dashboard', end: true },
+  { to: '/teacher/ai-copilot',       icon: Sparkles,        label: 'AI Co-Pilot',  badge: 'NEW' },
   { to: '/teacher/assessments',      icon: PencilLine,      label: 'Assessments'             },
   { to: '/teacher/lessons',          icon: Presentation,    label: 'My Lessons'              },
   { to: '/teacher/lessons/new',      icon: BookOpen,        label: 'Create Lesson'           },
@@ -121,7 +123,15 @@ export default function TeacherLayout({ children }) {
                 <>
                   {isActive && <ActiveBar />}
                   <Icon as={item.icon} size="sm" />
-                  {item.label}
+                  <span className="flex-1">{item.label}</span>
+                  {item.badge && (
+                    <span
+                      className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded"
+                      style={{ background: '#ff7a2e', color: '#fff', letterSpacing: '0.08em' }}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
                 </>
               )}
             </NavLink>
@@ -216,7 +226,16 @@ export default function TeacherLayout({ children }) {
                 {({ isActive }) => (
                   <>
                     {isActive && <ActiveBar />}
-                    <Icon as={item.icon} size="sm" />{item.label}
+                    <Icon as={item.icon} size="sm" />
+                    <span className="flex-1">{item.label}</span>
+                    {item.badge && (
+                      <span
+                        className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded"
+                        style={{ background: '#ff7a2e', color: '#fff', letterSpacing: '0.08em' }}
+                      >
+                        {item.badge}
+                      </span>
+                    )}
                   </>
                 )}
               </NavLink>

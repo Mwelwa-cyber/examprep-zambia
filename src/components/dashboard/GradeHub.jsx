@@ -19,7 +19,6 @@ import {
   Battery,
   Bell,
   BookOpen,
-  Bot,
   CheckCircleIcon,
   ChevronRight,
   FireIcon,
@@ -880,24 +879,6 @@ export default function GradeHub() {
           image={DASHBOARD_CHARACTERS.games}
           imageAlt="Max playing a learning game"
           imageVariant="games"
-        />
-
-        <DashboardActionCard
-          to="/study"
-          className="border-[rgba(212,175,55,0.5)] bg-[linear-gradient(135deg,#0A1128_0%,#1A2B48_60%,#132039_100%)] shadow-elev-md hover:shadow-elev-lg"
-          icon={Bot}
-          iconClassName="bg-white/95 text-[#D4AF37] ring-1 ring-[rgba(212,175,55,0.28)]"
-          kicker="Study assistant · Beta"
-          kickerClassName="text-[#D4AF37]"
-          title="Ask Zed anything"
-          titleClassName="text-[#F8F9FA]"
-          body="CBC-aligned explanations, practice questions, and study plans tailored to your grade."
-          bodyClassName="text-[#A8B6C9]"
-          action="Start"
-          actionClassName="bg-[#D4AF37] text-slate-950"
-          image={DASHBOARD_CHARACTERS.zed}
-          imageAlt="ZedBot ready to help"
-          imageVariant="zed"
         />
 
         {/* ── GRADE SELECTION ─────────────────────────────────── */}

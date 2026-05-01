@@ -1256,6 +1256,12 @@ exports.importBuiltInCbcTopics = importBuiltInCbcTopics;
 exports.studioGenerateLessonPlan = createStudioGenerateLessonPlan(anthropicApiKey);
 exports.apiTextToSpeech = require('./tts').apiTextToSpeech;
 
+// Teacher AI Co-Pilot — chat-style classroom co-pilot (Stage 3 + 4).
+const {
+  createGenerateTeacherAIContent,
+} = require("./teacherCopilot/generateTeacherAIContent");
+exports.generateTeacherAIContent = createGenerateTeacherAIContent(anthropicApiKey);
+
 // Zed assistant — Telegram bot, WhatsApp bot, and admin web voice client.
 const zedAssistant = require("./zedAssistant");
 exports.telegramWebhook = zedAssistant.telegramWebhook;

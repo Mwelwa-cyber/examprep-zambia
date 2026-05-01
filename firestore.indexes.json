@@ -392,6 +392,48 @@
         { "fieldPath": "dailyExamDate", "order": "ASCENDING" },
         { "fieldPath": "subject",       "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "aiChats",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerUid",  "order": "ASCENDING"  },
+        { "fieldPath": "updatedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "generatedContent",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerUid",    "order": "ASCENDING"  },
+        { "fieldPath": "contentType", "order": "ASCENDING"  },
+        { "fieldPath": "createdAt",   "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "generatedContent",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerUid",  "order": "ASCENDING"  },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "learnerProgress",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "learnerUid", "order": "ASCENDING"  },
+        { "fieldPath": "subject",    "order": "ASCENDING"  },
+        { "fieldPath": "createdAt",  "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "learnerProgress",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "teacherUid", "order": "ASCENDING"  },
+        { "fieldPath": "createdAt",  "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

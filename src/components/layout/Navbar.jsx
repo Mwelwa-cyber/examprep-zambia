@@ -5,7 +5,6 @@ import {
   BookOpen,
   PencilLine,
   BarChart3,
-  Bot,
   GraduationCap,
   Settings,
   Menu,
@@ -35,7 +34,6 @@ export default function Navbar() {
     { to: '/lessons',    label: 'Lessons',     icon: BookOpen },
     { to: '/quizzes',    label: 'Quizzes',     icon: PencilLine },
     { to: '/my-results', label: 'Results',     icon: BarChart3 },
-    { to: '/study',      label: 'Zed',         icon: Bot },
   ]
 
   async function handleLogout() {
