@@ -9,6 +9,7 @@ import {
   formatDate,
 } from '../../utils/teacherLibraryService'
 import UpgradeModal from '../subscription/UpgradeModal'
+import UsageMeter from './UsageMeter'
 import { SYLLABI_TOTAL_COUNT } from '../../data/syllabiCatalog'
 
 const STUDIOS = [
@@ -406,6 +407,9 @@ export default function TeacherDashboard() {
           🦊
         </div>
       </div>
+
+      {/* Live monthly usage meter — reads usageMeters/{uid}/periods/{yyyymm} */}
+      <UsageMeter />
 
       {/* Progress / Stats */}
       {!loading && <ProgressWidget generations={generations} quizzes={quizzes} />}
