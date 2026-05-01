@@ -172,6 +172,44 @@ function ensureRuntimeAssets() {
         from { opacity: 0; transform: translateY(-4px); }
         to   { opacity: 1; transform: translateY(0); }
       }
+
+      .zx-grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        column-gap: 20px;
+      }
+      .zx-add-form {
+        display: grid;
+        grid-template-columns: minmax(160px,1fr) minmax(180px,1fr) auto;
+        gap: 10px;
+        align-items: start;
+        padding: 12px;
+        background: ${T.surface};
+        border-radius: 10px;
+        margin-bottom: 16px;
+        border: 1px solid ${T.border};
+      }
+      .zx-user-head, .zx-user-row {
+        display: grid;
+        grid-template-columns: minmax(160px,2fr) minmax(180px,2fr) 100px 200px;
+        align-items: center;
+      }
+      .zx-user-head { padding: 10px 14px; background: ${T.surface}; }
+      .zx-user-row  { padding: 12px 14px; border-top: 1px solid ${T.border}; font-size: 14px; }
+      .zx-num-field { width: 140px; }
+
+      @media (max-width: 640px) {
+        .zx-grid-2,
+        .zx-add-form { grid-template-columns: 1fr; }
+        .zx-user-head { display: none; }
+        .zx-user-row {
+          grid-template-columns: 1fr;
+          row-gap: 6px;
+          padding: 14px;
+        }
+        .zx-user-row > div { min-width: 0; white-space: normal !important; }
+        .zx-num-field { width: 100%; }
+      }
     `;
     document.head.appendChild(tag);
   }
@@ -296,14 +334,14 @@ function NumberField({ label, value, onChange, min = 0, max = 999, error, hint }
     <div style={{ marginBottom: 16 }}>
       {label && <FieldLabel hint={hint}>{label}</FieldLabel>}
       <input
-        className="zx-input"
+        className="zx-input zx-num-field"
         type="number"
         value={value}
         min={min}
         max={max}
         onChange={(e) => onChange(Number(e.target.value))}
         style={{
-          width: 140, boxSizing: 'border-box',
+          boxSizing: 'border-box',
           padding: '10px 12px',
           fontFamily: T.font, fontSize: 14, color: T.text,
           background: T.panel,
@@ -552,29 +590,19 @@ function UserTable({ users, onToggleStatus, onDelete }) {
     <div style={{
       border: `1px solid ${T.border}`, borderRadius: 10, overflow: 'hidden',
     }}>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'minmax(160px,2fr) minmax(180px,2fr) 100px 200px',
-        gap: 0,
-        background: T.surface,
-        padding: '10px 14px',
-        fontSize: 12, fontWeight: 700, color: T.muted, textTransform: 'uppercase',
-        letterSpacing: '.04em',
-      }}>
+      <div
+        className="zx-user-head"
+        style={{
+          fontSize: 12, fontWeight: 700, color: T.muted, textTransform: 'uppercase',
+          letterSpacing: '.04em',
+        }}
+      >
         <div>Name</div><div>Email</div><div>Status</div><div>Actions</div>
       </div>
       {users.map((u) => (
         <div
           key={u.id}
-          className="zx-row"
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(160px,2fr) minmax(180px,2fr) 100px 200px',
-            alignItems: 'center',
-            padding: '12px 14px',
-            borderTop: `1px solid ${T.border}`,
-            fontSize: 14,
-          }}
+          className="zx-row zx-user-row"
         >
           <div style={{ fontWeight: 600, color: T.text, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {u.name}
@@ -718,18 +746,7 @@ function UserManagement({ pushToast }) {
       </div>
 
       {/* Inline add form */}
-      <form
-        onSubmit={handleAdd}
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(160px,1fr) minmax(180px,1fr) auto',
-          gap: 10, alignItems: 'start',
-          padding: 12,
-          background: T.surface, borderRadius: 10,
-          marginBottom: 16,
-          border: `1px solid ${T.border}`,
-        }}
-      >
+      <form onSubmit={handleAdd} className="zx-add-form">
         <div>
           <input
             className="zx-input"
@@ -824,7 +841,7 @@ function AdminControls({ pushToast }) {
       description="Site-wide configuration. Changes here affect every user."
       footer={<Button onClick={handleSave} loading={saving}>Save changes</Button>}
     >
-      <div style={{ display: 'grid', gap: 0, gridTemplateColumns: '1fr 1fr', columnGap: 20 }}>
+      <div className="zx-grid-2">
         <TextField
           label="Site name"
           required
@@ -924,7 +941,7 @@ function AccountProfile({ role, pushToast }) {
         title="Profile"
         description="This information is visible to other users where appropriate."
       >
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 20 }}>
+        <div className="zx-grid-2">
           <TextField
             label="Full name"
             required
@@ -984,7 +1001,7 @@ function AccountProfile({ role, pushToast }) {
         description="Update your password and enable two-factor authentication."
         footer={<Button onClick={handleSave} loading={saving}>Save changes</Button>}
       >
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 20 }}>
+        <div className="zx-grid-2">
           <TextField
             label="Current password"
             type="password"
@@ -1206,7 +1223,7 @@ function AppearancePanel({ pushToast }) {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 20 }}>
+      <div className="zx-grid-2">
         <SelectField
           label="Font size"
           value={form.fontSize}
