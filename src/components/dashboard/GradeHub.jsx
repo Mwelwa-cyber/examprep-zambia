@@ -22,6 +22,7 @@ import {
   Bot,
   CheckCircleIcon,
   ChevronRight,
+  FileText,
   FireIcon,
   Gamepad2,
   GraduationCap,
@@ -832,6 +833,13 @@ export default function GradeHub() {
                 >
                   <Icon as={BarChart3} size="xs" strokeWidth={2.1} />
                   My Results
+                </Link>
+                <Link
+                  to="/syllabi"
+                  className="flex items-center gap-1.5 rounded-full border border-white/20 bg-white/15 px-3 py-1.5 text-xs font-black text-white transition-colors hover:bg-white/25"
+                >
+                  <Icon as={FileText} size="xs" strokeWidth={2.1} />
+                  Syllabi
                 </Link>
               </div>
             </div>

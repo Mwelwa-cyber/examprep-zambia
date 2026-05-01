@@ -46,7 +46,7 @@ export default function BadgesPage() {
     : 0
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+    <div className="learner-page-shell max-w-3xl mx-auto px-4 py-6 space-y-6">
       {/* Hero — gradient surface with Pako, big counter, and a progress
           ring. Replaces the old flat header so the page opens with a
           sense of accomplishment instead of a list. */}

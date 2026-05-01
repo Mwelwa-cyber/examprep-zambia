@@ -140,7 +140,7 @@ export default function LessonPlayer() {
     return (
       <div className="flex min-h-[70vh] items-center justify-center px-4">
         <div className="text-center">
-          <h1 className="text-display-xl text-gray-900">Lesson not found</h1>
+          <h1 className="text-display-xl theme-text">Lesson not found</h1>
           <div className="mt-4 inline-flex">
             <Button
               as={Link}
@@ -162,7 +162,7 @@ export default function LessonPlayer() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="learner-page-shell theme-text">
       <div className="mx-auto max-w-6xl space-y-4 px-4 py-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -177,8 +177,8 @@ export default function LessonPlayer() {
               </Button>
             </div>
             <p className="text-eyebrow">Lesson</p>
-            <h1 className="text-display-xl text-gray-900 mt-1">{lesson.title}</h1>
-            <p className="text-body-sm font-bold text-gray-500 mt-1">Grade {lesson.grade} · {lesson.subject} · {lesson.topic}</p>
+            <h1 className="learner-page-heading text-display-xl mt-1">{lesson.title}</h1>
+            <p className="text-body-sm font-bold theme-text-muted mt-1">Grade {lesson.grade} · {lesson.subject} · {lesson.topic}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button

@@ -75,7 +75,7 @@ export default function LessonLibrary() {
   }
 
   return (
-    <div className="theme-bg theme-text min-h-screen">
+    <div className="learner-page-shell theme-text">
       <div className="mx-auto max-w-3xl px-4 pb-16 pt-6">
         <section className="hero">
           <div className="hero-eyebrow">Lessons</div>

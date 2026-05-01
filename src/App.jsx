@@ -4,6 +4,7 @@ import { useAuth } from './contexts/AuthContext'
 import ProtectedRoute from './components/layout/ProtectedRoute'
 import LearnerOnlyRoute from './components/auth/LearnerOnlyRoute'
 import Navbar from './components/layout/Navbar'
+import LearnerShell from './components/layout/LearnerShell'
 import { getRoleLandingPath } from './utils/navigation'
 import PageLoader from './components/ui/PageLoader'
 
@@ -18,6 +19,7 @@ const LessonsList = lazy(() => import('./components/lessons/LessonLibrary'))
 const LessonView = lazy(() => import('./components/lessons/LessonPlayer'))
 const LessonDashboard = lazy(() => import('./components/lessons/LessonDashboard'))
 const LessonEditor = lazy(() => import('./components/lessons/LessonEditor'))
+const SyllabiLibrary = lazy(() => import('./components/syllabi/SyllabiLibrary'))
 const MyResults = lazy(() => import('./components/dashboard/MyResults'))
 const BadgesPage = lazy(() => import('./components/dashboard/BadgesPage'))
 const ProfilePage = lazy(() => import('./components/dashboard/ProfilePage'))
@@ -212,18 +214,19 @@ export default function App() {
           <Route path="/dashboard"         element={<ProtectedRoute><LearnerOnlyRoute><GradeHub /></LearnerOnlyRoute></ProtectedRoute>} />
           <Route path="/dashboard-preview" element={<GradeHub />} />
           {/* Legacy stats page (kept for admin/teacher reference) */}
-          <Route path="/my-stats"          element={<ProtectedRoute><LearnerOnlyRoute><Navbar /><StudentDashboard /></LearnerOnlyRoute></ProtectedRoute>} />
-          <Route path="/exams"                        element={<ProtectedRoute><LearnerOnlyRoute><DailyExamsHub /></LearnerOnlyRoute></ProtectedRoute>} />
+          <Route path="/my-stats"          element={<ProtectedRoute><LearnerOnlyRoute><LearnerShell><StudentDashboard /></LearnerShell></LearnerOnlyRoute></ProtectedRoute>} />
+          <Route path="/exams"                        element={<ProtectedRoute><LearnerOnlyRoute><LearnerShell><DailyExamsHub /></LearnerShell></LearnerOnlyRoute></ProtectedRoute>} />
           <Route path="/exams/leaderboard"           element={<ProtectedRoute><LearnerOnlyRoute><ExamLeaderboardPage /></LearnerOnlyRoute></ProtectedRoute>} />
           <Route path="/exam/:examId"                element={<ProtectedRoute><LearnerOnlyRoute><DailyExamRunner /></LearnerOnlyRoute></ProtectedRoute>} />
           <Route path="/exam-results/:attemptId"     element={<ProtectedRoute><LearnerOnlyRoute><ExamResultsPage /></LearnerOnlyRoute></ProtectedRoute>} />
-          <Route path="/quizzes"           element={<ProtectedRoute><LearnerOnlyRoute><Navbar /><QuizList /></LearnerOnlyRoute></ProtectedRoute>} />
+          <Route path="/quizzes"           element={<ProtectedRoute><LearnerOnlyRoute><LearnerShell><QuizList /></LearnerShell></LearnerOnlyRoute></ProtectedRoute>} />
           <Route path="/quiz/:quizId"      element={<ProtectedRoute><LearnerOnlyRoute><QuizRunner /></LearnerOnlyRoute></ProtectedRoute>} />
-          <Route path="/results/:resultId" element={<ProtectedRoute><LearnerOnlyRoute><Navbar /><QuizResults /></LearnerOnlyRoute></ProtectedRoute>} />
-          <Route path="/lessons"           element={<ProtectedRoute><LearnerOnlyRoute><Navbar /><LessonsList /></LearnerOnlyRoute></ProtectedRoute>} />
-          <Route path="/lessons/:lessonId" element={<ProtectedRoute><LearnerOnlyRoute><Navbar /><LessonView /></LearnerOnlyRoute></ProtectedRoute>} />
-          <Route path="/my-results"        element={<ProtectedRoute><LearnerOnlyRoute><Navbar /><MyResults /></LearnerOnlyRoute></ProtectedRoute>} />
-          <Route path="/my-badges"         element={<ProtectedRoute><LearnerOnlyRoute><Navbar /><BadgesPage /></LearnerOnlyRoute></ProtectedRoute>} />
+          <Route path="/results/:resultId" element={<ProtectedRoute><LearnerOnlyRoute><LearnerShell><QuizResults /></LearnerShell></LearnerOnlyRoute></ProtectedRoute>} />
+          <Route path="/lessons"           element={<ProtectedRoute><LearnerOnlyRoute><LearnerShell><LessonsList /></LearnerShell></LearnerOnlyRoute></ProtectedRoute>} />
+          <Route path="/lessons/:lessonId" element={<ProtectedRoute><LearnerOnlyRoute><LearnerShell><LessonView /></LearnerShell></LearnerOnlyRoute></ProtectedRoute>} />
+          <Route path="/syllabi"           element={<ProtectedRoute><LearnerShell><SyllabiLibrary /></LearnerShell></ProtectedRoute>} />
+          <Route path="/my-results"        element={<ProtectedRoute><LearnerOnlyRoute><LearnerShell><MyResults /></LearnerShell></LearnerOnlyRoute></ProtectedRoute>} />
+          <Route path="/my-badges"         element={<ProtectedRoute><LearnerOnlyRoute><LearnerShell><BadgesPage /></LearnerShell></LearnerOnlyRoute></ProtectedRoute>} />
           <Route path="/profile"           element={<ProtectedRoute><Navbar /><ProfilePage /></ProtectedRoute>} />
           <Route path="/study"             element={<ProtectedRoute><LearnerOnlyRoute><ZedStudyAssistant /></LearnerOnlyRoute></ProtectedRoute>} />
 

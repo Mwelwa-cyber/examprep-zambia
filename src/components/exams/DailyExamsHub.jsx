@@ -15,12 +15,11 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { SUBJECTS } from '../../config/curriculum'
 import { getTodaysExam, checkDailyLock } from '../../utils/examService'
-import Navbar from '../layout/Navbar'
 
 function pctColor(p) {
-  if (p >= 70) return 'text-green-600'
-  if (p >= 50) return 'text-yellow-600'
-  return 'text-red-500'
+  if (p >= 70) return 'text-green-500'
+  if (p >= 50) return 'text-amber-400'
+  return 'text-red-400'
 }
 
 function StatusBadge({ lock, exam }) {
@@ -195,9 +194,7 @@ export default function DailyExamsHub() {
   const notScheduledCount = SUBJECTS.length - completedCount - availableCount
 
   return (
-    <div className="theme-bg theme-text min-h-screen">
-      <Navbar />
-
+    <div className="learner-page-shell theme-text">
       <div className="mx-auto max-w-3xl px-4 pb-24 pt-6">
         <div className="daily-header">
           <div className="flex items-start justify-between gap-3">

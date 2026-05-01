@@ -17,13 +17,32 @@
       {
         "source": "/index.html",
         "headers": [
-          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          }
         ]
       },
       {
         "source": "/assets/**",
         "headers": [
-          { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=31536000, immutable"
+          }
+        ]
+      },
+      {
+        "source": "/syllabi/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=3600"
+          },
+          {
+            "key": "Content-Disposition",
+            "value": "inline"
+          }
         ]
       }
     ],
@@ -85,7 +104,6 @@
   },
   "functions": [
     {
-      "source": "functions",
       "codebase": "default",
       "disallowLegacyRuntimeConfig": true,
       "ignore": [
@@ -94,7 +112,20 @@
         "firebase-debug.log",
         "firebase-debug.*.log",
         "*.local"
-      ]
+      ],
+      "source": "functions"
+    },
+    {
+      "codebase": "zedexams",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "source": "y"
     }
   ]
 }

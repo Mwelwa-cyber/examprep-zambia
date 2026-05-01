@@ -253,7 +253,7 @@ export default function QuizResultsV2() {
   }
 
   return (
-    <div className="theme-text mx-auto max-w-4xl px-4 py-6 animate-slide-up">
+    <div className="learner-page-shell theme-text mx-auto max-w-4xl px-4 py-6 pb-24 animate-slide-up">
       <div className="theme-card theme-border relative mb-4 rounded-3xl border p-6 text-center shadow-elev-lg">
         <button
           type="button"

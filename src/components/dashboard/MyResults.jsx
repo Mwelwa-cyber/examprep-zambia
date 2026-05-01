@@ -87,10 +87,10 @@ export default function MyResults() {
   const passed = filtered.filter(r => (r.percentage ?? 0) >= 50).length
 
   return (
-    <div className="max-w-2xl md:max-w-3xl mx-auto px-4 py-6">
+    <div className="learner-page-shell max-w-2xl md:max-w-3xl mx-auto px-4 py-6">
       <div className="mb-5">
         <p className="text-eyebrow">Your progress</p>
-        <h1 className="text-display-xl theme-text mt-1 flex items-center gap-2">
+        <h1 className="learner-page-heading text-display-xl mt-1 flex items-center gap-2">
           <Icon as={BarChart3} size="lg" strokeWidth={2.1} /> My results
         </h1>
         <p className="theme-text-muted text-body-sm mt-1">Your complete quiz history</p>

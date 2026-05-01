@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "325628669031",
+    "firebase_url": "https://examsprepzambia-default-rtdb.firebaseio.com",
+    "project_id": "examsprepzambia",
+    "storage_bucket": "examsprepzambia.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:325628669031:android:0406b0fe242e20719c38c2",
+        "android_client_info": {
+          "package_name": "com.zedexams.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "325628669031-rjlea6tgrn51dj80t0hr3i4fmpvd378q.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBjb_iIe-FHiYNUeUypactQFcBvRHPa7aU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "325628669031-rjlea6tgrn51dj80t0hr3i4fmpvd378q.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

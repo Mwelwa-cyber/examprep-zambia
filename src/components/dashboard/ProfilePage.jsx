@@ -131,7 +131,7 @@ export default function ProfilePage() {
   const initials = (userProfile?.displayName ?? '?').slice(0, 2).toUpperCase()
 
   return (
-    <div className="min-h-screen theme-bg pb-28">
+    <div className={`${isLearner ? 'learner-game-theme min-h-screen' : 'min-h-screen theme-bg'} pb-28`}>
       {/* ── Page Header ───────────────────────────────────────── */}
       <div className="theme-hero px-4 pt-8 pb-16" data-bg-gradient="true">
         <div className="max-w-lg mx-auto">

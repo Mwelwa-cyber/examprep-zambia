@@ -251,7 +251,7 @@ export default function QuizList() {
   const demoCount = quizzes.filter(q => q.isDemo).length
 
   return (
-    <div className="min-h-screen theme-bg">
+    <div className="learner-page-shell">
       {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
 
       {/* Blocked toast */}
