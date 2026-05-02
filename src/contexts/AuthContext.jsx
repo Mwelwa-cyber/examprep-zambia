@@ -66,6 +66,7 @@ export function AuthProvider({ children }) {
     }
     if (isTeacherSignup) {
       userRecord.province = String(extras.province || '').trim()
+      userRecord.subject  = String(extras.subject  || '').trim()
     }
     await setDoc(doc(db, 'users', cred.user.uid), userRecord)
     return cred

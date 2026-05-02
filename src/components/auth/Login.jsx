@@ -17,6 +17,12 @@ const FRIENDLY = {
   'auth/operation-not-allowed':  'Email and password sign-in is not available right now.',
 }
 
+const INPUT_CLASS =
+  'w-full h-[46px] rounded-[10px] border-[1.5px] border-[#2A2A3C] bg-white ' +
+  'text-[#1A1F2E] text-sm font-body px-3.5 outline-none transition-colors ' +
+  'placeholder:text-[#B0AEBB] focus:border-[var(--accent)] ' +
+  'focus:ring-[3px] focus:ring-black/5'
+
 export default function Login() {
   const { login, logout, resetPassword, ensureUserProfile } = useAuth()
   const navigate = useNavigate()
@@ -73,7 +79,7 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen theme-bg flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen theme-bg flex items-center justify-center p-6 relative overflow-hidden">
       {/* Subtle background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full opacity-10"
@@ -82,15 +88,11 @@ export default function Login() {
           style={{ background: 'radial-gradient(circle, var(--accent) 0%, transparent 70%)' }} />
       </div>
 
-      <div className="theme-card rounded-3xl shadow-xl border theme-border w-full max-w-sm p-8 sm:p-10 animate-scale-in relative z-10">
+      <div className="bg-white rounded-[18px] shadow-xl w-full max-w-[400px] px-8 pt-9 pb-8 animate-scale-in relative z-10">
         {/* Logo */}
-        <div className="flex flex-col items-center mb-7">
-          <div className="mb-1">
-            <Logo variant="full" size="xl" />
-          </div>
-          <p className="theme-text-muted text-sm font-bold tracking-wide mt-1">
-            Grade 4–6 Exam Preparation
-          </p>
+        <div className="flex flex-col items-center mb-2.5 gap-1">
+          <Logo variant="full" size="md" />
+          <p className="text-[12px] text-[#999] font-body">Practise smart.</p>
         </div>
 
         {forgotMode ? (
@@ -103,13 +105,13 @@ export default function Login() {
               onClick={() => { setForgotMode(false); setResetSuccess(false); setResetError('') }}
               className="mb-5"
             >
-              Back to login
+              Back to sign in
             </Button>
 
-            <h2 className="text-display-md theme-text mb-1">Reset Password</h2>
-            <p className="theme-text-muted text-body-sm mb-5">
-              Enter your email and we'll send you a reset link.
-            </p>
+            <div className="text-center mb-6">
+              <h2 className="text-[20px] font-bold text-[#1A1F2E]">Reset password</h2>
+              <p className="text-[13px] text-[#888] mt-1">Enter your email and we'll send you a reset link.</p>
+            </div>
 
             {resetSuccess ? (
               <div className="bg-success-subtle border rounded-2xl p-5 text-center" style={{ borderColor: 'var(--success-fg)' }}>
@@ -124,27 +126,30 @@ export default function Login() {
                   onClick={() => { setForgotMode(false); setResetSuccess(false) }}
                   className="mt-4"
                 >
-                  Back to login
+                  Back to sign in
                 </Button>
               </div>
             ) : (
               <form onSubmit={handleResetPassword} className="space-y-4">
                 <div>
-                  <label htmlFor="reset-email" className="block text-sm font-bold theme-text mb-1">Email Address</label>
-                  <input
-                    id="reset-email"
-                    name="resetEmail"
-                    type="email"
-                    value={resetEmail}
-                    onChange={e => setResetEmail(e.target.value)}
-                    required
-                    placeholder="your@email.com"
-                    autoComplete="email"
-                    inputMode="email"
-                    spellCheck={false}
-                    autoCapitalize="none"
-                    className="w-full border-2 rounded-xl px-4 py-3 text-base focus:outline-none transition-colors theme-input focus:border-green-500"
-                  />
+                  <label htmlFor="reset-email" className="block text-[13px] font-medium text-[#1A1F2E] mb-1.5">Email address</label>
+                  <div className="relative">
+                    <input
+                      id="reset-email"
+                      name="resetEmail"
+                      type="email"
+                      value={resetEmail}
+                      onChange={e => setResetEmail(e.target.value)}
+                      required
+                      placeholder="your@email.com"
+                      autoComplete="email"
+                      inputMode="email"
+                      spellCheck={false}
+                      autoCapitalize="none"
+                      className={`${INPUT_CLASS} pr-11`}
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#aaa] text-[15px] leading-none pointer-events-none" aria-hidden="true">✉</span>
+                  </div>
                 </div>
                 {resetError && (
                   <p aria-live="polite" className="text-danger bg-danger-subtle border rounded-xl px-4 py-3 text-body-sm" style={{ borderColor: 'var(--danger-fg)' }}>
@@ -158,90 +163,100 @@ export default function Login() {
                   fullWidth
                   loading={resetLoading}
                 >
-                  {resetLoading ? 'Sending…' : 'Send Reset Link'}
+                  {resetLoading ? 'Sending…' : 'Send reset link'}
                 </Button>
               </form>
             )}
           </div>
         ) : (
           /* ── Login Form ── */
-          <form onSubmit={handleSubmit} className="space-y-4 animate-slide-up">
-            <div>
-              <label htmlFor="login-email" className="block text-sm font-bold theme-text mb-1">Email</label>
-              <input
-                id="login-email"
-                name="email"
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-                placeholder="your@email.com"
-                autoComplete="username"
-                inputMode="email"
-                spellCheck={false}
-                autoCapitalize="none"
-                className="w-full border-2 rounded-xl px-4 py-3 text-base focus:outline-none transition-colors theme-input focus:border-green-500"
-              />
+          <>
+            <div className="text-center mb-6">
+              <h2 className="text-[20px] font-bold text-[#1A1F2E]">Welcome back</h2>
+              <p className="text-[13px] text-[#888] mt-1">Sign in to your account</p>
             </div>
 
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label htmlFor="login-password" className="block text-sm font-bold theme-text">Password</label>
-                <button
-                  type="button"
-                  onClick={() => { setForgotMode(true); setResetEmail(email) }}
-                  className="text-xs font-bold text-green-600 hover:text-green-700 hover:underline min-h-0 p-0 bg-transparent shadow-none"
-                >
-                  Forgot password?
-                </button>
+            <form onSubmit={handleSubmit} className="space-y-4 animate-slide-up">
+              <div>
+                <label htmlFor="login-email" className="block text-[13px] font-medium text-[#1A1F2E] mb-1.5">Email address</label>
+                <div className="relative">
+                  <input
+                    id="login-email"
+                    name="email"
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    required
+                    placeholder="your@email.com"
+                    autoComplete="username"
+                    inputMode="email"
+                    spellCheck={false}
+                    autoCapitalize="none"
+                    className={`${INPUT_CLASS} pr-11`}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#aaa] text-[15px] leading-none pointer-events-none" aria-hidden="true">✉</span>
+                </div>
               </div>
-              <div className="relative">
-                <input
-                  id="login-password"
-                  name="password"
-                  type={showPw ? 'text' : 'password'}
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  required
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                  className="w-full border-2 rounded-xl px-4 py-3 pr-11 text-base focus:outline-none transition-colors theme-input focus:border-green-500"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPw(v => !v)}
-                  onMouseDown={e => e.preventDefault()}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center justify-center w-10 h-10 rounded-lg text-xl leading-none select-none theme-text-muted hover:theme-text transition-transform active:scale-90 bg-transparent shadow-none p-0 min-h-0"
-                  aria-label={showPw ? 'Hide password' : 'Show password'}
-                  aria-pressed={showPw}
-                >
-                  <span aria-hidden="true">{showPw ? '🙈' : '🐵'}</span>
-                </button>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label htmlFor="login-password" className="block text-[13px] font-medium text-[#1A1F2E]">Password</label>
+                  <button
+                    type="button"
+                    onClick={() => { setForgotMode(true); setResetEmail(email) }}
+                    className="text-[12.5px] font-medium text-[var(--accent)] hover:opacity-75 bg-transparent shadow-none p-0 min-h-0"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+                <div className="relative">
+                  <input
+                    id="login-password"
+                    name="password"
+                    type={showPw ? 'text' : 'password'}
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    required
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                    className={`${INPUT_CLASS} pr-11`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPw(v => !v)}
+                    onMouseDown={e => e.preventDefault()}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center w-9 h-9 rounded-lg text-[15px] leading-none select-none text-[#aaa] hover:text-[#1A1F2E] transition-transform active:scale-90 bg-transparent shadow-none p-0 min-h-0"
+                    aria-label={showPw ? 'Hide password' : 'Show password'}
+                    aria-pressed={showPw}
+                  >
+                    <span aria-hidden="true">{showPw ? '🙈' : '👁'}</span>
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {error && (
-              <p aria-live="polite" className="text-danger bg-danger-subtle border rounded-xl px-4 py-3 text-body-sm" style={{ borderColor: 'var(--danger-fg)' }}>
-                {error}
-              </p>
-            )}
+              {error && (
+                <p aria-live="polite" className="text-danger bg-danger-subtle border rounded-xl px-4 py-3 text-body-sm" style={{ borderColor: 'var(--danger-fg)' }}>
+                  {error}
+                </p>
+              )}
 
-            <Button
-              type="submit"
-              variant="primary"
-              size="lg"
-              fullWidth
-              loading={loading}
-            >
-              {loading ? 'Signing in…' : 'Sign In'}
-            </Button>
-          </form>
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                fullWidth
+                loading={loading}
+              >
+                {loading ? 'Signing in…' : 'Sign In'}
+              </Button>
+            </form>
+          </>
         )}
 
-        <p className="text-center text-sm theme-text-muted mt-6">
+        <p className="text-center text-[13px] text-[#888] mt-5">
           No account?{' '}
-          <Link to="/register" className="text-green-600 font-black hover:underline">
-            Register free
+          <Link to="/register" className="text-[var(--accent)] font-semibold hover:underline">
+            Create one free
           </Link>
         </p>
       </div>
