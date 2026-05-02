@@ -13,7 +13,6 @@ import {
 } from '../ui/icons'
 import { useAuth } from '../../contexts/AuthContext'
 import Logo from '../ui/Logo'
-import ThemeSelector from '../ui/ThemeSelector'
 import Icon from '../ui/Icon'
 import TeacherTopBar from './TeacherTopBar'
 
@@ -87,9 +86,8 @@ export default function TeacherLayout({ children }) {
               </p>
             </div>
           </Link>
-          <div className="mt-3 flex items-center justify-between gap-2 pl-1">
+          <div className="mt-3 pl-1">
             <span className="studio-eyebrow">Teacher Panel</span>
-            <ThemeSelector compact />
           </div>
         </div>
 
@@ -172,7 +170,6 @@ export default function TeacherLayout({ children }) {
             </div>
           </Link>
           <div className="flex items-center gap-2">
-            <ThemeSelector compact />
             <button
               onClick={() => setMobileOpen(o => !o)}
               aria-label={mobileOpen ? 'Close teacher navigation' : 'Open teacher navigation'}

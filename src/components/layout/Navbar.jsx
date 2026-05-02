@@ -17,7 +17,6 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useSubscription } from '../../hooks/useSubscription'
 import { getRoleLandingPath } from '../../utils/navigation'
 import Logo from '../ui/Logo'
-import ThemeSelector from '../ui/ThemeSelector'
 import Icon from '../ui/Icon'
 import MobileBottomNav from './MobileBottomNav'
 
@@ -111,9 +110,6 @@ export default function Navbar() {
             <Icon as={Sparkles} size="xs" strokeWidth={2.1} /> {accessBadge.label}
           </span>
 
-          {/* Theme selector */}
-          <ThemeSelector compact />
-
           <div className="flex items-center gap-2 pl-2 border-l theme-border">
             <div className="theme-accent-fill theme-on-accent flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-black shadow-elev-inner-hl">
               {initials}
@@ -137,7 +133,6 @@ export default function Navbar() {
 
         {/* Mobile right — avatar + hamburger */}
         <div className="flex md:hidden items-center gap-2">
-          <ThemeSelector compact />
           <div className="theme-accent-fill theme-on-accent flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-xs font-black shadow-elev-inner-hl">
             {initials}
           </div>
