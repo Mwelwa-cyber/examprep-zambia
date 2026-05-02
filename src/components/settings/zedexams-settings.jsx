@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTheme, THEMES } from '../../contexts/ThemeContext';
 
 /* ============================================================================
  * ZedExams — Settings module
@@ -101,7 +102,6 @@ const DEFAULT_NOTIFICATIONS = {
 };
 
 const DEFAULT_APPEARANCE = {
-  theme: 'system',          // 'light' | 'dark' | 'system'
   accent: '#0e7490',
   fontSize: 'medium',       // 'small' | 'medium' | 'large'
   density: 'comfortable',   // 'compact' | 'comfortable' | 'spacious'
@@ -1155,6 +1155,7 @@ function NotificationsPanel({ role, pushToast }) {
 /* ── Appearance panel ─────────────────────────────────────────────────────── */
 
 function AppearancePanel({ pushToast }) {
+  const { theme, setTheme } = useTheme();
   const [form, setForm] = useState(DEFAULT_APPEARANCE);
   const [saving, setSaving] = useState(false);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
@@ -1173,27 +1174,36 @@ function AppearancePanel({ pushToast }) {
       footer={<Button onClick={handleSave} loading={saving}>Save changes</Button>}
     >
       <div style={{ marginBottom: 16 }}>
-        <FieldLabel>Theme</FieldLabel>
+        <FieldLabel hint="Applies instantly across the app">Theme</FieldLabel>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {['light', 'dark', 'system'].map((t) => {
-            const on = form.theme === t;
+          {THEMES.map((t) => {
+            const on = theme === t.id;
             return (
               <button
-                key={t}
+                key={t.id}
                 type="button"
                 className="zx-btn"
-                onClick={() => set('theme', t)}
+                onClick={() => setTheme(t.id)}
+                aria-pressed={on}
                 style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 8,
                   padding: '8px 14px',
                   fontFamily: T.font, fontSize: 13, fontWeight: 600,
-                  textTransform: 'capitalize',
                   background: on ? T.primarySoft : T.panel,
                   color: on ? T.primary : T.textSoft,
                   border: `1px solid ${on ? T.primary : T.border}`,
                   borderRadius: 8, cursor: 'pointer',
                 }}
               >
-                {t}
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: 14, height: 14, borderRadius: '50%',
+                    background: t.swatch,
+                    border: `2px solid ${on ? T.primary : T.border}`,
+                  }}
+                />
+                {t.label}
               </button>
             );
           })}

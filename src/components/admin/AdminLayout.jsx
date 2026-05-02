@@ -19,7 +19,6 @@ import {
 } from '../ui/icons'
 import { useAuth } from '../../contexts/AuthContext'
 import Logo from '../ui/Logo'
-import ThemeSelector from '../ui/ThemeSelector'
 import Icon from '../ui/Icon'
 import ErrorBoundary from '../ui/ErrorBoundary'
 
@@ -77,9 +76,8 @@ export default function AdminLayout({ children }) {
           <Link to="/admin" className="inline-flex">
             <Logo variant="full" size="md" />
           </Link>
-          <div className="mt-2 flex items-center justify-between gap-2 pl-1">
+          <div className="mt-2 pl-1">
             <p className="text-eyebrow theme-accent-text">Admin Panel</p>
-            <ThemeSelector compact />
           </div>
         </div>
 
@@ -135,7 +133,6 @@ export default function AdminLayout({ children }) {
             <span className="text-display-md theme-text" style={{ fontSize: 15 }}>Admin Panel</span>
           </Link>
           <div className="flex items-center gap-2">
-            <ThemeSelector compact />
             <button
               onClick={() => setMobileOpen(o => !o)}
               aria-label={mobileOpen ? 'Close admin navigation' : 'Open admin navigation'}
