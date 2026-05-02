@@ -129,7 +129,15 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen theme-bg flex items-center justify-center p-6 relative overflow-hidden">
+    <div
+      className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden"
+      style={{
+        backgroundColor: '#FDF6EC',
+        '--accent': '#EA580C',
+        '--accent-bg': '#FFEDD5',
+        '--accent-fg': '#9A3412',
+      }}
+    >
       {/* Subtle background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full opacity-10"
