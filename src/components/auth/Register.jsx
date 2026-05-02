@@ -199,17 +199,6 @@ export default function Register() {
           </span>
         </div>
 
-        {/* Teacher note */}
-        {isTeacher && (
-          <div
-            className="flex items-start gap-2 rounded-[10px] border-[1.5px] px-3.5 py-2.5 mb-3.5 text-[12px] leading-[1.5]"
-            style={{ background: '#EBF5F1', borderColor: 'rgba(28,100,70,0.2)', color: '#1C5C3A' }}
-          >
-            <span aria-hidden="true">ℹ️</span>
-            <span>Teacher accounts are reviewed by your school admin before access is granted.</span>
-          </div>
-        )}
-
         <form onSubmit={handleSubmit} className="space-y-3.5">
           <Field
             label="Full Name"
