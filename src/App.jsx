@@ -54,7 +54,6 @@ const EditAssessment = lazy(() => import('./components/teacher/EditAssessment'))
 const AssessmentList = lazy(() => import('./components/teacher/AssessmentList'))
 
 // Teacher — AI Generators
-const LessonPlanGenerator = lazy(() => import('./components/teacher/generate/LessonPlanGenerator'))
 const LessonPlanStudio = lazy(() => import('./components/teacher/generate/LessonPlanStudio'))
 const WorksheetGenerator = lazy(() => import('./components/teacher/generate/WorksheetGenerator'))
 const FlashcardGenerator = lazy(() => import('./components/teacher/generate/FlashcardGenerator'))
@@ -259,7 +258,6 @@ export default function App() {
           <Route path="/admin/learners/:learnerId"      element={<AdminRoute><AdminLearnerProfile /></AdminRoute>} />
           <Route path="/admin/results"                  element={<AdminRoute><AdminResults /></AdminRoute>} />
           <Route path="/admin/payments"                 element={<AdminRoute><PaymentsPanel /></AdminRoute>} />
-          <Route path="/admin/generate/lesson-plan"     element={<AdminRoute><LessonPlanGenerator /></AdminRoute>} />
           <Route path="/admin/generate/worksheet"       element={<AdminRoute><WorksheetGenerator /></AdminRoute>} />
           <Route path="/admin/generate/flashcards"      element={<AdminRoute><FlashcardGenerator /></AdminRoute>} />
           <Route path="/admin/generate/scheme-of-work"  element={<AdminRoute><SchemeOfWorkGenerator /></AdminRoute>} />

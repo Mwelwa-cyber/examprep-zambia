@@ -172,7 +172,6 @@ export default function AdminDashboard() {
         <h2 className="text-eyebrow mb-3">Quick actions</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <QuickAction to="/admin/lessons/new" icon="📖" label="Create Lesson" sub="Add a new lesson for learners" color="green" />
-          <QuickAction to="/admin/generate/lesson-plan" icon="✨" label="AI Lesson Plan" sub="Generate a CBC lesson plan in seconds" color="green" />
           <QuickAction to="/admin/quizzes/new" icon="✏️" label="Create Quiz"   sub="Build a new quiz or test"    color="blue"  />
           <QuickAction to="/admin/quizzes/new?mode=import" icon="📄" label="Import Quiz" sub="Convert Word/PDF into editable questions" color="green" />
           <QuickAction to="/admin/quizzes/new?mode=ai" icon="✦" label="AI Quiz Generator" sub="Draft questions with Zed" color="blue" />
