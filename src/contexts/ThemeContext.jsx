@@ -11,7 +11,7 @@ export const THEMES = [
   { id: 'vivid',    label: 'Vivid (Canva)', swatch: '#EC4899' },
 ]
 
-const DEFAULT_THEME = 'sky'
+export const DEFAULT_THEME = 'sky'
 const LEGACY_THEME_MAP = {
   light: 'sky',
   warm: 'oatmeal',
@@ -20,9 +20,21 @@ const LEGACY_THEME_MAP = {
 const THEME_IDS = THEMES.map(t => t.id)
 const THEME_CLASS_IDS = [...THEME_IDS, ...Object.keys(LEGACY_THEME_MAP)]
 
-function normalizeThemeId(id) {
+export function normalizeThemeId(id) {
   const next = LEGACY_THEME_MAP[id] || id
   return THEME_IDS.includes(next) ? next : DEFAULT_THEME
+}
+
+/**
+ * Apply a theme by setting `theme-<id>` on <body>, removing any prior
+ * theme class. Exported so the route-aware applicator can override the
+ * saved preference (e.g. force Sky on public marketing/auth pages).
+ */
+export function applyThemeToBody(id) {
+  if (typeof document === 'undefined') return
+  const body = document.body
+  THEME_CLASS_IDS.forEach(t => body.classList.remove(`theme-${t}`))
+  body.classList.add(`theme-${normalizeThemeId(id)}`)
 }
 
 /**
@@ -63,10 +75,11 @@ export function ThemeProvider({ children }) {
     try { localStorage.setItem(LS_KEY, next) } catch { }
   }
 
+  // The body class is applied by <ThemeApplicator /> inside the Router so it
+  // can force Sky on public marketing/auth routes regardless of the saved
+  // preference. Persist the saved theme here so localStorage stays the source
+  // of truth across reloads.
   useEffect(() => {
-    const body = document.body
-    THEME_CLASS_IDS.forEach(id => body.classList.remove(`theme-${id}`))
-    body.classList.add(`theme-${theme}`)
     try { localStorage.setItem(LS_KEY, theme) } catch { }
   }, [theme])
 

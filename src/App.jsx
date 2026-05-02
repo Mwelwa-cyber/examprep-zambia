@@ -1,11 +1,33 @@
-import { lazy, Suspense, useState } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { lazy, Suspense, useEffect, useState } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
+import { useTheme, applyThemeToBody, DEFAULT_THEME } from './contexts/ThemeContext'
 import ProtectedRoute from './components/layout/ProtectedRoute'
 import LearnerOnlyRoute from './components/auth/LearnerOnlyRoute'
 import Navbar from './components/layout/Navbar'
 import { getRoleLandingPath } from './utils/navigation'
 import PageLoader from './components/ui/PageLoader'
+
+// Public marketing/auth routes always render in the brand-default Sky theme
+// so a visitor's previously-saved preference (e.g. Vivid's deep violet bg)
+// can't bleed onto the welcome/login/register screens. The saved theme
+// applies again as soon as they land on an authenticated route.
+const PUBLIC_THEME_PATHS = new Set([
+  '/', '/welcome', '/login', '/register',
+  '/pricing', '/plans', '/privacy', '/terms',
+])
+function isPublicThemePath(pathname) {
+  return PUBLIC_THEME_PATHS.has(pathname) || pathname.startsWith('/share/')
+}
+
+function ThemeApplicator() {
+  const { theme } = useTheme()
+  const { pathname } = useLocation()
+  useEffect(() => {
+    applyThemeToBody(isPublicThemePath(pathname) ? DEFAULT_THEME : theme)
+  }, [pathname, theme])
+  return null
+}
 
 const Login = lazy(() => import('./components/auth/Login'))
 const Register = lazy(() => import('./components/auth/Register'))
@@ -198,6 +220,7 @@ export default function App() {
         v7_relativeSplatPath: true,
       }}
     >
+      <ThemeApplicator />
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/" element={<RootRedirect />} />
