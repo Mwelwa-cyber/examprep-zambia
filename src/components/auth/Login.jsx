@@ -6,6 +6,7 @@ import { getRoleLandingPath } from '../../utils/navigation'
 import Logo from '../ui/Logo'
 import Button from '../ui/Button'
 import Icon from '../ui/Icon'
+import GoogleSignInButton from './GoogleSignInButton'
 
 const FRIENDLY = {
   'auth/invalid-credential':     'Wrong email or password. Please try again.',
@@ -15,6 +16,10 @@ const FRIENDLY = {
   'auth/invalid-email':          'Please enter a valid email address.',
   'auth/network-request-failed': 'Network error. Please check your connection.',
   'auth/operation-not-allowed':  'Email and password sign-in is not available right now.',
+  'auth/popup-closed-by-user':   'Google sign-in was cancelled.',
+  'auth/popup-blocked':          'Your browser blocked the Google sign-in popup. Please allow popups and try again.',
+  'auth/account-exists-with-different-credential':
+                                 'An account already exists with this email. Sign in with the original method.',
 }
 
 const INPUT_CLASS =
@@ -24,13 +29,14 @@ const INPUT_CLASS =
   'focus:ring-[3px] focus:ring-black/5'
 
 export default function Login() {
-  const { login, logout, resetPassword, ensureUserProfile } = useAuth()
+  const { login, loginWithGoogle, logout, resetPassword, ensureUserProfile } = useAuth()
   const navigate = useNavigate()
 
   const [email, setEmail]         = useState('')
   const [password, setPassword]   = useState('')
   const [showPw, setShowPw]       = useState(false)
   const [loading, setLoading]     = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError]         = useState('')
 
   // Forgot password flow
@@ -60,6 +66,24 @@ export default function Login() {
     } catch (err) {
       setError(FRIENDLY[err.code] ?? 'Login failed. Please try again.')
     } finally { setLoading(false) }
+  }
+
+  async function handleGoogleSignIn() {
+    setError('')
+    setGoogleLoading(true)
+    try {
+      const cred = await loginWithGoogle()
+      const profile = await ensureUserProfile(cred.user)
+      if (!profile) {
+        try { await logout() } catch { /* ignore secondary failure */ }
+        setError('Signed in with Google, but we could not finish setting up your ZedExams profile. Please try again or contact support.')
+        return
+      }
+      navigate(getRoleLandingPath(profile, '/'), { replace: true })
+    } catch (err) {
+      if (err.code === 'auth/cancelled-popup-request') return
+      setError(FRIENDLY[err.code] ?? 'Google sign-in failed. Please try again.')
+    } finally { setGoogleLoading(false) }
   }
 
   async function handleResetPassword(e) {
@@ -182,6 +206,19 @@ export default function Login() {
             <div className="text-center mb-6">
               <h2 className="text-[20px] font-bold text-[#1A1F2E]">Welcome back</h2>
               <p className="text-[13px] text-[#888] mt-1">Sign in to your account</p>
+            </div>
+
+            <div className="animate-slide-up">
+              <GoogleSignInButton
+                onClick={handleGoogleSignIn}
+                loading={googleLoading}
+                disabled={loading}
+              />
+              <div className="flex items-center gap-3 my-4" aria-hidden="true">
+                <span className="h-px flex-1 bg-[#E4E9F0]" />
+                <span className="text-[11px] uppercase tracking-[1px] text-[#aaa] font-medium">or</span>
+                <span className="h-px flex-1 bg-[#E4E9F0]" />
+              </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4 animate-slide-up">

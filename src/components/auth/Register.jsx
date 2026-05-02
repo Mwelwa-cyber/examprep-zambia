@@ -4,11 +4,16 @@ import { useAuth } from '../../contexts/AuthContext'
 import { getRoleLandingPath } from '../../utils/navigation'
 import Logo from '../ui/Logo'
 import Button from '../ui/Button'
+import GoogleSignInButton from './GoogleSignInButton'
 
 const FRIENDLY = {
   'auth/email-already-in-use': 'This email is already registered. Try logging in.',
   'auth/weak-password':        'Password must be at least 6 characters.',
   'auth/invalid-email':        'Please enter a valid email address.',
+  'auth/popup-closed-by-user': 'Google sign-in was cancelled.',
+  'auth/popup-blocked':        'Your browser blocked the Google sign-in popup. Please allow popups and try again.',
+  'auth/account-exists-with-different-credential':
+                               'An account already exists with this email. Sign in with the original method.',
 }
 
 const ZAMBIAN_PROVINCES = [
@@ -53,7 +58,7 @@ const INPUT_CLASS =
 const SELECT_CLASS = INPUT_CLASS + ' appearance-none pr-8 cursor-pointer'
 
 export default function Register() {
-  const { register } = useAuth()
+  const { register, loginWithGoogle, logout, ensureUserProfile } = useAuth()
   const navigate     = useNavigate()
   const [form, setForm] = useState({
     displayName: '',
@@ -69,6 +74,7 @@ export default function Register() {
   const [showPw, setShowPw]           = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading]         = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError]             = useState('')
 
   useEffect(() => {
@@ -103,6 +109,24 @@ export default function Register() {
       if (!form.grade.trim())    return 'Please select your grade.'
     }
     return ''
+  }
+
+  async function handleGoogleSignUp() {
+    setError('')
+    setGoogleLoading(true)
+    try {
+      const cred = await loginWithGoogle()
+      const profile = await ensureUserProfile(cred.user)
+      if (!profile) {
+        try { await logout() } catch { /* ignore secondary failure */ }
+        setError('Signed in with Google, but we could not finish creating your ZedExams profile. Please try again or contact support.')
+        return
+      }
+      navigate(getRoleLandingPath(profile, '/'), { replace: true })
+    } catch (err) {
+      if (err.code === 'auth/cancelled-popup-request') return
+      setError(FRIENDLY[err.code] ?? 'Google sign-in failed. Please try again.')
+    } finally { setGoogleLoading(false) }
   }
 
   async function handleSubmit(e) {
@@ -198,6 +222,22 @@ export default function Register() {
               : "You'll get access to Grade 4–6 quizzes & exam practice"}
           </span>
         </div>
+
+        {!isTeacher && (
+          <div className="mb-4">
+            <GoogleSignInButton
+              onClick={handleGoogleSignUp}
+              loading={googleLoading}
+              disabled={loading}
+              label="Sign up with Google"
+            />
+            <div className="flex items-center gap-3 mt-4" aria-hidden="true">
+              <span className="h-px flex-1 bg-[#E4E9F0]" />
+              <span className="text-[11px] uppercase tracking-[1px] text-[#aaa] font-medium">or use your email</span>
+              <span className="h-px flex-1 bg-[#E4E9F0]" />
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-3.5">
           <Field

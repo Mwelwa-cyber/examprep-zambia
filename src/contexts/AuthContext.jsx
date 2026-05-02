@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback, useRef } f
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  signInWithPopup,
   signOut,
   onAuthStateChanged,
   updateProfile,
@@ -9,7 +10,7 @@ import {
 } from 'firebase/auth'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp, onSnapshot } from 'firebase/firestore'
-import app, { auth, db } from '../firebase/config'
+import app, { auth, db, googleProvider } from '../firebase/config'
 import { ROLES, hasPremiumAccess, hasLearnerPortalAccess } from '../utils/subscriptionConfig'
 import { useIdleTimeout } from '../hooks/useIdleTimeout'
 
@@ -32,6 +33,30 @@ function toUserProfile(uid, data) {
   return data ? { id: uid, ...data } : null
 }
 
+// Defaults that satisfy the create-user firestore rule. Used by both the
+// email/password register flow and the first-time Google sign-in flow.
+function defaultUserRecord({ displayName, email, role = ROLES.LEARNER, grade = null, school = '' }) {
+  return {
+    displayName: displayName ?? '',
+    email: email ?? '',
+    role,
+    grade,
+    school,
+    plan: 'free',
+    premium: false,
+    isPremium: false,
+    paymentStatus: 'inactive',
+    subscriptionStatus: 'inactive',
+    subscriptionPlan: 'free',
+    subscriptionExpiry: null,
+    subscriptionActivatedBy: null,
+    premiumActivatedAt: null,
+    dailyAttempts: 0,
+    lastAttemptDate: '',
+    createdAt: serverTimestamp(),
+  }
+}
+
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null)
   const [userProfile, setUserProfile] = useState(null)
@@ -45,25 +70,13 @@ export function AuthProvider({ children }) {
     const isTeacherSignup = role === ROLES.TEACHER
     const cred = await createUserWithEmailAndPassword(auth, email, password)
     await updateProfile(cred.user, { displayName })
-    const userRecord = {
+    const userRecord = defaultUserRecord({
       displayName,
       email,
       role: isTeacherSignup ? ROLES.TEACHER : ROLES.LEARNER,
       grade: isTeacherSignup ? null : (grade ?? null),
       school: school ?? '',
-      plan: 'free',
-      premium: false,
-      isPremium: false,
-      paymentStatus: 'inactive',
-      subscriptionStatus: 'inactive',
-      subscriptionPlan: 'free',
-      subscriptionExpiry: null,
-      subscriptionActivatedBy: null,
-      premiumActivatedAt: null,
-      dailyAttempts: 0,
-      lastAttemptDate: '',
-      createdAt: serverTimestamp(),
-    }
+    })
     if (isTeacherSignup) {
       userRecord.province = String(extras.province || '').trim()
       userRecord.subject  = String(extras.subject  || '').trim()
@@ -74,6 +87,21 @@ export function AuthProvider({ children }) {
 
   function login(email, password) {
     return signInWithEmailAndPassword(auth, email, password)
+  }
+
+  // Google sign-in. New users get a default learner profile; they can fill in
+  // grade/school later. Existing users (matched by Firebase UID) keep their role.
+  async function loginWithGoogle() {
+    const cred = await signInWithPopup(auth, googleProvider)
+    const userRef = doc(db, 'users', cred.user.uid)
+    const snap = await getDoc(userRef)
+    if (!snap.exists()) {
+      await setDoc(userRef, defaultUserRecord({
+        displayName: cred.user.displayName ?? '',
+        email: cred.user.email ?? '',
+      }))
+    }
+    return cred
   }
 
   function resetPassword(email) {
@@ -257,7 +285,7 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={{
       currentUser, userProfile, loading, profileIssue,
-      login, register, logout, resetPassword,
+      login, loginWithGoogle, register, logout, resetPassword,
       fetchUserProfile, ensureUserProfile, refreshProfile, updateProfileFields,
       isLearner, isTeacher, isAdmin, isPremium, isPaidTeacher, canAccessFullContent, canAccessLearnerPortal,
       showIdleWarning, idleSecondsLeft, stayActive,
