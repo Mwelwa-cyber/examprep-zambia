@@ -89,9 +89,11 @@ export function AuthProvider({ children }) {
     return signInWithEmailAndPassword(auth, email, password)
   }
 
-  // Google sign-in. New users get a default learner profile; they can fill in
-  // grade/school later. Existing users (matched by Firebase UID) keep their role.
-  async function loginWithGoogle() {
+  // Google sign-in. New users get a default profile; the caller can pass
+  // `role` (used only on first sign-in) so the Register page can honour the
+  // selected Learner/Teacher tab. Existing users keep their saved role.
+  async function loginWithGoogle({ role } = {}) {
+    const targetRole = role === ROLES.TEACHER ? ROLES.TEACHER : ROLES.LEARNER
     const cred = await signInWithPopup(auth, googleProvider)
     const userRef = doc(db, 'users', cred.user.uid)
     const snap = await getDoc(userRef)
@@ -99,6 +101,7 @@ export function AuthProvider({ children }) {
       await setDoc(userRef, defaultUserRecord({
         displayName: cred.user.displayName ?? '',
         email: cred.user.email ?? '',
+        role: targetRole,
       }))
     }
     return cred

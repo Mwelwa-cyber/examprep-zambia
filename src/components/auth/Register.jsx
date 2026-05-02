@@ -115,7 +115,7 @@ export default function Register() {
     setError('')
     setGoogleLoading(true)
     try {
-      const cred = await loginWithGoogle()
+      const cred = await loginWithGoogle({ role: form.role })
       const profile = await ensureUserProfile(cred.user)
       if (!profile) {
         try { await logout() } catch { /* ignore secondary failure */ }
@@ -223,21 +223,24 @@ export default function Register() {
           </span>
         </div>
 
-        {!isTeacher && (
-          <div className="mb-4">
-            <GoogleSignInButton
-              onClick={handleGoogleSignUp}
-              loading={googleLoading}
-              disabled={loading}
-              label="Sign up with Google"
-            />
-            <div className="flex items-center gap-3 mt-4" aria-hidden="true">
-              <span className="h-px flex-1 bg-[#E4E9F0]" />
-              <span className="text-[11px] uppercase tracking-[1px] text-[#aaa] font-medium">or use your email</span>
-              <span className="h-px flex-1 bg-[#E4E9F0]" />
-            </div>
+        <div className="mb-4">
+          <GoogleSignInButton
+            onClick={handleGoogleSignUp}
+            loading={googleLoading}
+            disabled={loading}
+            label={isTeacher ? 'Sign up with Google as a teacher' : 'Sign up with Google'}
+          />
+          {isTeacher && (
+            <p className="text-[11.5px] text-[#888] mt-2 leading-[1.45]">
+              You'll set your subject and province after signing in.
+            </p>
+          )}
+          <div className="flex items-center gap-3 mt-4" aria-hidden="true">
+            <span className="h-px flex-1 bg-[#E4E9F0]" />
+            <span className="text-[11px] uppercase tracking-[1px] text-[#aaa] font-medium">or use your email</span>
+            <span className="h-px flex-1 bg-[#E4E9F0]" />
           </div>
-        )}
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-3.5">
           <Field
