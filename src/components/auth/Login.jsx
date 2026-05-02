@@ -88,7 +88,7 @@ export default function Login() {
           style={{ background: 'radial-gradient(circle, var(--accent) 0%, transparent 70%)' }} />
       </div>
 
-      <div className="bg-white rounded-[18px] shadow-xl w-full max-w-[400px] px-8 pt-9 pb-8 animate-scale-in relative z-10">
+      <div className="bg-white rounded-[18px] shadow-xl w-full max-w-[400px] sm:max-w-[520px] px-8 pt-9 pb-8 animate-scale-in relative z-10">
         {/* Logo */}
         <div className="flex flex-col items-center mb-2.5 gap-1">
           <Logo variant="full" size="md" />
