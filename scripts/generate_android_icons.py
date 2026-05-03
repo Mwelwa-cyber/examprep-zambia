@@ -1,0 +1,133 @@
+#!/usr/bin/env python3
+"""Generate Android launcher icons from the ZedExams logo."""
+
+import os
+from PIL import Image, ImageDraw, ImageOps
+
+LOGO_PATH = "/home/user/Zedexams/public/zedexams-logo.png"
+RES_DIR = "/home/user/Zedexams/android/app/src/main/res"
+
+DENSITIES = {
+    "mdpi":    48,
+    "hdpi":    72,
+    "xhdpi":   96,
+    "xxhdpi":  144,
+    "xxxhdpi": 192,
+}
+
+FOREGROUND_SIZES = {
+    "mdpi":    108,
+    "hdpi":    162,
+    "xhdpi":   216,
+    "xxhdpi":  324,
+    "xxxhdpi": 432,
+}
+
+BG_COLOR = (255, 255, 255, 255)  # white background
+
+
+def crop_to_content(img: Image.Image, padding_ratio: float = 0.05) -> Image.Image:
+    """Crop image to its non-white, non-transparent content bounding box."""
+    rgba = img.convert("RGBA")
+    r, g, b, a = rgba.split()
+
+    # Treat near-white pixels as transparent
+    non_bg = Image.new("L", img.size, 0)
+    pixels = rgba.load()
+    mask = non_bg.load()
+    for y in range(img.height):
+        for x in range(img.width):
+            pr, pg, pb, pa = pixels[x, y]
+            if pa > 10 and not (pr > 240 and pg > 240 and pb > 240):
+                mask[x, y] = 255
+
+    bbox = non_bg.getbbox()
+    if not bbox:
+        return img
+
+    # Add small padding
+    pad_x = int((bbox[2] - bbox[0]) * padding_ratio)
+    pad_y = int((bbox[3] - bbox[1]) * padding_ratio)
+    bbox = (
+        max(0, bbox[0] - pad_x),
+        max(0, bbox[1] - pad_y),
+        min(img.width, bbox[2] + pad_x),
+        min(img.height, bbox[3] + pad_y),
+    )
+    return rgba.crop(bbox)
+
+
+def make_square_icon(logo_cropped: Image.Image, size: int) -> Image.Image:
+    """Create a square icon with the logo centered on a white background."""
+    icon = Image.new("RGBA", (size, size), BG_COLOR)
+
+    # Fit logo within 80% of icon area
+    max_dim = int(size * 0.80)
+    logo_copy = logo_cropped.copy()
+    logo_copy.thumbnail((max_dim, max_dim), Image.LANCZOS)
+
+    offset_x = (size - logo_copy.width) // 2
+    offset_y = (size - logo_copy.height) // 2
+    icon.paste(logo_copy, (offset_x, offset_y), logo_copy)
+    return icon
+
+
+def make_round_icon(logo_cropped: Image.Image, size: int) -> Image.Image:
+    """Create a circular icon."""
+    square = make_square_icon(logo_cropped, size)
+
+    mask = Image.new("L", (size, size), 0)
+    draw = ImageDraw.Draw(mask)
+    draw.ellipse((0, 0, size - 1, size - 1), fill=255)
+
+    result = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    result.paste(square, (0, 0), mask)
+    return result
+
+
+def make_foreground_icon(logo_cropped: Image.Image, size: int) -> Image.Image:
+    """Create adaptive icon foreground (logo in center 66% safe zone)."""
+    fg = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+
+    safe = int(size * 0.66)
+    logo_copy = logo_cropped.copy()
+    logo_copy.thumbnail((safe, safe), Image.LANCZOS)
+
+    offset_x = (size - logo_copy.width) // 2
+    offset_y = (size - logo_copy.height) // 2
+    fg.paste(logo_copy, (offset_x, offset_y), logo_copy)
+    return fg
+
+
+def save_png(img: Image.Image, path: str) -> None:
+    img.convert("RGBA").save(path, "PNG", optimize=True)
+    print(f"  Wrote {path}  ({img.width}x{img.height})")
+
+
+def main():
+    logo = Image.open(LOGO_PATH).convert("RGBA")
+    print(f"Loaded logo: {logo.size}")
+
+    logo_cropped = crop_to_content(logo)
+    print(f"Cropped logo: {logo_cropped.size}")
+
+    for density, size in DENSITIES.items():
+        out_dir = os.path.join(RES_DIR, f"mipmap-{density}")
+        os.makedirs(out_dir, exist_ok=True)
+
+        square = make_square_icon(logo_cropped, size)
+        save_png(square, os.path.join(out_dir, "ic_launcher.png"))
+
+        round_icon = make_round_icon(logo_cropped, size)
+        save_png(round_icon, os.path.join(out_dir, "ic_launcher_round.png"))
+
+    for density, size in FOREGROUND_SIZES.items():
+        out_dir = os.path.join(RES_DIR, f"mipmap-{density}")
+        fg = make_foreground_icon(logo_cropped, size)
+        save_png(fg, os.path.join(out_dir, "ic_launcher_foreground.png"))
+
+    print("\nDone! All icons generated.")
+
+
+if __name__ == "__main__":
+    main()
