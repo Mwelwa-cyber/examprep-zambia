@@ -26,35 +26,65 @@ FOREGROUND_SIZES = {
 BG_COLOR = (255, 255, 255, 255)  # white background
 
 
-def crop_to_content(img: Image.Image, padding_ratio: float = 0.05) -> Image.Image:
-    """Crop image to its non-white, non-transparent content bounding box."""
-    rgba = img.convert("RGBA")
-    r, g, b, a = rgba.split()
+def find_emblem_bottom(img: Image.Image) -> int:
+    """Find the y-coordinate where the circular emblem ends (before the text).
 
-    # Treat near-white pixels as transparent
-    non_bg = Image.new("L", img.size, 0)
+    Scans for the first wide horizontal gap (mostly white/transparent rows)
+    after the top 30% of the image, which separates the emblem from the text.
+    """
+    rgba = img.convert("RGBA")
     pixels = rgba.load()
+    start_y = int(img.height * 0.30)  # skip top margin
+    gap_rows = 0
+
+    for y in range(start_y, img.height):
+        non_white = sum(
+            1 for x in range(img.width)
+            if pixels[x, y][3] > 10 and not (
+                pixels[x, y][0] > 240 and pixels[x, y][1] > 240 and pixels[x, y][2] > 240
+            )
+        )
+        if non_white < img.width * 0.02:  # row is >98% empty
+            gap_rows += 1
+            if gap_rows >= 3:  # 3 consecutive near-empty rows = gap found
+                return y - gap_rows
+        else:
+            gap_rows = 0
+
+    return img.height  # no gap found — use full height
+
+
+def crop_to_emblem(img: Image.Image, padding_ratio: float = 0.04) -> Image.Image:
+    """Crop image to just the circular emblem, excluding text below it."""
+    rgba = img.convert("RGBA")
+    pixels = rgba.load()
+
+    emblem_bottom = find_emblem_bottom(rgba)
+    emblem_region = rgba.crop((0, 0, img.width, emblem_bottom))
+
+    # Find tight bounding box of non-white content within that region
+    non_bg = Image.new("L", emblem_region.size, 0)
     mask = non_bg.load()
-    for y in range(img.height):
-        for x in range(img.width):
-            pr, pg, pb, pa = pixels[x, y]
+    ep = emblem_region.load()
+    for y in range(emblem_region.height):
+        for x in range(emblem_region.width):
+            pr, pg, pb, pa = ep[x, y]
             if pa > 10 and not (pr > 240 and pg > 240 and pb > 240):
                 mask[x, y] = 255
 
     bbox = non_bg.getbbox()
     if not bbox:
-        return img
+        return emblem_region
 
-    # Add small padding
     pad_x = int((bbox[2] - bbox[0]) * padding_ratio)
     pad_y = int((bbox[3] - bbox[1]) * padding_ratio)
     bbox = (
         max(0, bbox[0] - pad_x),
         max(0, bbox[1] - pad_y),
-        min(img.width, bbox[2] + pad_x),
-        min(img.height, bbox[3] + pad_y),
+        min(emblem_region.width, bbox[2] + pad_x),
+        min(emblem_region.height, bbox[3] + pad_y),
     )
-    return rgba.crop(bbox)
+    return emblem_region.crop(bbox)
 
 
 def make_square_icon(logo_cropped: Image.Image, size: int) -> Image.Image:
@@ -108,8 +138,8 @@ def main():
     logo = Image.open(LOGO_PATH).convert("RGBA")
     print(f"Loaded logo: {logo.size}")
 
-    logo_cropped = crop_to_content(logo)
-    print(f"Cropped logo: {logo_cropped.size}")
+    logo_cropped = crop_to_emblem(logo)
+    print(f"Emblem-only crop: {logo_cropped.size}")
 
     for density, size in DENSITIES.items():
         out_dir = os.path.join(RES_DIR, f"mipmap-{density}")
