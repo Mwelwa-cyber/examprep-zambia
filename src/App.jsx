@@ -13,7 +13,7 @@ import PageLoader from './components/ui/PageLoader'
 // can't bleed onto the welcome/login/register screens. The saved theme
 // applies again as soon as they land on an authenticated route.
 const PUBLIC_THEME_PATHS = new Set([
-  '/', '/welcome', '/login', '/register',
+  '/', '/welcome', '/login', '/register', '/auth/action',
   '/pricing', '/plans', '/privacy', '/terms',
 ])
 function isPublicThemePath(pathname) {
@@ -31,6 +31,7 @@ function ThemeApplicator() {
 
 const Login = lazy(() => import('./components/auth/Login'))
 const Register = lazy(() => import('./components/auth/Register'))
+const AuthAction = lazy(() => import('./components/auth/AuthAction'))
 const StudentDashboard = lazy(() => import('./components/dashboard/StudentDashboard'))
 const GradeHub = lazy(() => import('./components/dashboard/GradeHub'))
 const QuizList = lazy(() => import('./components/quiz/QuizList'))
@@ -231,6 +232,11 @@ export default function App() {
           <Route path="/terms"    element={<Terms />} />
           <Route path="/login"    element={<Login />} />
           <Route path="/register" element={<Register />} />
+          {/* Custom Firebase email action handler — branded ZedExams URL for
+              password resets, email verification, and email-recovery links.
+              Configure this URL in Firebase Console → Authentication → Templates
+              → Customise action URL: https://zedexams.com/auth/action */}
+          <Route path="/auth/action" element={<AuthAction />} />
 
           {/* Public share link — no auth, read-only viewer of a frozen snapshot */}
           <Route path="/share/:token"             element={<PublicShareView />} />
