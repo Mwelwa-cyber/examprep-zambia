@@ -6,20 +6,21 @@ This file is NOT executed by the application. The live backend runs on
 Firebase Cloud Functions (Node.js) and the equivalent gate already lives
 at `functions/teacherTools/usageMeter.js` (`assertAndIncrement`).
 
-Two structural differences between this reference and the production gate:
+One structural difference between this reference and the production gate:
 
   1. Plan names
        This reference: free, pro, max
        Production:     free, individual, school
                        (see PLAN_LIMITS in functions/teacherTools/usageMeter.js)
+       Mapping: pro → individual, max → school.
 
   2. Limits
-       This reference uses tighter free-tier limits (lesson_plan: 5 vs. 10)
-       and adds a `daily_total` cap not currently enforced per-tool in
-       production. The /teacher/welcome-to-pro page copy ("daily cap just
-       jumped from 2 to 10", "lesson plans · 40/month") follows THIS
-       reference, so the page and the live caps are intentionally out of
-       sync until a product decision is made.
+       The per-feature monthly caps are now aligned: production matches
+       the `PLAN_CAPS` table below (free lesson_plan: 5, pro: 40, etc.).
+       The only remaining gap is the `daily_total` cap — production
+       enforces a global per-day count via aiService.assertDailyLimit
+       using role-based limits (staff: 150, learner: 60), not the
+       plan-tier 2 / 10 / 30 caps shown here.
 
 Treat this as the design we'd port to Node.js if/when the plan model is
 unified. To translate:
