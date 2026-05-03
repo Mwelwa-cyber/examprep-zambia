@@ -2,7 +2,13 @@ import { useMemo } from 'react'
 import {
   collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc,
   query, where, orderBy, limit, serverTimestamp, increment, writeBatch, Timestamp,
+  getCountFromServer,
 } from 'firebase/firestore'
+
+// Safety cap on every "get all X" admin query — keeps a single mistaken
+// dashboard reload from reading the entire collection. Admin pages that
+// need more should paginate or use count aggregations instead.
+const ADMIN_QUERY_LIMIT = 500
 import { db } from '../firebase/config'
 import { normalizeRichTextPayload } from '../utils/quizRichText.js'
 import { deleteQuizWithQuestions } from '../utils/deleteQuizWithQuestions.js'
@@ -118,9 +124,9 @@ export function useFirestore() {
     } catch (e) { console.error('getQuizzes:', e); return [] }
   }
 
-  async function getAllQuizzes() {
+  async function getAllQuizzes(limitCount = ADMIN_QUERY_LIMIT) {
     try {
-      const snap = await getDocs(query(collection(db, 'quizzes'), orderBy('createdAt', 'desc')))
+      const snap = await getDocs(query(collection(db, 'quizzes'), orderBy('createdAt', 'desc'), limit(limitCount)))
       return snap.docs.map(d => ({ id: d.id, ...d.data() }))
     } catch (e) { console.error('getAllQuizzes:', e); return [] }
   }
@@ -304,18 +310,52 @@ export function useFirestore() {
     } catch (e) { console.error('getUserResults:', e); return [] }
   }
 
-  async function getResultsForQuiz(quizId) {
+  async function getResultsForQuiz(quizId, limitCount = ADMIN_QUERY_LIMIT) {
     try {
-      const snap = await getDocs(query(collection(db, 'results'), where('quizId', '==', quizId), orderBy('completedAt', 'desc')))
+      const snap = await getDocs(query(collection(db, 'results'), where('quizId', '==', quizId), orderBy('completedAt', 'desc'), limit(limitCount)))
       return snap.docs.map(d => ({ id: d.id, ...d.data() }))
     } catch (e) { console.error('getResultsForQuiz:', e); return [] }
   }
 
-  async function getAllResults() {
+  async function getAllResults(limitCount = ADMIN_QUERY_LIMIT) {
     try {
-      const snap = await getDocs(query(collection(db, 'results'), orderBy('completedAt', 'desc')))
+      const snap = await getDocs(query(collection(db, 'results'), orderBy('completedAt', 'desc'), limit(limitCount)))
       return snap.docs.map(d => ({ id: d.id, ...d.data() }))
     } catch (e) { console.error('getAllResults:', e); return [] }
+  }
+
+  // Cheap dashboard counts via Firestore aggregation. Each call costs
+  // ~1 read regardless of collection size — use this instead of
+  // getAll*().length when you only need totals.
+  async function getDashboardCounts() {
+    try {
+      const [lessonsAgg, quizzesAgg, learnersAgg, studentsAgg, resultsAgg, pendingQuizAgg, pendingLessonAgg] = await Promise.all([
+        getCountFromServer(collection(db, 'lessons')),
+        getCountFromServer(collection(db, 'quizzes')),
+        getCountFromServer(query(collection(db, 'users'), where('role', '==', 'learner'))),
+        getCountFromServer(query(collection(db, 'users'), where('role', '==', 'student'))),
+        getCountFromServer(collection(db, 'results')),
+        getCountFromServer(query(collection(db, 'quizzes'), where('status', '==', 'pending'))),
+        getCountFromServer(query(collection(db, 'lessons'), where('status', '==', 'pending'))),
+      ])
+      return {
+        lessons:  lessonsAgg.data().count,
+        quizzes:  quizzesAgg.data().count,
+        learners: learnersAgg.data().count + studentsAgg.data().count,
+        results:  resultsAgg.data().count,
+        pending:  pendingQuizAgg.data().count + pendingLessonAgg.data().count,
+      }
+    } catch (e) {
+      console.error('getDashboardCounts:', e)
+      return { lessons: 0, quizzes: 0, learners: 0, results: 0, pending: 0 }
+    }
+  }
+
+  async function getRecentResults(limitCount = 8) {
+    try {
+      const snap = await getDocs(query(collection(db, 'results'), orderBy('completedAt', 'desc'), limit(limitCount)))
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    } catch (e) { console.error('getRecentResults:', e); return [] }
   }
 
   async function getWeaknessAnalysis(userId) {
@@ -337,9 +377,9 @@ export function useFirestore() {
   }
 
   // ── Users ────────────────────────────────────────────────────
-  async function getAllUsers() {
+  async function getAllUsers(limitCount = ADMIN_QUERY_LIMIT) {
     try {
-      const snap = await getDocs(collection(db, 'users'))
+      const snap = await getDocs(query(collection(db, 'users'), limit(limitCount)))
       return snap.docs.map(d => ({ id: d.id, ...d.data() }))
     } catch (e) { console.error('getAllUsers:', e); return [] }
   }
@@ -379,9 +419,9 @@ export function useFirestore() {
     } catch (e) { console.error('getPendingPayments:', e); return [] }
   }
 
-  async function getAllPayments() {
+  async function getAllPayments(limitCount = ADMIN_QUERY_LIMIT) {
     try {
-      const snap = await getDocs(query(collection(db, 'payments'), orderBy('createdAt', 'desc')))
+      const snap = await getDocs(query(collection(db, 'payments'), orderBy('createdAt', 'desc'), limit(limitCount)))
       return snap.docs.map(d => ({ id: d.id, ...d.data() }))
     } catch (e) { console.error('getAllPayments:', e); return [] }
   }
@@ -471,9 +511,9 @@ export function useFirestore() {
     } catch (e) { console.error('getLessons:', e); return [] }
   }
 
-  async function getAllLessons() {
+  async function getAllLessons(limitCount = ADMIN_QUERY_LIMIT) {
     try {
-      const snap = await getDocs(query(collection(db, 'lessons'), orderBy('createdAt', 'desc')))
+      const snap = await getDocs(query(collection(db, 'lessons'), orderBy('createdAt', 'desc'), limit(limitCount)))
       return snap.docs.map(d => ({ id: d.id, ...d.data() }))
     } catch (e) { console.error('getAllLessons:', e); return [] }
   }
@@ -607,7 +647,7 @@ export function useFirestore() {
   return useMemo(() => ({
     getQuizzes, getAllQuizzes, getQuizzesByTeacher, getQuizById, createQuiz, updateQuiz, deleteQuiz,
     getQuestions, saveQuestions,
-    saveResult, getResultById, getUserResults, getResultsForQuiz, getAllResults, getWeaknessAnalysis,
+    saveResult, getResultById, getUserResults, getResultsForQuiz, getAllResults, getRecentResults, getDashboardCounts, getWeaknessAnalysis,
     getAllUsers, updateUserRole,
     checkAndConsumeAttempt,
     submitPaymentRequest, getPendingPayments, getAllPayments, confirmPayment, rejectPayment, grantPremium, revokePremium,
