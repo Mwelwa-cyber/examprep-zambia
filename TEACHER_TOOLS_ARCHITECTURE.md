@@ -9,7 +9,7 @@
 - Teacher tools live at `zedexams.com/teachers/*` under the same auth and Firestore database.
 - Teacher access is gated by the existing `teacherApplications` approval flow. A user's `role` must equal `"teacher"` or `"admin"` to use generation endpoints.
 - AI backend is Claude, with model routing between Sonnet 4.5 (heavy tasks) and Haiku 4.5 (light tasks).
-- Pricing: Free (10 lesson plans, 5 worksheets, 20 flashcards / month), Individual Paid K89/mo or K799/yr, School K5,000/yr for up to 20 seats.
+- Pricing: Free (5 lesson plans, 3 worksheets, 3 teacher notes / month), Pro (Individual) K79/mo or K790/yr, Max (School) K199/mo or K1,990/yr.
 - Mobile money via the existing `momoService.js`; subscription status stored on the existing `users` document (extended with teacher-plan fields).
 
 ## 2. Data model — Firestore additions
@@ -634,16 +634,21 @@ await db.runTransaction(async (tx) => {
 });
 ```
 
-Plan → limits mapping (Phase 1):
+Plan → limits mapping (matches marketing copy in `src/components/marketing/Plans.jsx`):
 
-| Tool            | Free | Individual | School (per teacher) |
-|-----------------|------|------------|-----------------------|
-| lesson_plan     | 10   | 100        | 100                   |
-| worksheet       | 5    | 50         | 50                    |
-| flashcards      | 20   | 200        | 200                   |
-| quiz            | 3    | 40         | 40                    |
-| rubric          | 2    | 20         | 20                    |
-| scheme_of_work  | 0    | 5          | 5                     |
+| Tool            | Free | Individual (Pro) | School (Max, per teacher) |
+|-----------------|------|------------------|----------------------------|
+| lesson_plan     | 5    | 40               | 200 (fair-use)             |
+| worksheet       | 3    | 25               | 200 (fair-use)             |
+| notes           | 3    | 25               | 200 (fair-use)             |
+| flashcards      | 20   | 200              | 200                        |
+| quiz            | 0    | 8                | 200 (fair-use)             |
+| rubric          | 0    | 8                | 200 (fair-use)             |
+| scheme_of_work  | 0    | 2                | 200 (fair-use)             |
+
+Free users see assessments (`quiz`, `rubric`) and `scheme_of_work` as locked
+features — the gate raises `failed-precondition` immediately, which the
+frontend maps to the `feature-locked` paywall scenario.
 
 Admins can override via `users.teacherMonthlyGenerationsOverride` for special cases.
 

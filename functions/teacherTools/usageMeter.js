@@ -9,34 +9,40 @@
 const admin = require("firebase-admin");
 const {HttpsError} = require("firebase-functions/v2/https");
 
-// Plan → tool → monthly limit. Keep in sync with TEACHER_TOOLS_ARCHITECTURE.md §10.
+// Plan → tool → monthly limit. Keep in sync with TEACHER_TOOLS_ARCHITECTURE.md §10
+// and the marketing copy in src/components/marketing/Plans.jsx.
+//
+// Plan key mapping (backend → marketing tier):
+//   free       → Free
+//   individual → Pro       (K79/mo, "for the everyday teacher")
+//   school     → Max       (K199/mo, "unlimited" with fair-use ceiling)
 const PLAN_LIMITS = {
   free: {
-    lesson_plan: 10,
-    worksheet: 5,
+    lesson_plan: 5,
+    worksheet: 3,
     flashcards: 20,
-    quiz: 3,
-    rubric: 2,
+    quiz: 0,
+    rubric: 0,
     scheme_of_work: 0,
-    notes: 5,
+    notes: 3,
   },
   individual: {
-    lesson_plan: 100,
-    worksheet: 50,
+    lesson_plan: 40,
+    worksheet: 25,
     flashcards: 200,
-    quiz: 40,
-    rubric: 20,
-    scheme_of_work: 5,
-    notes: 60,
+    quiz: 8,
+    rubric: 8,
+    scheme_of_work: 2,
+    notes: 25,
   },
   school: {
-    lesson_plan: 100,
-    worksheet: 50,
+    lesson_plan: 200,
+    worksheet: 200,
     flashcards: 200,
-    quiz: 40,
-    rubric: 20,
-    scheme_of_work: 5,
-    notes: 60,
+    quiz: 200,
+    rubric: 200,
+    scheme_of_work: 200,
+    notes: 200,
   },
 };
 
