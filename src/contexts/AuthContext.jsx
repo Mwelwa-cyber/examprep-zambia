@@ -229,6 +229,7 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     let unsubProfile = null
+    let snapFallbackTimer = null
     let disposed = false
     // Watchdog: if Firebase auth + Firestore profile snapshot don't resolve
     // within this window, drop the loading gate so the user sees *something*.
@@ -243,14 +244,33 @@ export function AuthProvider({ children }) {
         unsubProfile()
         unsubProfile = null
       }
+      if (snapFallbackTimer) {
+        clearTimeout(snapFallbackTimer)
+        snapFallbackTimer = null
+      }
       setCurrentUser(user)
       setProfileIssue(null)
       if (user) {
         setLoading(true)
+
+        // Fallback: on Android/Capacitor the Firestore real-time listener can
+        // hang after a Google Sign-In popup closes (Chrome Custom Tab ↔ WebView
+        // transition). If the snapshot hasn't fired within 10 s, drop to a
+        // one-time getDoc so the user isn't stuck on a blank loading screen.
+        snapFallbackTimer = setTimeout(async () => {
+          if (disposed) return
+          const profile = await fetchUserProfile(user.uid).catch(() => null)
+          if (disposed) return
+          if (!profile) setProfileIssue('unreadable')
+          setLoading(false)
+        }, 10000)
+
         unsubProfile = onSnapshot(
           doc(db, 'users', user.uid),
           (snap) => {
             if (disposed) return
+            clearTimeout(snapFallbackTimer)
+            snapFallbackTimer = null
             if (snap.exists()) {
               setUserProfile(toUserProfile(user.uid, snap.data()))
               setProfileIssue(null)
@@ -274,6 +294,8 @@ export function AuthProvider({ children }) {
           (e) => {
             console.error('profile subscription:', e)
             if (disposed) return
+            clearTimeout(snapFallbackTimer)
+            snapFallbackTimer = null
             setUserProfile(null)
             setProfileIssue('unreadable')
             setLoading(false)
@@ -288,10 +310,11 @@ export function AuthProvider({ children }) {
     return () => {
       disposed = true
       clearTimeout(timeout)
+      clearTimeout(snapFallbackTimer)
       if (unsubProfile) unsubProfile()
       unsub()
     }
-  }, [bootstrapMissingProfile])
+  }, [bootstrapMissingProfile, fetchUserProfile])
 
   return (
     <AuthContext.Provider value={{
