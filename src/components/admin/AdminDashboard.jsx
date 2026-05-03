@@ -54,7 +54,7 @@ function QuickAction({ to, icon, label, sub, color }) {
 
 export default function AdminDashboard() {
   const { currentUser } = useAuth()
-  const { getAllLessons, getAllQuizzes, getAllUsers, getAllResults, getPendingApprovals } = useFirestore()
+  const { getDashboardCounts, getRecentResults } = useFirestore()
 
   const [stats, setStats]     = useState({ lessons: 0, quizzes: 0, learners: 0, results: 0, pending: 0, gens: 0, gensFlagged: 0, gensCostUsd: '0.00' })
   const [recent, setRecent]   = useState([])
@@ -92,28 +92,23 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function load() {
       try {
-        const [lessons, quizzes, users, results, pending, gens] = await Promise.all([
-          getAllLessons(), getAllQuizzes(), getAllUsers(), getAllResults(), getPendingApprovals(),
+        const [counts, recentResults, gens] = await Promise.all([
+          getDashboardCounts(),
+          getRecentResults(8),
           getGenerationsSummary().catch(() => ({ total: 0, flagged: 0, totalCostUsd: '0.00' })),
         ])
-        const safe = (value, fallback = []) => (Array.isArray(value) ? value : fallback)
-        const safeLessons = safe(lessons)
-        const safeQuizzes = safe(quizzes)
-        const safeUsers = safe(users)
-        const safeResults = safe(results)
-        const safePending = safe(pending)
         const safeGens = gens && typeof gens === 'object' ? gens : {}
         setStats({
-          lessons:  safeLessons.length,
-          quizzes:  safeQuizzes.length,
-          learners: safeUsers.filter(u => u?.role === 'learner' || u?.role === 'student').length,
-          results:  safeResults.length,
-          pending:  safePending.length,
+          lessons:  counts.lessons,
+          quizzes:  counts.quizzes,
+          learners: counts.learners,
+          results:  counts.results,
+          pending:  counts.pending,
           gens: safeGens.total ?? 0,
           gensFlagged: safeGens.flagged ?? 0,
           gensCostUsd: safeGens.totalCostUsd ?? '0.00',
         })
-        setRecent(safeResults.slice(0, 8))
+        setRecent(Array.isArray(recentResults) ? recentResults : [])
       } catch (error) {
         // Keep the dashboard mounted with zeroed stats rather than
         // bubbling the reject up to the error boundary — the shell
