@@ -301,7 +301,7 @@ export function AuthProvider({ children }) {
       isLearner, isTeacher, isAdmin, isPremium, isPaidTeacher, canAccessFullContent, canAccessLearnerPortal,
       showIdleWarning, idleSecondsLeft, stayActive,
     }}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   )
 }
