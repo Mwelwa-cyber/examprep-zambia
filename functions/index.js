@@ -4,6 +4,7 @@ const {onSchedule} = require("firebase-functions/v2/scheduler");
 const {defineSecret} = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const crypto = require("node:crypto");
+const nodemailer = require("nodemailer");
 
 admin.initializeApp();
 
@@ -82,6 +83,8 @@ const mtnApiUser = defineSecret("MTN_API_USER");
 const mtnApiKey = defineSecret("MTN_API_KEY");
 const mtnSubscriptionKey = defineSecret("MTN_SUBSCRIPTION_KEY");
 const mtnEnv = defineSecret("MTN_ENV");
+const emailSmtpUser = defineSecret("EMAIL_SMTP_USER");
+const emailSmtpPassword = defineSecret("EMAIL_SMTP_PASSWORD");
 const MAX_LEN = {
   question: 1200,
   correctAnswer: 600,
@@ -272,6 +275,118 @@ exports.bootstrapUserProfile = onCall(
       throw new HttpsError(
         "internal",
         "We could not restore your profile right now. Please try again.",
+      );
+    }
+  },
+);
+
+exports.sendPasswordResetEmail = onCall(
+  {secrets: [emailSmtpUser, emailSmtpPassword], region: "us-central1", timeoutSeconds: 30},
+  async (request) => {
+    const email = cleanString(request.data?.email, 254).toLowerCase();
+    if (!email || !email.includes("@")) {
+      throw new HttpsError("invalid-argument", "Valid email address is required.");
+    }
+
+    try {
+      // Verify the user exists in Firebase Auth
+      await admin.auth().getUserByEmail(email);
+
+      // Generate the password reset link
+      const actionCodeSettings = {
+        url: `${request.data?.continueUrl || "https://zedexams.com"}/auth/action?mode=resetPassword`,
+        handleCodeInApp: true,
+      };
+      const resetLink = await admin.auth().generatePasswordResetLink(email, actionCodeSettings);
+
+      // Extract just the action code from the full URL for cleaner display
+      const actionCode = new URL(resetLink).searchParams.get("oobCode");
+
+      // Set up Namecheap SMTP transporter
+      const transporter = nodemailer.createTransport({
+        host: "mail.privateemail.com",
+        port: 587,
+        secure: false,
+        auth: {
+          user: emailSmtpUser.value(),
+          pass: emailSmtpPassword.value(),
+        },
+      });
+
+      // Send the password reset email
+      await transporter.sendMail({
+        from: emailSmtpUser.value(),
+        to: email,
+        subject: "Reset your password for ZedExams",
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background-color: #FDF6EC; padding: 20px; text-align: center; border-radius: 10px;">
+              <h1 style="color: #1A1F2E; margin: 0;">ZedExams</h1>
+              <p style="color: #999; margin: 0; font-size: 12px;">Practise smart.</p>
+            </div>
+
+            <div style="padding: 30px; background-color: #fff;">
+              <h2 style="color: #1A1F2E; margin-top: 0;">Reset your password</h2>
+              <p style="color: #555; font-size: 14px; line-height: 1.6;">
+                Hello,
+              </p>
+              <p style="color: #555; font-size: 14px; line-height: 1.6;">
+                We received a request to reset the password for your ZedExams account. Click the button below to reset your password.
+              </p>
+
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${resetLink}" style="background-color: #EA580C; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+                  Reset Password
+                </a>
+              </div>
+
+              <p style="color: #555; font-size: 14px; line-height: 1.6;">
+                Or copy and paste this link in your browser:
+              </p>
+              <p style="color: #EA580C; font-size: 12px; word-break: break-all; background-color: #f5f5f5; padding: 10px; border-radius: 5px;">
+                ${resetLink}
+              </p>
+
+              <p style="color: #555; font-size: 14px; line-height: 1.6;">
+                If you didn't request a password reset, you can ignore this email. Your password will remain unchanged.
+              </p>
+
+              <p style="color: #555; font-size: 14px; line-height: 1.6;">
+                Thanks,<br>
+                The ZedExams Team
+              </p>
+            </div>
+
+            <div style="background-color: #f5f5f5; padding: 20px; text-align: center; color: #999; font-size: 12px; border-top: 1px solid #ddd;">
+              <p style="margin: 0;">© ZedExams. All rights reserved.</p>
+              <p style="margin: 5px 0 0 0;">This email was sent to ${email}</p>
+            </div>
+          </div>
+        `,
+        text: `
+Hello,
+
+We received a request to reset the password for your ZedExams account.
+
+Click this link to reset your password:
+${resetLink}
+
+If you didn't request a password reset, you can ignore this email.
+
+Thanks,
+The ZedExams Team
+        `,
+      });
+
+      return {success: true, message: "Password reset email sent successfully."};
+    } catch (error) {
+      console.error("sendPasswordResetEmail error:", error);
+      if (error.code === "auth/user-not-found") {
+        throw new HttpsError("not-found", "No account found with this email address.");
+      }
+      throw new HttpsError(
+        "internal",
+        "Failed to send password reset email. Please try again.",
       );
     }
   },

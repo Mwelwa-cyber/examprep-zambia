@@ -6,7 +6,6 @@ import {
   signOut,
   onAuthStateChanged,
   updateProfile,
-  sendPasswordResetEmail,
 } from 'firebase/auth'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp, onSnapshot } from 'firebase/firestore'
@@ -22,6 +21,7 @@ const IDLE_WARNING_MS = 60 * 1000
 const AuthContext = createContext(null)
 const functions = getFunctions(app, 'us-central1')
 const bootstrapUserProfileCallable = httpsCallable(functions, 'bootstrapUserProfile')
+const sendPasswordResetEmailCallable = httpsCallable(functions, 'sendPasswordResetEmail')
 
 export function useAuth() {
   const ctx = useContext(AuthContext)
@@ -108,17 +108,14 @@ export function AuthProvider({ children }) {
   }
 
   function resetPassword(email) {
-    // Configure action code settings to ensure password reset emails are sent
-    // with links pointing to our custom domain, not Firebase's firebaseapp.com
-    // This prevents emails from being flagged as spam by Gmail and other providers.
+    // Use custom Cloud Function to send password reset emails from our Namecheap
+    // email account instead of Firebase's infrastructure. This prevents emails
+    // from being flagged as spam.
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
-    const actionCodeSettings = origin
-      ? {
-          url: `${origin}/auth/action`,
-          handleCodeInApp: true,
-        }
-      : undefined
-    return sendPasswordResetEmail(auth, email, actionCodeSettings)
+    return sendPasswordResetEmailCallable({
+      email: email.trim().toLowerCase(),
+      continueUrl: origin || 'https://zedexams.com',
+    })
   }
 
   async function logout() {
