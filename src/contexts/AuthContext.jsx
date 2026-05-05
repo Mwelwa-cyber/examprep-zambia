@@ -108,13 +108,15 @@ export function AuthProvider({ children }) {
   }
 
   function resetPassword(email) {
-    // continueUrl: where Firebase sends the user after they successfully
-    // reset their password. Anchor it to the current origin so reset links
-    // land back on whichever ZedExams host issued them (zedexams.com,
-    // staging, localhost, etc.) instead of the default firebaseapp.com page.
+    // Configure action code settings to ensure password reset emails are sent
+    // with links pointing to our custom domain, not Firebase's firebaseapp.com
+    // This prevents emails from being flagged as spam by Gmail and other providers.
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
     const actionCodeSettings = origin
-      ? { url: `${origin}/login`, handleCodeInApp: false }
+      ? {
+          url: `${origin}/auth/action`,
+          handleCodeInApp: true,
+        }
       : undefined
     return sendPasswordResetEmail(auth, email, actionCodeSettings)
   }
