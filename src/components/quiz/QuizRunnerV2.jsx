@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useFirestore } from '../../hooks/useFirestore'
 import { useAuth } from '../../contexts/AuthContext'
 import { useSubscription } from '../../hooks/useSubscription'
@@ -112,6 +112,10 @@ function PreQuizCard({ quiz, canExam, onStart }) {
 export default function QuizRunnerV2() {
   const { quizId } = useParams()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  // Challenge Mode entry point: GradeHub passes ?difficulty=hard to surface
+  // only the hardest questions for learners performing ≥ 80% in the subject.
+  const difficultyFilter = (searchParams.get('difficulty') || '').toLowerCase()
   const { currentUser } = useAuth()
   const { getQuizById, getQuestions, saveResult } = useFirestore()
   const { canUseExamMode, canAccessFullContent } = useSubscription()
@@ -136,6 +140,9 @@ export default function QuizRunnerV2() {
   const [submitting, setSubmitting] = useState(false)
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [actionError, setActionError] = useState('')
+  // null = no filter; 'active' = filter applied; 'fallback' = filter requested
+  // but no matching questions, so the full quiz is running instead.
+  const [difficultyState, setDifficultyState] = useState(null)
   const [feedbackType, setFeedbackType] = useState(null)
   const [pakoTip, setPakoTip] = useState({ visible: false, text: '', isCorrect: null, questionId: null })
   const [shortText, setShortText] = useState({})
@@ -159,7 +166,23 @@ export default function QuizRunnerV2() {
           return
         }
 
-        const built = buildQuizDisplaySections(questionDocs, quizDoc.passages || [])
+        // Apply ?difficulty=hard filter when present. If it would leave the
+        // quiz empty, fall back to the full set so the learner is never sent
+        // into a dead-end session — and surface a small notice in the header.
+        let activeQuestionDocs = questionDocs
+        if (difficultyFilter) {
+          const matches = questionDocs.filter(
+            q => (q.difficulty || '').toLowerCase() === difficultyFilter
+          )
+          if (matches.length > 0) {
+            activeQuestionDocs = matches
+            setDifficultyState('active')
+          } else {
+            setDifficultyState('fallback')
+          }
+        }
+
+        const built = buildQuizDisplaySections(activeQuestionDocs, quizDoc.passages || [])
         setQuiz(quizDoc)
         setSections(built.sections)
         setQuestions(built.questions)
@@ -190,7 +213,7 @@ export default function QuizRunnerV2() {
 
     load()
     return () => clearInterval(timerRef.current)
-  }, [quizId, getQuizById, getQuestions, canAccessFullContent, navigate, currentUser])
+  }, [quizId, getQuizById, getQuestions, canAccessFullContent, navigate, currentUser, difficultyFilter])
 
   function handleStart(nextMode) {
     if (nextMode === 'exam' && !canUseExamMode) {
@@ -690,6 +713,12 @@ export default function QuizRunnerV2() {
               <p className="truncate text-sm font-black leading-tight">{quiz.title}</p>
             </div>
             <div className="flex items-center gap-2">
+              {difficultyState === 'active' && (
+                <span className="rounded-full bg-amber-500/30 px-2.5 py-1 text-xs font-bold ring-1 ring-amber-200/40">🔥 Hard only</span>
+              )}
+              {difficultyState === 'fallback' && (
+                <span className="rounded-full bg-white/20 px-2.5 py-1 text-xs font-bold ring-1 ring-white/30" title="No hard questions in this quiz — running the full quiz instead.">🔥 Full quiz</span>
+              )}
               {mode === 'exam' && <div className={`rounded-full px-3 py-1.5 text-sm font-black tabular-nums ${warn ? 'bg-red-500' : 'bg-white/20'}`}>⏱️ {fmt(timeLeft)}</div>}
               {mode === 'practice' && <span className="rounded-full bg-white/20 px-2.5 py-1 text-xs font-bold">🌱 Practice</span>}
             </div>
