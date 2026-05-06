@@ -1,5 +1,5 @@
 {
-  "appId": "com.zedexams.app",
+  "appId": "com.zedexams.android",
   "appName": "ZedExams",
   "webDir": "dist",
   "android": {

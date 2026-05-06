@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com.zedexams.app"
+    namespace "com.zedexams.android"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.zedexams.app"
+        applicationId "com.zedexams.android"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 2
