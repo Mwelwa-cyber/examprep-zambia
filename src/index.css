@@ -1633,14 +1633,14 @@ body.data-saver [data-bg-gradient] {
    their existing theme behavior. */
 .learner-game-theme {
   --learner-shell-bg: #070b18;
-  --learner-shell-bg-subtle: #101929;
-  --learner-shell-card: #101929;
-  --learner-shell-card-hover: #142137;
+  --learner-shell-bg-subtle: #1e293b;
+  --learner-shell-card: #334155;
+  --learner-shell-card-hover: #475569;
   --learner-shell-text: #f8fafc;
-  --learner-shell-text-muted: #a8b6c9;
-  --learner-shell-border: rgba(148, 163, 184, 0.24);
-  --learner-shell-input-bg: #0b1220;
-  --learner-shell-input-border: rgba(148, 163, 184, 0.32);
+  --learner-shell-text-muted: #cbd5e1;
+  --learner-shell-border: rgba(148, 163, 184, 0.32);
+  --learner-shell-input-bg: #1e293b;
+  --learner-shell-input-border: rgba(148, 163, 184, 0.4);
   --learner-shell-shadow: rgba(0, 0, 0, 0.45);
   --learner-shell-line-medium: rgba(148, 163, 184, 0.24);
   --learner-shell-line-faint: rgba(148, 163, 184, 0.14);
