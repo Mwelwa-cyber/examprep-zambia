@@ -87,6 +87,9 @@ import {
   UserGroupIcon,
   VariableIcon,
   XMarkIcon,
+  TrashIcon,
+  ViewColumnsIcon,
+  DocumentIcon,
 } from '@heroicons/react/24/outline'
 
 // Size-token map matches components/ui/Icon.jsx so tokens (xs/sm/md/lg/xl)
@@ -256,6 +259,11 @@ const Sigma = withSize(VariableIcon)
 const Bot = RobotIcon
 const X = withSize(XMarkIcon)
 const XMark = withSize(XMarkIcon)
+const Trash2 = withSize(TrashIcon)
+const Layout = withSize(ViewColumnsIcon)
+const FileType = withSize(DocumentIcon)
+const Save = withSize(BookmarkSquareIcon)
+const Loader2 = withSize(ArrowPathIcon)
 
 export {
   GraduationCap,
@@ -367,4 +375,9 @@ export {
   Bot,
   X,
   XMark as XMarkIcon,
+  Trash2,
+  Layout,
+  FileType,
+  Save,
+  Loader2,
 }

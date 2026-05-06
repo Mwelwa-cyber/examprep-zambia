@@ -81,7 +81,18 @@ service cloud.firestore {
         && (!('subject' in incoming()) || _validSubject(incoming().subject))
         && (!('topic' in incoming()) || (incoming().topic is string && incoming().topic.size() <= 200))
         && (!('status' in incoming()) || _validContentStatus(incoming().status))
-        && (!('isPublished' in incoming()) || incoming().isPublished is bool);
+        && (!('isPublished' in incoming()) || incoming().isPublished is bool)
+        // Notes Studio fields. Optional/gate-on-presence so legacy
+        // slide-built lessons remain valid.
+        && (!('noteFormat' in incoming()) || (incoming().noteFormat is string && incoming().noteFormat in ['slides', 'rich_text', 'file']))
+        && (!('content' in incoming()) || (incoming().content is string && incoming().content.size() <= 200000))
+        && (!('excerpt' in incoming()) || (incoming().excerpt is string && incoming().excerpt.size() <= 500))
+        && (!('fileUrl' in incoming()) || (incoming().fileUrl is string && incoming().fileUrl.size() <= 2000))
+        && (!('fileName' in incoming()) || (incoming().fileName is string && incoming().fileName.size() <= 200))
+        && (!('storagePath' in incoming()) || (incoming().storagePath is string && incoming().storagePath.size() <= 500))
+        && (!('fileSize' in incoming()) || (incoming().fileSize is int && incoming().fileSize >= 0 && incoming().fileSize <= 26214400))
+        && (!('term' in incoming()) || (incoming().term is string && incoming().term.size() <= 20))
+        && (!('week' in incoming()) || (incoming().week is string && incoming().week.size() <= 20));
     }
 
     function validResultFields() {

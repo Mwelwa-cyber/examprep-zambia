@@ -50,6 +50,15 @@ service firebase.storage {
         );
     }
 
+    function validLessonFileUpload() {
+      return request.resource.size <= 25 * 1024 * 1024
+        && (
+          request.resource.contentType == 'application/pdf'
+          || request.resource.contentType == 'application/msword'
+          || request.resource.contentType == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        );
+    }
+
     // Past papers: learners can read, teachers/admins can only write under
     // their own user folder. One-level legacy writes are admin-only.
     match /papers/{ownerUid}/{fileName=**} {
@@ -111,6 +120,28 @@ service firebase.storage {
       allow read: if true;
       allow create, update: if isAdmin() && validPaperUpload();
       allow delete: if isAdmin();
+    }
+
+    // Notes Studio inline images: PNG/JPEG/WebP/GIF up to 5 MB, written by
+    // the rich-text editor. Must come BEFORE the whole-note files match
+    // since {fileName=**} would otherwise swallow the /inline/ segment.
+    match /lesson-files/{ownerUid}/{assetBatchId}/inline/{fileName=**} {
+      allow read: if isAuthed();
+      allow create, update: if ownsPath(ownerUid)
+        && isTeacherOrAdmin()
+        && validLessonImageUpload();
+      allow delete: if ownsPath(ownerUid) && isTeacherOrAdmin();
+    }
+
+    // Notes Studio whole-note files: PDF or Word (DOC/DOCX), 25 MB max.
+    // Mirrors lesson-images / lesson-presentations: keyed by assetBatchId
+    // because lessons may not have a Firestore doc id at upload time.
+    match /lesson-files/{ownerUid}/{assetBatchId}/{fileName=**} {
+      allow read: if isAuthed();
+      allow create, update: if ownsPath(ownerUid)
+        && isTeacherOrAdmin()
+        && validLessonFileUpload();
+      allow delete: if ownsPath(ownerUid) && isTeacherOrAdmin();
     }
 
     // Block all other paths

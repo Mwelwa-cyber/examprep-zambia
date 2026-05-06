@@ -214,6 +214,10 @@ export function AuthProvider({ children }) {
     setUserProfile(prev => ({ ...prev, ...fields }))
   }
 
+  async function updateLearnerGrade(newGrade) {
+    return updateProfileFields({ grade: Number(newGrade) })
+  }
+
   const isLearner  = userProfile?.role === ROLES.LEARNER
   const isTeacher  = userProfile?.role === ROLES.TEACHER || userProfile?.role === ROLES.ADMIN
   const isAdmin    = userProfile?.role === ROLES.ADMIN
@@ -294,7 +298,7 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider value={{
       currentUser, userProfile, loading, profileIssue,
       login, loginWithGoogle, register, logout, resetPassword,
-      fetchUserProfile, ensureUserProfile, refreshProfile, updateProfileFields,
+      fetchUserProfile, ensureUserProfile, refreshProfile, updateProfileFields, updateLearnerGrade,
       isLearner, isTeacher, isAdmin, isPremium, isPaidTeacher, canAccessFullContent, canAccessLearnerPortal,
       showIdleWarning, idleSecondsLeft, stayActive,
     }}>

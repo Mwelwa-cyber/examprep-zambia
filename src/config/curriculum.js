@@ -336,3 +336,75 @@ export function getPakoTip(topic = '', isCorrect = null) {
   const match = Object.keys(PAKO_TIPS).find(k => key.includes(k) || k.includes(key))
   return match ? PAKO_TIPS[match] : PAKO_TIPS.default_tip
 }
+
+/* ─────────────────────────────────────────────────────────────────
+ * Notes Studio additions
+ * Grade bands so we can roll out Junior/Senior Secondary later
+ * without changing every grade picker. Subjects/labels mirror the
+ * canonical SUBJECTS list so notes use the same wire values as
+ * lessons (label strings).
+ * ───────────────────────────────────────────────────────────────── */
+
+export const GRADE_BANDS = {
+  primary:          [4, 5, 6],
+  junior_secondary: [7, 8, 9],
+  senior_secondary: [10, 11, 12],
+}
+
+export const ALL_GRADES = [
+  { value: 4,  band: 'primary',          active: true  },
+  { value: 5,  band: 'primary',          active: true  },
+  { value: 6,  band: 'primary',          active: true  },
+  { value: 7,  band: 'junior_secondary', active: false },
+  { value: 8,  band: 'junior_secondary', active: false },
+  { value: 9,  band: 'junior_secondary', active: false },
+  { value: 10, band: 'senior_secondary', active: false },
+  { value: 11, band: 'senior_secondary', active: false },
+  { value: 12, band: 'senior_secondary', active: false },
+]
+
+export const SUBJECTS_BY_BAND = {
+  primary:          SUBJECTS.map(s => s.label),
+  junior_secondary: [],
+  senior_secondary: [],
+}
+
+export const NOTE_STATUS = {
+  DRAFT:     'draft',
+  PENDING:   'pending',
+  PUBLISHED: 'published',
+  REJECTED:  'rejected',
+}
+
+export const NOTE_FORMAT = {
+  SLIDES:    'slides',
+  RICH_TEXT: 'rich_text',
+  FILE:      'file',
+}
+
+export const BAND_LABELS = {
+  primary:          'Primary',
+  junior_secondary: 'Junior Secondary',
+  senior_secondary: 'Senior Secondary',
+}
+
+export const getActiveGrades   = () => ALL_GRADES.filter(g => g.active)
+export const getInactiveGrades = () => ALL_GRADES.filter(g => !g.active)
+
+export const getBandForGrade = (gradeValue) => {
+  const g = ALL_GRADES.find(x => x.value === Number(gradeValue))
+  return g?.band ?? null
+}
+
+export const isGradeActive = (gradeValue) => {
+  const g = ALL_GRADES.find(x => x.value === Number(gradeValue))
+  return g?.active ?? false
+}
+
+export const getBandLabel = (band) => BAND_LABELS[band] ?? band
+
+export const getSubjectsForGrade = (gradeValue) => {
+  const band = getBandForGrade(gradeValue)
+  if (!band) return []
+  return SUBJECTS_BY_BAND[band] ?? []
+}
