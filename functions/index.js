@@ -4,6 +4,7 @@ const {onSchedule} = require("firebase-functions/v2/scheduler");
 const {defineSecret} = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const crypto = require("node:crypto");
+const nodemailer = require("nodemailer");
 
 admin.initializeApp();
 
@@ -82,6 +83,8 @@ const mtnApiUser = defineSecret("MTN_API_USER");
 const mtnApiKey = defineSecret("MTN_API_KEY");
 const mtnSubscriptionKey = defineSecret("MTN_SUBSCRIPTION_KEY");
 const mtnEnv = defineSecret("MTN_ENV");
+const emailSmtpUser = defineSecret("EMAIL_SMTP_USER");
+const emailSmtpPassword = defineSecret("EMAIL_SMTP_PASSWORD");
 const MAX_LEN = {
   question: 1200,
   correctAnswer: 600,
@@ -185,6 +188,87 @@ function resolveInitialUserRole(email) {
   return getAdminEmails().includes(normalizedEmail) ? "admin" : "learner";
 }
 
+function getAllowedContinueOrigins() {
+  return [
+    "https://zedexams.com",
+    "https://www.zedexams.com",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+  ];
+}
+
+function resolvePasswordResetContinueUrl(rawValue) {
+  const fallbackUrl = "https://zedexams.com/login?reset=complete";
+
+  if (!rawValue) {
+    return fallbackUrl;
+  }
+
+  try {
+    const requestedUrl = new URL(String(rawValue));
+    if (!getAllowedContinueOrigins().includes(requestedUrl.origin)) {
+      return fallbackUrl;
+    }
+
+    requestedUrl.pathname = "/login";
+    requestedUrl.searchParams.set("reset", "complete");
+    requestedUrl.hash = "";
+    return requestedUrl.toString();
+  } catch {
+    return fallbackUrl;
+  }
+}
+
+function buildPasswordResetEmailHtml({resetLink, recipientEmail}) {
+  return `
+    <div style="margin:0;padding:24px;background-color:#f4f1ea;font-family:Arial,sans-serif;color:#1f2937;">
+      <div style="max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;">
+        <div style="padding:28px 32px;background:#1a1f2e;color:#ffffff;">
+          <div style="font-size:28px;font-weight:700;letter-spacing:0.02em;">ZedExams</div>
+          <div style="margin-top:8px;font-size:14px;line-height:1.5;color:#d1d5db;">
+            Password reset request
+          </div>
+        </div>
+        <div style="padding:32px;">
+          <h1 style="margin:0 0 16px;font-size:24px;line-height:1.3;color:#111827;">Reset your password</h1>
+          <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#374151;">
+            We received a request to reset the password for your ZedExams account.
+          </p>
+          <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#374151;">
+            Use the button below to choose a new password. If you did not request this, you can ignore this message and your password will stay the same.
+          </p>
+          <div style="margin:0 0 24px;">
+            <a href="${resetLink}" style="display:inline-block;background:#ea580c;color:#ffffff;text-decoration:none;font-weight:700;padding:14px 24px;border-radius:10px;">
+              Reset password
+            </a>
+          </div>
+          <p style="margin:0 0 12px;font-size:14px;line-height:1.7;color:#4b5563;">
+            If the button does not work, open this link:
+          </p>
+          <p style="margin:0 0 24px;padding:14px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;font-size:12px;line-height:1.7;word-break:break-word;color:#374151;">
+            ${resetLink}
+          </p>
+          <p style="margin:0;font-size:13px;line-height:1.7;color:#6b7280;">
+            This email was sent to ${recipientEmail}.
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function buildPasswordResetEmailText({resetLink}) {
+  return [
+    "ZedExams password reset request",
+    "",
+    "We received a request to reset the password for your ZedExams account.",
+    "Open the link below to choose a new password:",
+    resetLink,
+    "",
+    "If you did not request this, you can ignore this email.",
+  ].join("\n");
+}
+
 function buildBootstrappedUserProfile({
   authUser,
   tokenRole,
@@ -272,6 +356,70 @@ exports.bootstrapUserProfile = onCall(
       throw new HttpsError(
         "internal",
         "We could not restore your profile right now. Please try again.",
+      );
+    }
+  },
+);
+
+exports.sendPasswordResetEmail = onCall(
+  {secrets: [emailSmtpUser, emailSmtpPassword], region: "us-central1", timeoutSeconds: 30},
+  async (request) => {
+    const email = cleanString(request.data?.email, 254).toLowerCase();
+    if (!email || !email.includes("@")) {
+      throw new HttpsError("invalid-argument", "Valid email address is required.");
+    }
+
+    try {
+      await admin.auth().getUserByEmail(email);
+
+      const senderEmail = cleanString(emailSmtpUser.value(), 254);
+      const senderDomain = senderEmail.split("@")[1] || "zedexams.com";
+      const continueUrl = resolvePasswordResetContinueUrl(request.data?.continueUrl);
+      const actionCodeSettings = {url: continueUrl};
+      const resetLink = await admin.auth().generatePasswordResetLink(email, actionCodeSettings);
+
+      const transporter = nodemailer.createTransport({
+        host: "mail.privateemail.com",
+        port: 587,
+        secure: false,
+        requireTLS: true,
+        auth: {
+          user: senderEmail,
+          pass: emailSmtpPassword.value(),
+        },
+        tls: {
+          minVersion: "TLSv1.2",
+          servername: "mail.privateemail.com",
+        },
+      });
+
+      await transporter.sendMail({
+        from: `ZedExams <${senderEmail}>`,
+        sender: senderEmail,
+        to: email,
+        replyTo: senderEmail,
+        subject: "ZedExams password reset request",
+        text: buildPasswordResetEmailText({resetLink}),
+        html: buildPasswordResetEmailHtml({resetLink, recipientEmail: email}),
+        envelope: {
+          from: senderEmail,
+          to: [email],
+        },
+        messageId: `<password-reset-${crypto.randomUUID()}@${senderDomain}>`,
+        headers: {
+          "X-Auto-Response-Suppress": "All",
+        },
+      });
+
+      return {success: true, message: "Password reset email sent successfully."};
+    } catch (error) {
+      console.error("sendPasswordResetEmail error:", error);
+      if (error.code === "auth/user-not-found") {
+        throw new HttpsError("not-found", "No account found with this email address.");
+      }
+      throw new HttpsError(
+        "internal",
+        "Failed to send password reset email. Please try again.",
       );
     }
   },
