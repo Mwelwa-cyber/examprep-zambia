@@ -1,0 +1,10 @@
+Redeploy trigger: 2026-05-06
+
+The hosting bundle on the live site went stale after a deploy and was no longer
+showing the "Continue with Google" button on the Login/Register screens, even
+though the Google sign-in code (PRs #204, #205) is present in main.
+
+Merging this commit triggers .github/workflows/deploy-hosting.yml, which
+rebuilds with the current source and pushes a fresh bundle to Firebase Hosting.
+
+This file is a no-op marker. Safe to delete in a follow-up cleanup.
