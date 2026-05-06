@@ -25,8 +25,8 @@ import ErrorBoundary from '../ui/ErrorBoundary'
 const NAV = [
   { to: '/admin',                        icon: LayoutDashboard, label: 'Dashboard',       end: true },
   { to: '/admin/learners',               icon: Users,           label: 'Learners'                  },
-  { to: '/admin/lessons',                icon: Presentation,    label: 'Lessons'                   },
-  { to: '/admin/lessons/new',            icon: BookOpen,        label: 'Create Lesson'             },
+  { to: '/admin/lessons',                icon: Presentation,    label: 'Notes Studio'              },
+  { to: '/admin/lessons/new',            icon: BookOpen,        label: 'Create Note'               },
   { to: '/admin/quizzes/new',            icon: PencilLine,      label: 'Create Quiz'               },
   { to: '/admin/content',                icon: FolderOpen,      label: 'Manage Content'            },
   { to: '/admin/approvals',              icon: BellRing,        label: 'Approvals'                 },
