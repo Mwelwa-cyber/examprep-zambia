@@ -24,6 +24,7 @@ import {
   FireIcon,
   Gamepad2,
   GraduationCap,
+  Lock,
   LogOut,
   PencilLine,
   Settings,
@@ -35,7 +36,7 @@ import { useAuth }              from '../../contexts/AuthContext'
 import { useFirestore }         from '../../hooks/useFirestore'
 import { useBadges }            from '../../hooks/useBadges'
 import { useDataSaver }         from '../../contexts/DataSaverContext'
-import { GRADE_META, SUBJECTS } from '../../config/curriculum'
+import { GRADE_META, SUBJECTS, getTopics } from '../../config/curriculum'
 import ProfessorPako            from '../ui/ProfessorPako'
 import DataSaverToggle          from '../ui/DataSaverToggle'
 import BadgeCard                from '../ui/BadgeCard'
@@ -60,21 +61,6 @@ const DASHBOARD_CHARACTERS = {
   hero:  { png: '/images/characters/zed-zara-reading.png?v=transparent-1', webp: '/images/characters/zed-zara-reading.webp?v=1', width: 1402, height: 1122 },
   exams: { png: '/images/characters/lina-study.png?v=transparent-1',       webp: '/images/characters/lina-study.webp?v=1',       width: 1313, height: 1198 },
   games: { png: '/images/characters/max-gaming.png?v=transparent-1',       webp: '/images/characters/max-gaming.webp?v=1',       width: 1254, height: 1254 },
-}
-
-const GRADE_DARK_TONES = {
-  4: {
-    text: 'text-blue-200',
-    pill: 'bg-blue-500/15 text-blue-100 ring-1 ring-blue-400/35',
-  },
-  5: {
-    text: 'text-green-200',
-    pill: 'bg-green-500/15 text-green-100 ring-1 ring-green-400/35',
-  },
-  6: {
-    text: 'text-orange-200',
-    pill: 'bg-orange-500/15 text-orange-100 ring-1 ring-orange-400/35',
-  },
 }
 
 const SUBJECT_DARK_TONES = {
@@ -279,75 +265,48 @@ function HeaderIconButton({ label, icon: ActionIcon, active = false, important =
   )
 }
 
-function GradeCard({ grade, meta, active, onClick }) {
-  const { dataSaver } = useDataSaver()
-  const tone = GRADE_DARK_TONES[grade] || GRADE_DARK_TONES[4]
-  return (
-    <button
-      onClick={onClick}
-      className={`zx-card relative w-full rounded-2xl p-4 sm:p-5 text-left transition-all duration-200 min-h-0 shadow-sm hover:shadow-md active:scale-95 overflow-hidden ${
-        active
-          ? `${meta.tailwind.bg} text-white ring-4 ${meta.tailwind.ring} scale-105`
-          : 'theme-card theme-text hover:opacity-95'
-      }`}
-    >
-      {/* Background accent blob */}
-      {!dataSaver && active && (
-        <div className="absolute top-0 right-0 w-20 h-20 rounded-full opacity-20 bg-white -translate-y-6 translate-x-6" />
-      )}
-
-      {/* Grade number */}
-      <div className={`text-3xl sm:text-4xl font-black mb-1 ${active ? 'text-white' : tone.text}`}>
-        {grade}
-      </div>
-      <div className={`text-xs font-black uppercase tracking-wide mb-0.5 ${active ? 'text-white/80' : 'theme-text-muted'}`}>
-        Grade
-      </div>
-      <div className={`text-xs font-bold leading-snug ${active ? 'text-white/90' : 'theme-text-muted'}`}>
-        {meta.tagline}
-      </div>
-
-      {/* Subject count pill */}
-      <div className={`mt-3 inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${
-        active ? 'bg-white/20 text-white' : tone.pill
-      }`}>
-        <Icon as={BookOpen} size="xs" strokeWidth={2.1} /> 7 subjects
-      </div>
-
-      {/* Active indicator */}
-      {active && (
-        <div className="absolute bottom-2 right-3 flex items-center gap-1 text-xs font-bold text-white/70">
-          <Icon as={CheckCircleIcon} size="xs" strokeWidth={2.1} /> Selected
-        </div>
-      )}
-    </button>
-  )
-}
-
-function SubjectCard({ subject, grade }) {
-  const quizPath    = `/quizzes?grade=${grade}&subject=${subject.id}`
-  const lessonPath  = `/lessons?grade=${grade}&subject=${subject.id}`
+// Richer subject card used inside the grade-personalised tab panels.
+// Topic count is read from the in-memory curriculum config (no Firestore
+// read). Per-subject quiz counts would require one extra read per subject;
+// we instead show "Quizzes available" and let the CTA link out to the
+// existing filtered /quizzes route.
+function SubjectCardRich({ subject, grade, perf, dimmed = false, ctaHref, ctaLabel = 'Quiz' }) {
+  const topicCount = getTopics(subject.id, grade).length
   const tone = SUBJECT_DARK_TONES[subject.id] || SUBJECT_DARK_TONES.mathematics
+  const score = typeof perf === 'number' ? perf : 0
+  const quizPath = ctaHref || `/quizzes?grade=${grade}&subject=${subject.id}`
+  const lessonPath = `/lessons?grade=${grade}&subject=${subject.id}`
 
   return (
-    <div className="zx-card theme-card rounded-2xl p-4 hover:shadow-sm transition-all">
-      <div className="flex items-center gap-3 mb-3">
+    <div className={`zx-card theme-card rounded-2xl p-4 transition-all hover:shadow-sm ${dimmed ? 'opacity-70' : ''}`}>
+      <div className="flex items-center gap-3 mb-2">
         <div className={`w-10 h-10 ${tone.tile} rounded-xl flex items-center justify-center text-xl flex-shrink-0`}>
           {subject.icon}
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="font-black theme-text text-sm leading-tight truncate">{subject.label}</p>
           <p className={`text-xs font-bold ${tone.text} mt-0.5`}>Grade {grade}</p>
         </div>
+        <span className="text-xs font-black theme-text-muted">{score}%</span>
       </div>
 
-      {/* Quick action buttons */}
+      <div className="theme-bg-subtle h-2 rounded-full overflow-hidden mb-3">
+        <div
+          className={`h-2 rounded-full ${subject.tailwind.bg} transition-[width] duration-500`}
+          style={{ width: `${Math.min(Math.max(score, 0), 100)}%` }}
+        />
+      </div>
+
+      <p className="theme-text-muted text-xs font-bold mb-3">
+        {topicCount} topic{topicCount === 1 ? '' : 's'} · Quizzes available
+      </p>
+
       <div className="flex gap-1.5">
         <Link
           to={quizPath}
           className={`flex flex-1 items-center justify-center gap-1 text-xs font-bold py-1.5 rounded-lg transition-opacity ${tone.action}`}
         >
-          <Icon as={PencilLine} size="xs" strokeWidth={2.1} /> Quiz
+          <Icon as={PencilLine} size="xs" strokeWidth={2.1} /> {ctaLabel}
         </Link>
         <Link
           to={lessonPath}
@@ -357,6 +316,25 @@ function SubjectCard({ subject, grade }) {
         </Link>
       </div>
     </div>
+  )
+}
+
+function TabButton({ active, onClick, accentBg, children, locked = false }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`min-h-0 rounded-2xl px-3 py-2.5 text-xs font-black transition-all shadow-sm ${
+        active
+          ? `${accentBg || 'bg-blue-600'} text-white ring-2 ring-white/20`
+          : 'theme-bg-subtle theme-text-muted hover:theme-card'
+      }`}
+    >
+      <span className="inline-flex items-center justify-center gap-1.5">
+        {locked && <Icon as={Lock} size="xs" strokeWidth={2.4} />}
+        {children}
+      </span>
+    </button>
   )
 }
 
@@ -469,10 +447,23 @@ export default function GradeHub() {
   const { dataSaver }                        = useDataSaver()
   const navigate                             = useNavigate()
 
-  // Grade selection (null = show all 3 cards; 4|5|6 = show subject grid)
+  // Learner's own grade as a number, validated against the supported set.
+  // Null when the profile has no grade (e.g. teacher/admin viewing the
+  // dashboard) — the My Grade panel renders a "set your grade" prompt.
   const defaultGrade = userProfile?.grade ? parseInt(userProfile.grade, 10) : null
   const validGrade   = [4, 5, 6].includes(defaultGrade) ? defaultGrade : null
-  const [selectedGrade, setSelectedGrade] = useState(validGrade)
+
+  // Grade-personalised tabs: My Grade (default), Next Level, Challenge.
+  // No routing — local state only, content swaps in place.
+  const [activeTab, setActiveTab] = useState('myGrade')
+  // When learner unlocks Next Level and taps "Enter Grade N+1", we render the
+  // next grade's subject grid in place without leaving the dashboard.
+  const [previewNextLevel, setPreviewNextLevel] = useState(false)
+
+  // Per-subject performance keyed by subject.id. Sourced from
+  // userProfile.performance if present (future-proof for a server-side
+  // aggregation), otherwise derived from the last 50 quiz results.
+  const [perfBySubject, setPerfBySubject] = useState({})
 
   const [recentResults, setRecentResults] = useState([])
   const [stats, setStats]                 = useState({ quizzes: 0, streak: 0 })
@@ -516,13 +507,71 @@ export default function GradeHub() {
     return () => { cancelled = true }
   }, [currentUser, userProfile])
 
+  // Per-subject performance: prefer pre-aggregated userProfile.performance
+  // when available, otherwise derive from the last 50 results. One extra
+  // Firestore read per session in the derived path.
+  useEffect(() => {
+    if (!currentUser) {
+      setPerfBySubject({})
+      return undefined
+    }
+    if (userProfile?.performance && typeof userProfile.performance === 'object') {
+      setPerfBySubject(userProfile.performance)
+      return undefined
+    }
+
+    let cancelled = false
+    getUserResults(currentUser.uid, 50).then(results => {
+      if (cancelled) return
+      const acc = {}
+      results.forEach(r => {
+        if (!r.subject || typeof r.percentage !== 'number') return
+        acc[r.subject] ??= { sum: 0, n: 0 }
+        acc[r.subject].sum += r.percentage
+        acc[r.subject].n   += 1
+      })
+      const out = {}
+      Object.entries(acc).forEach(([s, v]) => { out[s] = Math.round(v.sum / v.n) })
+      setPerfBySubject(out)
+    }).catch(err => {
+      if (cancelled) return
+      console.error('GradeHub performance:', err)
+      setPerfBySubject({})
+    })
+    return () => { cancelled = true }
+  }, [currentUser, userProfile])
+
   useEffect(() => {
     setSeenNotificationIds(readSeenNotificationIds(notificationUserId))
   }, [notificationUserId])
 
-  function handleGradeSelect(grade) {
-    setSelectedGrade(prev => prev === grade ? null : grade)
-  }
+  // ── Grade-personalised derived values ────────────────────────────────────
+  // userGrade is the learner's own grade (number); nextGrade is +1, capped
+  // at 6 (CBC Upper Primary tops out there).
+  const userGrade = validGrade
+  const nextGrade = userGrade ? userGrade + 1 : null
+  const hasNextGrade = nextGrade !== null && nextGrade <= 6
+
+  // Average across the 7 CBC subjects, using only those with recorded scores.
+  const subjectScoreList = SUBJECTS
+    .map(s => perfBySubject[s.id])
+    .filter(v => typeof v === 'number')
+  const avgPerformance = subjectScoreList.length
+    ? Math.round(subjectScoreList.reduce((a, b) => a + b, 0) / subjectScoreList.length)
+    : 0
+
+  const nextLevelUnlocked = avgPerformance >= 70 && hasNextGrade
+  const challengeSubjects = SUBJECTS.filter(s => (perfBySubject[s.id] ?? 0) >= 80)
+  // Challenge tab APPEARS only when the learner has earned it — per spec,
+  // the section is performance-gated rather than always-visible-but-locked.
+  const showChallenge = challengeSubjects.length > 0
+  const gradeAccentBg = userGrade ? GRADE_META[userGrade]?.tailwind.bg : 'bg-blue-600'
+
+  // If Challenge is hidden (or becomes unavailable mid-session), don't leave
+  // an orphan tab selected.
+  useEffect(() => {
+    if (activeTab === 'challenge' && !showChallenge) setActiveTab('myGrade')
+  }, [activeTab, showChallenge])
 
   const { accessBadge, isDemoOnly } = useSubscription()
   const firstName = userProfile?.displayName?.split(' ')[0] ?? 'Learner'
@@ -880,64 +929,218 @@ export default function GradeHub() {
           imageVariant="games"
         />
 
-        {/* ── GRADE SELECTION ─────────────────────────────────── */}
+        {/* ── GRADE-PERSONALISED HUB (3 tabs) ─────────────────── */}
         <section>
           <div className="flex items-center justify-between mb-3">
             <h2 className="learner-page-heading text-display-md flex items-center gap-2">
               <Icon as={AcademicCapIcon} size="lg" strokeWidth={2.1} /> Primary Hub
             </h2>
-            {selectedGrade && (
-              <button
-                onClick={() => setSelectedGrade(null)}
-                className="flex items-center gap-1 text-xs font-bold theme-accent-text hover:opacity-80 min-h-0 bg-transparent shadow-none px-2 py-1"
+          </div>
+
+          {/* Tab bar */}
+          <div className={`grid ${showChallenge ? 'grid-cols-3' : 'grid-cols-2'} gap-2 mb-4`}>
+            <TabButton
+              active={activeTab === 'myGrade'}
+              accentBg={gradeAccentBg}
+              onClick={() => setActiveTab('myGrade')}
+            >
+              My Grade
+            </TabButton>
+            <TabButton
+              active={activeTab === 'nextLevel'}
+              accentBg={gradeAccentBg}
+              locked={!nextLevelUnlocked && hasNextGrade}
+              onClick={() => setActiveTab('nextLevel')}
+            >
+              Next Level
+            </TabButton>
+            {showChallenge && (
+              <TabButton
+                active={activeTab === 'challenge'}
+                accentBg={gradeAccentBg}
+                onClick={() => setActiveTab('challenge')}
               >
-                All Grades
-              </button>
+                Challenge
+              </TabButton>
             )}
           </div>
 
-          {/* Grade cards */}
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            {[4, 5, 6].map(g => (
-              <GradeCard
-                key={g}
-                grade={g}
-                meta={GRADE_META[g]}
-                active={selectedGrade === g}
-                onClick={() => handleGradeSelect(g)}
-              />
-            ))}
-          </div>
-
-          {/* Subject grid — shown when a grade is selected */}
-          {selectedGrade && (
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <div className={`w-6 h-6 ${GRADE_META[selectedGrade].tailwind.bg} rounded-lg flex items-center justify-center text-white text-xs font-black`}>
-                  {selectedGrade}
+          {/* ── My Grade panel ────────────────────────────────── */}
+          {activeTab === 'myGrade' && (
+            userGrade ? (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className={`w-6 h-6 ${GRADE_META[userGrade].tailwind.bg} rounded-lg flex items-center justify-center text-white text-xs font-black`}>
+                    {userGrade}
+                  </div>
+                  <h3 className="learner-page-heading text-sm font-black">
+                    My Grade (Grade {userGrade})
+                  </h3>
                 </div>
-                <h3 className="learner-page-heading text-sm font-black">
-                  Grade {selectedGrade} — Choose a Learning Area
-                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {SUBJECTS.map(subject => (
+                    <SubjectCardRich
+                      key={subject.id}
+                      subject={subject}
+                      grade={userGrade}
+                      perf={perfBySubject[subject.id]}
+                    />
+                  ))}
+                </div>
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {SUBJECTS.map(subject => (
-                  <SubjectCard key={subject.id} subject={subject} grade={selectedGrade} />
-                ))}
+            ) : (
+              <div className="zx-card theme-card rounded-2xl border theme-border p-4 flex items-center gap-3">
+                {!dataSaver && <ProfessorPako size={48} mood="tip" animate={false} />}
+                <div className="min-w-0 flex-1">
+                  <p className="font-black theme-text text-sm">Set your grade to personalise your hub</p>
+                  <p className="theme-text-muted text-xs mt-0.5">
+                    Update your profile so we can show your Grade 4, 5, or 6 subjects.
+                  </p>
+                </div>
+                <Link
+                  to="/profile"
+                  className="flex items-center gap-1 rounded-full bg-white/15 px-3 py-1.5 text-xs font-black theme-accent-text hover:opacity-90"
+                >
+                  Profile <Icon as={ChevronRight} size="xs" strokeWidth={2.1} />
+                </Link>
               </div>
-            </div>
+            )
           )}
 
-          {/* Prompt when no grade selected */}
-          {!selectedGrade && (
-            <div className="zx-card theme-card rounded-2xl border theme-border p-4 flex items-center gap-3">
-              {!dataSaver && <ProfessorPako size={48} mood="tip" animate={false} />}
+          {/* ── Next Level panel ──────────────────────────────── */}
+          {activeTab === 'nextLevel' && (
+            !hasNextGrade ? (
+              <div className="zx-card theme-card rounded-2xl border theme-border p-5 flex items-center gap-3">
+                {!dataSaver && <ProfessorPako size={52} mood="proud" animate={false} />}
+                <div>
+                  <p className="font-black theme-text text-sm">You&rsquo;ve completed CBC Upper Primary!</p>
+                  <p className="theme-text-muted text-xs mt-0.5">
+                    Grade 6 is the top grade in this hub. Keep practising to maintain mastery.
+                  </p>
+                </div>
+              </div>
+            ) : !nextLevelUnlocked ? (
               <div>
-                <p className="font-black theme-text text-sm">Select your grade above</p>
-                <p className="theme-text-muted text-xs mt-0.5">
-                  Choose Grade 4, 5, or 6 to see your subjects and start practising.
+                <div className="zx-card theme-card rounded-2xl border theme-border p-5 mb-3">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-11 h-11 theme-bg-subtle rounded-2xl flex items-center justify-center theme-text-muted">
+                      <Icon as={Lock} size="lg" strokeWidth={2.2} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-black theme-text text-sm">Grade {nextGrade} is locked</p>
+                      <p className="theme-text-muted text-xs mt-0.5">
+                        Unlock at 70% average — currently {avgPerformance}%
+                      </p>
+                    </div>
+                  </div>
+                  <div className="theme-bg-subtle h-2 rounded-full overflow-hidden">
+                    <div
+                      className={`h-2 rounded-full ${gradeAccentBg} transition-[width] duration-500`}
+                      style={{ width: `${Math.min(Math.round((avgPerformance / 70) * 100), 100)}%` }}
+                    />
+                  </div>
+                  <p className="theme-text-muted text-[11px] font-bold mt-2">
+                    {Math.max(70 - avgPerformance, 0)}% to go — keep practising across your subjects.
+                  </p>
+                </div>
+
+                {/* Dimmed preview of next grade so the learner sees the goal */}
+                <p className="theme-text-muted text-xs font-black uppercase tracking-wide mb-2">
+                  Preview · Grade {nextGrade}
                 </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {SUBJECTS.map(subject => (
+                    <SubjectCardRich
+                      key={subject.id}
+                      subject={subject}
+                      grade={nextGrade}
+                      perf={0}
+                      dimmed
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="zx-card theme-card rounded-2xl border theme-border p-5 mb-3 flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-emerald-500/20 ring-1 ring-emerald-300/40 flex items-center justify-center text-emerald-200">
+                    <Icon as={CheckCircleIcon} size="lg" strokeWidth={2.2} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-black theme-text text-sm">Grade {nextGrade} unlocked!</p>
+                    <p className="theme-text-muted text-xs mt-0.5">
+                      Average {avgPerformance}% — you&rsquo;re ready for the next challenge.
+                    </p>
+                  </div>
+                  {!previewNextLevel ? (
+                    <button
+                      type="button"
+                      onClick={() => setPreviewNextLevel(true)}
+                      className={`min-h-0 inline-flex items-center gap-1 rounded-full px-3 py-2 text-xs font-black text-white shadow-sm ${gradeAccentBg} hover:opacity-90`}
+                    >
+                      Enter Grade {nextGrade}
+                      <Icon as={ChevronRight} size="xs" strokeWidth={2.4} />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setPreviewNextLevel(false)}
+                      className="min-h-0 inline-flex items-center gap-1 rounded-full theme-bg-subtle theme-text-muted px-3 py-2 text-xs font-black hover:opacity-90"
+                    >
+                      Back
+                    </button>
+                  )}
+                </div>
+
+                {previewNextLevel && (
+                  <>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className={`w-6 h-6 ${GRADE_META[nextGrade].tailwind.bg} rounded-lg flex items-center justify-center text-white text-xs font-black`}>
+                        {nextGrade}
+                      </div>
+                      <h3 className="learner-page-heading text-sm font-black">
+                        Grade {nextGrade} — Stretch Yourself
+                      </h3>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {SUBJECTS.map(subject => (
+                        <SubjectCardRich
+                          key={subject.id}
+                          subject={subject}
+                          grade={nextGrade}
+                          perf={perfBySubject[subject.id]}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )
+          )}
+
+          {/* ── Challenge Mode panel ──────────────────────────── */}
+          {activeTab === 'challenge' && showChallenge && (
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Icon as={Sparkles} size="sm" strokeWidth={2.1} className="theme-accent-text" />
+                <h3 className="learner-page-heading text-sm font-black">
+                  Challenge Mode (For You)
+                </h3>
+              </div>
+              <p className="theme-text-muted text-xs font-bold mb-3">
+                Recommended based on your performance
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {challengeSubjects.map(subject => (
+                  <SubjectCardRich
+                    key={subject.id}
+                    subject={subject}
+                    grade={userGrade}
+                    perf={perfBySubject[subject.id]}
+                    ctaLabel="Start Challenge"
+                    ctaHref={`/quizzes?grade=${userGrade}&subject=${subject.id}&difficulty=hard`}
+                  />
+                ))}
               </div>
             </div>
           )}
