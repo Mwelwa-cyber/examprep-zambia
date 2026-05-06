@@ -44,6 +44,7 @@ import OnboardingOverlay        from '../ui/OnboardingOverlay'
 import Icon                     from '../ui/Icon'
 import Button                   from '../ui/Button'
 import Skeleton                 from '../ui/Skeleton'
+import ThemeSelector            from '../ui/ThemeSelector'
 import MobileBottomNav          from '../layout/MobileBottomNav'
 import { useSubscription }      from '../../hooks/useSubscription'
 import GameStickerStyles        from '../games/GameStickerStyles'
@@ -667,6 +668,8 @@ export default function GradeHub() {
 
           <div className="flex items-center gap-1.5 sm:gap-2">
             <HeaderIconLink to="/my-results" label="Progress" icon={BarChart3} />
+
+            <ThemeSelector dashboardStyle={true} />
 
             <div ref={notificationsRef} className="relative">
               <HeaderIconButton
