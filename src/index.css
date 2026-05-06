@@ -1711,7 +1711,7 @@ body.data-saver [data-bg-gradient] {
 
 .learner-chrome-label,
 .learner-chrome-icon {
-  color: #334155;
+  color: #64748b;
 }
 
 body.theme-lavender .learner-page-heading {
@@ -1720,7 +1720,7 @@ body.theme-lavender .learner-page-heading {
 
 body.theme-lavender .learner-chrome-label,
 body.theme-lavender .learner-chrome-icon {
-  color: #4c1d95;
+  color: #7c3aed;
 }
 
 body.theme-midnight .learner-page-heading {
@@ -1729,7 +1729,7 @@ body.theme-midnight .learner-page-heading {
 
 body.theme-midnight .learner-chrome-label,
 body.theme-midnight .learner-chrome-icon {
-  color: #d6e0ee;
+  color: #e2e8f0;
 }
 
 body.theme-oatmeal .learner-page-heading {
@@ -1738,7 +1738,7 @@ body.theme-oatmeal .learner-page-heading {
 
 body.theme-oatmeal .learner-chrome-label,
 body.theme-oatmeal .learner-chrome-icon {
-  color: #78350f;
+  color: #c2410c;
 }
 
 body.theme-solar .learner-page-heading {
@@ -1747,7 +1747,7 @@ body.theme-solar .learner-page-heading {
 
 body.theme-solar .learner-chrome-label,
 body.theme-solar .learner-chrome-icon {
-  color: #713f12;
+  color: #a16207;
 }
 
 body.theme-vivid .learner-page-heading {
@@ -1756,7 +1756,7 @@ body.theme-vivid .learner-page-heading {
 
 body.theme-vivid .learner-chrome-label,
 body.theme-vivid .learner-chrome-icon {
-  color: #9d174d;
+  color: #db2777;
 }
 
 body.theme-sky .learner-game-theme {
