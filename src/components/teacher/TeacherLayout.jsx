@@ -1,11 +1,9 @@
-import { lazy, Suspense, useState } from 'react'
+import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard,
-  Presentation,
   PencilLine,
   BookOpen,
-  Home,
   Menu,
   X,
   LogOut,
@@ -16,35 +14,21 @@ import Logo from '../ui/Logo'
 import Icon from '../ui/Icon'
 import TeacherTopBar from './TeacherTopBar'
 
-const UpgradeModal = lazy(() => import('../subscription/UpgradeModal'))
-
 const NAV = [
   { to: '/teacher',                  icon: LayoutDashboard, label: 'My Dashboard', end: true },
   { to: '/teacher/assessments',      icon: PencilLine,      label: 'Assessments'             },
-  { to: '/teacher/lessons',          icon: Presentation,    label: 'My Lessons'              },
   { to: '/teacher/lessons/new',      icon: BookOpen,        label: 'Create Lesson'           },
   { to: '/settings',                 icon: Settings,        label: 'Settings'                },
 ]
 
 export default function TeacherLayout({ children }) {
-  const { logout, userProfile, canAccessLearnerPortal, isAdmin } = useAuth()
+  const { logout, userProfile, isAdmin } = useAuth()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [showSubscribe, setShowSubscribe] = useState(false)
 
   async function handleLogout() {
     await logout()
     navigate('/login')
-  }
-
-  function handleLearnerDashboardClick(event) {
-    event.preventDefault()
-    setMobileOpen(false)
-    if (canAccessLearnerPortal) {
-      navigate('/dashboard')
-    } else {
-      setShowSubscribe(true)
-    }
   }
 
   const navClass = ({ isActive }) =>
@@ -92,28 +76,18 @@ export default function TeacherLayout({ children }) {
         </div>
 
         <nav className="flex-1 p-3 space-y-1">
-          <button
-            type="button"
-            onClick={handleLearnerDashboardClick}
-            title="Switch to the student-facing portal to see what learners see"
-            className="theme-bg-subtle theme-text hover:theme-accent-bg hover:theme-accent-text flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all duration-fast ease-out text-left"
-          >
-            <Icon as={Home} size="sm" />
-            <span className="leading-tight">
-              Learner Dashboard
-              <span className="block text-[10.5px] font-semibold opacity-70 mt-0.5">View student-facing content</span>
-            </span>
-          </button>
           {isAdmin && (
-            <Link
-              to="/admin"
-              className="theme-bg-subtle theme-text hover:theme-accent-bg hover:theme-accent-text flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all duration-fast ease-out"
-            >
-              <Icon as={Settings} size="sm" />
-              Admin Panel
-            </Link>
+            <>
+              <Link
+                to="/admin"
+                className="theme-bg-subtle theme-text hover:theme-accent-bg hover:theme-accent-text flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all duration-fast ease-out"
+              >
+                <Icon as={Settings} size="sm" />
+                Admin Panel
+              </Link>
+              <div className="theme-border my-2 border-t" />
+            </>
           )}
-          <div className="theme-border my-2 border-t" />
           {NAV.map(item => (
             <NavLink key={item.to} to={item.to} end={item.end} className={navClass}>
               {({ isActive }) => (
@@ -190,27 +164,18 @@ export default function TeacherLayout({ children }) {
             className="theme-card theme-border absolute left-0 right-0 top-20 space-y-1 border-t p-3 shadow-elev-xl stagger"
             onClick={e => e.stopPropagation()}
           >
-            <button
-              type="button"
-              onClick={handleLearnerDashboardClick}
-              className="theme-bg-subtle theme-text hover:theme-accent-bg hover:theme-accent-text flex w-full items-start gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-colors animate-slide-in-soft text-left"
-            >
-              <Icon as={Home} size="sm" />
-              <span className="leading-tight">
-                Learner Dashboard
-                <span className="block text-[11px] font-semibold opacity-70 mt-0.5">View student-facing content</span>
-              </span>
-            </button>
             {isAdmin && (
-              <Link
-                to="/admin"
-                onClick={() => setMobileOpen(false)}
-                className="theme-bg-subtle theme-text hover:theme-accent-bg hover:theme-accent-text flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-colors animate-slide-in-soft"
-              >
-                <Icon as={Settings} size="sm" />Admin Panel
-              </Link>
+              <>
+                <Link
+                  to="/admin"
+                  onClick={() => setMobileOpen(false)}
+                  className="theme-bg-subtle theme-text hover:theme-accent-bg hover:theme-accent-text flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-colors animate-slide-in-soft"
+                >
+                  <Icon as={Settings} size="sm" />Admin Panel
+                </Link>
+                <div className="theme-border my-2 border-t" />
+              </>
             )}
-            <div className="theme-border my-2 border-t" />
             {NAV.map(item => (
               <NavLink
                 key={item.to}
@@ -254,11 +219,6 @@ export default function TeacherLayout({ children }) {
         </div>
       </main>
 
-      {showSubscribe && (
-        <Suspense fallback={null}>
-          <UpgradeModal portal="learner" onClose={() => setShowSubscribe(false)} />
-        </Suspense>
-      )}
     </div>
   )
 }

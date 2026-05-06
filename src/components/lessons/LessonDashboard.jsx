@@ -241,12 +241,14 @@ export default function LessonDashboard() {
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-black uppercase tracking-wide text-emerald-700">Lessons</p>
-          <h1 className="mt-1 text-3xl font-black text-gray-900">{isTeacherArea ? 'My Lesson Slides' : 'Lesson Dashboard'}</h1>
-          <p className="mt-1 text-sm font-bold text-gray-500">Create, edit, publish, and organise native slides or preserved PowerPoint presentations.</p>
+          <p className="text-sm font-black uppercase tracking-wide text-emerald-700">{isTeacherArea ? 'Lessons' : 'Notes'}</p>
+          <h1 className="mt-1 text-3xl font-black text-gray-900">{isTeacherArea ? 'My Lesson Slides' : 'Notes Studio'}</h1>
+          <p className="mt-1 text-sm font-bold text-gray-500">{isTeacherArea
+            ? 'Create, edit, publish, and organise native slides or preserved PowerPoint presentations.'
+            : 'Author the notes learners read in the Lessons & Notes section of their dashboard.'}</p>
         </div>
         <Button as={Link} to={`${basePath}/new`} variant="primary" size="md">
-          Create New Lesson
+          {isTeacherArea ? 'Create New Lesson' : 'Create New Note'}
         </Button>
       </div>
 
