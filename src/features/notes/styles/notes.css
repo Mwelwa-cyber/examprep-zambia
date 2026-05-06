@@ -1,0 +1,49 @@
+/* src/features/notes/styles/notes.css
+   Typography + math rendering for the Notes Studio.
+   Imported once at the top of any page that uses NoteEditor or note bodies.
+   Pairs with Tailwind for layout — these styles only handle prose + math.
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
+
+.notes-studio,
+.notes-studio * { box-sizing: border-box; }
+
+.notes-studio {
+  font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  color: #0a0a0a;
+}
+
+.font-display        { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; }
+.font-display-italic { font-family: 'Instrument Serif', Georgia, serif; font-style: italic; font-weight: 400; }
+
+/* prose-note: the article body styling for both editor surface and learner reader */
+.prose-note p          { margin-bottom: 1.1em; line-height: 1.75; color: #262626; }
+.prose-note h2         { font-family: 'Instrument Serif', Georgia, serif; font-size: 1.75rem; margin-top: 2em; margin-bottom: 0.6em; color: #0a0a0a; line-height: 1.2; }
+.prose-note ul,
+.prose-note ol         { margin-bottom: 1.1em; padding-left: 1.5rem; }
+.prose-note ul li      { line-height: 1.75; margin-bottom: 0.4em; list-style: disc; color: #262626; }
+.prose-note ol li      { line-height: 1.75; margin-bottom: 0.4em; list-style: decimal; color: #262626; }
+.prose-note strong     { color: #0a0a0a; font-weight: 600; }
+.prose-note table      { border-collapse: collapse; width: 100%; margin: 1.5em 0; font-size: 0.95em; }
+.prose-note th,
+.prose-note td         { border: 1px solid #e5e5e5; padding: 0.5em 0.75em; text-align: left; }
+.prose-note th         { background: #fafaf7; font-weight: 600; color: #0a0a0a; }
+.prose-note figure     { margin: 1.5em 0; }
+.prose-note figcaption { font-family: 'Instrument Serif', Georgia, serif; font-style: italic; font-size: 0.875rem; color: #737373; text-align: center; margin-top: 0.5em; }
+.prose-note img        { max-width: 100%; height: auto; border-radius: 0.5rem; }
+
+/* Inline math + display equations + fractions + square roots
+   These classes are emitted by the Tiptap math extension and the per-note bodies.
+*/
+.math               { font-family: 'Instrument Serif', Georgia, serif; font-style: italic; }
+.math-display       { font-family: 'Instrument Serif', Georgia, serif; font-style: italic; font-size: 1.4em; text-align: center; margin: 1.4em 0; color: #0a0a0a; line-height: 1.6; }
+.frac               { display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; margin: 0 0.15em; font-style: italic; font-family: 'Instrument Serif', Georgia, serif; line-height: 1.05; }
+.frac > .num        { border-bottom: 1px solid currentColor; padding: 0 0.35em 0.05em; }
+.frac > .den        { padding: 0.05em 0.35em 0; }
+.sqrt               { font-style: italic; font-family: 'Instrument Serif', Georgia, serif; }
+.sqrt::before       { content: '√'; font-style: normal; margin-right: 0.05em; }
+.sqrt > .rad        { border-top: 1px solid currentColor; padding: 0 0.15em; }
+
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide                   { scrollbar-width: none; }

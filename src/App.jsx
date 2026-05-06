@@ -39,8 +39,15 @@ const QuizRunner = lazy(() => import('./components/quiz/QuizRunnerV2'))
 const QuizResults = lazy(() => import('./components/quiz/QuizResultsV2'))
 const LessonsList = lazy(() => import('./components/lessons/LessonLibrary'))
 const LessonView = lazy(() => import('./components/lessons/LessonPlayer'))
-const LessonDashboard = lazy(() => import('./components/lessons/LessonDashboard'))
+// Slide-builder admin (LessonDashboard/LessonEditor) replaced by Notes Studio.
+// Kept on disk under src/components/lessons/ for one release in case revert
+// is needed; teacher panel still uses LessonEditor for /teacher/lessons.
 const LessonEditor = lazy(() => import('./components/lessons/LessonEditor'))
+const LessonDashboard = lazy(() => import('./components/lessons/LessonDashboard'))
+
+// Notes Studio admin — replaces the old slide-builder at /admin/lessons
+const AdminNotesList  = lazy(() => import('./features/notes/pages/AdminNotesList').then(m => ({ default: m.AdminNotesList })))
+const AdminNoteEditor = lazy(() => import('./features/notes/pages/AdminNoteEditor').then(m => ({ default: m.AdminNoteEditor })))
 const LearnerSyllabiLibrary = lazy(() => import('./components/syllabi/SyllabiLibrary'))
 const MyResults = lazy(() => import('./components/dashboard/MyResults'))
 const BadgesPage = lazy(() => import('./components/dashboard/BadgesPage'))
@@ -272,9 +279,9 @@ export default function App() {
 
           {/* ── Admin routes (all wrapped in AdminLayout) ──────── */}
           <Route path="/admin"                          element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-          <Route path="/admin/lessons"                  element={<AdminRoute><LessonDashboard /></AdminRoute>} />
-          <Route path="/admin/lessons/new"              element={<AdminRoute><LessonEditor /></AdminRoute>} />
-          <Route path="/admin/lessons/:lessonId/edit"   element={<AdminRoute><LessonEditor /></AdminRoute>} />
+          <Route path="/admin/lessons"                  element={<AdminRoute><AdminNotesList /></AdminRoute>} />
+          <Route path="/admin/lessons/new"              element={<AdminRoute><AdminNoteEditor /></AdminRoute>} />
+          <Route path="/admin/lessons/:id/edit"         element={<AdminRoute><AdminNoteEditor /></AdminRoute>} />
           <Route path="/admin/quizzes/new"              element={<AdminRoute><CreateQuiz /></AdminRoute>} />
           <Route path="/admin/quizzes/:quizId/edit"     element={<AdminRoute><EditQuiz /></AdminRoute>} />
           <Route path="/admin/content"                  element={<AdminRoute><ManageContent /></AdminRoute>} />

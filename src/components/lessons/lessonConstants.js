@@ -1,17 +1,19 @@
+import { GRADES, SUBJECTS, NOTE_FORMAT, NOTE_STATUS } from '../../config/curriculum'
+
 export const LESSON_SCHEMA_VERSION = 1
 
-export const LESSON_GRADES = ['4', '5', '6']
+// Derived from the canonical curriculum source so we don't drift.
+// Stays as a string array (e.g. ['4','5','6']) because the editor
+// uses these as <option value> attributes and writes them to Firestore.
+export const LESSON_GRADES = GRADES.map(String)
 export const LESSON_TERMS = ['1', '2', '3']
 
-export const LESSON_SUBJECTS = [
-  'Mathematics',
-  'English',
-  'Integrated Science',
-  'Social Studies',
-  'Technology Studies',
-  'Home Economics',
-  'Expressive Arts',
-]
+export const LESSON_SUBJECTS = SUBJECTS.map(s => s.label)
+
+// Re-exports so Notes Studio code can pull format/status enums from
+// the same module the editor already imports.
+export const LESSON_NOTE_FORMAT = NOTE_FORMAT
+export const LESSON_NOTE_STATUS = NOTE_STATUS
 
 export const CREATION_MODES = [
   {
