@@ -9,7 +9,7 @@ import {
 } from 'firebase/auth'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp, onSnapshot } from 'firebase/firestore'
-import app, { auth, db, googleProvider } from '../firebase/config'
+import app, { auth, db, googleProvider, applyAuthPersistence } from '../firebase/config'
 import { ROLES, hasPremiumAccess, hasLearnerPortalAccess } from '../utils/subscriptionConfig'
 import { useIdleTimeout } from '../hooks/useIdleTimeout'
 
@@ -85,15 +85,17 @@ export function AuthProvider({ children }) {
     return cred
   }
 
-  function login(email, password) {
+  async function login(email, password, { remember = false } = {}) {
+    await applyAuthPersistence(remember)
     return signInWithEmailAndPassword(auth, email, password)
   }
 
   // Google sign-in. New users get a default profile; the caller can pass
   // `role` (used only on first sign-in) so the Register page can honour the
   // selected Learner/Teacher tab. Existing users keep their saved role.
-  async function loginWithGoogle({ role } = {}) {
+  async function loginWithGoogle({ role, remember = false } = {}) {
     const targetRole = role === ROLES.TEACHER ? ROLES.TEACHER : ROLES.LEARNER
+    await applyAuthPersistence(remember)
     const cred = await signInWithPopup(auth, googleProvider)
     const userRef = doc(db, 'users', cred.user.uid)
     const snap = await getDoc(userRef)

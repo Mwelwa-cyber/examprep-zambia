@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app'
 import {
   getAuth,
   setPersistence,
+  browserLocalPersistence,
   browserSessionPersistence,
   indexedDBLocalPersistence,
   GoogleAuthProvider,
@@ -29,20 +30,25 @@ export const storage = getStorage(app)
 export const googleProvider = new GoogleAuthProvider()
 googleProvider.setCustomParameters({ prompt: 'select_account' })
 
-// Web: session-only persistence — closing the last tab/window ends the
-// session. Combined with the idle timeout in AuthContext, this protects
-// accounts on shared or stolen devices (a refresh in the same tab still
-// keeps the user in).
+// Web default is session-only persistence — closing the last tab/window
+// ends the session. Combined with the idle timeout in AuthContext, this
+// protects accounts on shared or stolen devices. When the user ticks
+// "Remember me" on the login form we switch to browserLocalPersistence
+// for that sign-in so the session survives a browser restart.
 //
 // Native (Capacitor): every relaunch of the wrapper destroys the WebView,
 // which would log session-only users out every time they open the app.
-// Use IndexedDB-backed persistence so the user stays signed in between
-// launches; the idle timeout still kicks in after inactivity.
-const persistence = isNativePlatform()
-  ? indexedDBLocalPersistence
-  : browserSessionPersistence
-setPersistence(auth, persistence).catch((e) => {
-  console.error('Failed to set auth persistence:', e)
-})
+// Always use IndexedDB-backed persistence there; the "Remember me" choice
+// is irrelevant.
+export function applyAuthPersistence(remember) {
+  const persistence = isNativePlatform()
+    ? indexedDBLocalPersistence
+    : remember ? browserLocalPersistence : browserSessionPersistence
+  return setPersistence(auth, persistence).catch((e) => {
+    console.error('Failed to set auth persistence:', e)
+  })
+}
+
+applyAuthPersistence(false)
 
 export default app
