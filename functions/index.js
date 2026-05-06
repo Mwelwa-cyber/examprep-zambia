@@ -220,10 +220,20 @@ function resolvePasswordResetContinueUrl(rawValue) {
 }
 
 function buildPasswordResetEmailHtml({resetLink, recipientEmail}) {
+  const logoUrl = "https://zedexams.com/password-reset-logo.png";
   return `
     <div style="margin:0;padding:24px;background-color:#f4f1ea;font-family:Arial,sans-serif;color:#1f2937;">
       <div style="max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;">
         <div style="padding:28px 32px;background:#1a1f2e;color:#ffffff;">
+          <div style="margin-bottom:16px;">
+            <img
+              src="${logoUrl}"
+              alt="ZedExams"
+              width="96"
+              height="96"
+              style="display:block;width:96px;height:96px;border-radius:20px;"
+            />
+          </div>
           <div style="font-size:28px;font-weight:700;letter-spacing:0.02em;">ZedExams</div>
           <div style="margin-top:8px;font-size:14px;line-height:1.5;color:#d1d5db;">
             Password reset request
